@@ -2,7 +2,7 @@
 
 **Saved:** 2026-08-05  
 **Status:** **Public launch path** — Mac 1.3.0 / Windows 1.1.0 Free+Pro, marketing site, release CI, GitHub Releases.  
-**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · [docs/SHIP.md](docs/SHIP.md)
+**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · [docs/SHIP.md](docs/SHIP.md) · [docs/LINEAR.md](docs/LINEAR.md)
 
 ---
 

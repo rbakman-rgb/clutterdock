@@ -48,7 +48,8 @@ gh repo edit rbakman-rgb/slavedock --visibility public
 | **Pro checkout** | Lemon Squeezy / Gumroad / Paddle product + auto key email | Create store product; point website “Unlock Pro” at checkout URL; optional webhook to generate keys |
 | **Apple notarization** | No Developer ID cert on this Mac | Enroll Apple Developer ($99), create Developer ID Application cert, update `build.sh` / notarize script |
 | **Custom domain** | Optional | DNS → GitHub Pages |
-| **Sparkle / auto-update** | Not implemented | Later |
+| **Sparkle silent Mac replace** | GitHub check ships; full Sparkle later | After notarization |
+| **Linear project** | MCP needs OAuth / API key | See docs/LINEAR.md · `node scripts/linear-seed-slavedock.mjs` |
 
 ## License keys (seller side)
 
