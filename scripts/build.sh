@@ -14,7 +14,7 @@ MIN_OS="14.0"
 ARCH="$(uname -m)"
 TARGET="${ARCH}-apple-macosx${MIN_OS}"
 
-echo "→ Building SlaveDock v1.2.1 for $TARGET"
+echo "→ Building SlaveDock v1.3.0 (Free/Pro) for $TARGET"
 
 rm -rf "$APP"
 mkdir -p "$MACOS" "$RES"
@@ -28,6 +28,8 @@ SOURCES=(
   "$SRC/Models/AppPreferences.swift"
   "$SRC/Models/AppSupport.swift"
   "$SRC/Models/LaunchHistory.swift"
+  "$SRC/Models/FeatureGate.swift"
+  "$SRC/Models/LicenseManager.swift"
   "$SRC/Services/AppIconService.swift"
   "$SRC/Services/LaunchService.swift"
   "$SRC/Services/RunningAppsService.swift"
@@ -51,6 +53,7 @@ swiftc \
   -framework Carbon \
   -framework ServiceManagement \
   -framework UniformTypeIdentifiers \
+  -framework CryptoKit \
   "${SOURCES[@]}" \
   -o "$BIN"
 

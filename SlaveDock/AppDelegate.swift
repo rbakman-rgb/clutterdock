@@ -61,6 +61,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in self?.applyHotkeys() }
         }
 
+        NotificationCenter.default.addObserver(
+            forName: .slaveDockLicenseChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.applyHotkeys()
+                self?.rebuildDockMenu()
+            }
+        }
+
         if preferences.openEmptyOnLaunch {
             let userFolders = store.folders.filter { !$0.isSmart }
             if userFolders.allSatisfy(\.items.isEmpty) {
@@ -162,16 +173,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyHotkeys() {
-        let folderBindings: [(FolderHotkey, () -> Void)] = store.folders.compactMap { folder in
-            guard folder.hotkey != .none else { return nil }
-            let id = folder.id
-            return (folder.hotkey, { [weak self] in
-                Task { @MainActor in
-                    self?.store.selectFolder(id: id)
-                    self?.panelController.show()
-                }
-            })
-        }
+        let folderBindings: [(FolderHotkey, () -> Void)] = FeatureGate.canUseFolderHotkeys
+            ? store.folders.compactMap { folder in
+                guard folder.hotkey != .none else { return nil }
+                let id = folder.id
+                return (folder.hotkey, { [weak self] in
+                    Task { @MainActor in
+                        self?.store.selectFolder(id: id)
+                        self?.panelController.show()
+                    }
+                })
+            }
+            : []
 
         hotKeyService.update(
             mainEnabled: preferences.hotkeyEnabled,

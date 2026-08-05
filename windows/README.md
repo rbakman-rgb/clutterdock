@@ -4,18 +4,21 @@ Free tray launcher that mirrors the Mac **SlaveDock** idea: group apps, files, f
 
 **Free forever.** Tips optional: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
-## Features (v1.0)
+## Features (v1.1 Free / Pro)
 
 - System **tray** icon (click to open launcher)
 - Global hotkey default: **Ctrl+Shift+D**
 - Multiple folders + **Recents**
 - Apps (`.exe` / `.lnk`), files, folders, URLs
-- Search this folder or **All** folders
+- Search this folder; **All** folders = Pro
 - Grid / list views, drag reorder, Alt+←/→ nudge
-- Import / export `.slavedock` packs
-- Open at login
-- Welcome tips + keyboard help
+- Free: 5 folders · 20 items each · JSON-friendly workflow
+- Pro: unlimited · pack export · license key (Settings → Pro)
+- Test key: `SDPRO-TEST-UNLOCK-2026`
+- Open at login, welcome tips, Buy Me a Coffee
 - Runs in the background (stays in tray)
+
+See [../docs/PRICING.md](../docs/PRICING.md).
 
 ## Requirements
 

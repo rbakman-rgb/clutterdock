@@ -188,7 +188,10 @@ function wireIpc() {
   });
 
   ipcMain.handle('add-folder', (_e, name) => {
-    store.addFolder(name);
+    const result = store.addFolder(name);
+    if (result && result.ok === false) {
+      return { ...result, snapshot: store.getSnapshot() };
+    }
     return store.getSnapshot();
   });
 
@@ -224,21 +227,30 @@ function wireIpc() {
           ]
         : undefined,
     });
+    let addResult = null;
     if (!result.canceled && result.filePaths.length) {
-      store.addPaths(result.filePaths);
+      addResult = store.addPaths(result.filePaths);
     }
     showPanel();
-    return store.getSnapshot();
+    const snap = store.getSnapshot();
+    if (addResult?.hitLimit) {
+      return { ...snap, _limitMessage: addResult.message };
+    }
+    return snap;
   });
 
   ipcMain.handle('add-paths', (_e, paths) => {
-    store.addPaths(paths || []);
-    return store.getSnapshot();
+    const addResult = store.addPaths(paths || []);
+    const snap = store.getSnapshot();
+    if (addResult?.hitLimit) return { ...snap, _limitMessage: addResult.message };
+    return snap;
   });
 
   ipcMain.handle('add-url', (_e, url) => {
-    store.addURL(url);
-    return store.getSnapshot();
+    const addResult = store.addURL(url);
+    const snap = store.getSnapshot();
+    if (addResult?.hitLimit) return { ...snap, _limitMessage: addResult.message };
+    return snap;
   });
 
   ipcMain.handle('remove-item', (_e, itemID, folderID) => {
@@ -299,15 +311,32 @@ function wireIpc() {
     return store.getSnapshot();
   });
 
+  ipcMain.handle('activate-license', (_e, key) => {
+    const result = store.activateLicense(key);
+    return { ...result, snapshot: store.getSnapshot() };
+  });
+
+  ipcMain.handle('deactivate-license', () => {
+    store.deactivateLicense();
+    return store.getSnapshot();
+  });
+
   ipcMain.handle('export-pack', async () => {
+    if (!store.gate.canExportPack) {
+      return { ok: false, error: 'Pack export requires SlaveDock Pro.' };
+    }
     const result = await dialog.showSaveDialog({
       title: 'Export SlaveDock pack',
       defaultPath: 'SlaveDock-pack.slavedock',
       filters: [{ name: 'SlaveDock pack', extensions: ['slavedock', 'json'] }],
     });
     if (result.canceled || !result.filePath) return { ok: false };
-    fs.writeFileSync(result.filePath, store.exportPack(), 'utf8');
-    return { ok: true, path: result.filePath };
+    try {
+      fs.writeFileSync(result.filePath, store.exportPack(), 'utf8');
+      return { ok: true, path: result.filePath };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
   });
 
   ipcMain.handle('import-pack', async (_e, merge) => {

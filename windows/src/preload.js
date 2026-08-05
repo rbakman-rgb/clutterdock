@@ -31,4 +31,6 @@ contextBridge.exposeInMainWorld('slaveDock', {
   hidePanel: () => ipcRenderer.invoke('hide-panel'),
   showPanel: () => ipcRenderer.invoke('show-panel'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  activateLicense: (key) => ipcRenderer.invoke('activate-license', key),
+  deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
 });

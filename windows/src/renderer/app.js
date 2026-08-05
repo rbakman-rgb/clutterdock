@@ -101,11 +101,28 @@ function renderTabs() {
   tabs.appendChild(actions);
   $('addFolderBtn').onclick = async () => {
     const name = prompt('Folder name', 'New Folder');
-    if (name) await refresh(await slaveDock.addFolder(name));
+    if (!name) return;
+    const snap = await slaveDock.addFolder(name);
+    if (snap && snap.ok === false && snap.hitLimit) {
+      alert((snap.message || 'Folder limit reached.') + '\n\nSettings → Pro · test key SDPRO-TEST-UNLOCK-2026');
+      return;
+    }
+    await refresh(snap.state ? snap : snap.snapshot || (await slaveDock.getSnapshot()));
   };
   $('addItemsBtn').onclick = async () => {
-    await refresh(await slaveDock.pickAndAdd());
+    const snap = await slaveDock.pickAndAdd();
+    if (snap?._limitMessage) {
+      alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
+    }
+    await refresh(snap);
   };
+  // tier badge
+  const badge = document.createElement('span');
+  badge.style.cssText =
+    'font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(15,23,42,.08);margin-left:4px';
+  badge.textContent = snapshot.gate?.isPro ? 'Pro' : 'Free';
+  if (snapshot.gate?.isPro) badge.style.background = 'rgba(251,146,60,.35)';
+  tabs.appendChild(badge);
 }
 
 function renderContent() {
@@ -346,6 +363,12 @@ $('search').addEventListener('input', async (e) => {
   await refresh();
 });
 $('searchAll').onclick = async () => {
+  if (!snapshot?.gate?.canUseGlobalSearch) {
+    alert(
+      'Search all folders is a Pro feature.\n\nOpen Settings → Pro to activate.\nTest key: SDPRO-TEST-UNLOCK-2026'
+    );
+    return;
+  }
   searchGlobal = !searchGlobal;
   await refresh();
 };

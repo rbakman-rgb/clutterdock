@@ -20,7 +20,6 @@ final class LaunchHistory: ObservableObject {
     @Published private(set) var entries: [HistoryEntry] = []
 
     private let fileURL: URL
-    private let maxEntries = 40
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -40,14 +39,16 @@ final class LaunchHistory: ObservableObject {
         } else {
             entries.insert(HistoryEntry(item: item), at: 0)
         }
-        if entries.count > maxEntries {
-            entries = Array(entries.prefix(maxEntries))
+        let cap = FeatureGate.historyLimit
+        if entries.count > cap {
+            entries = Array(entries.prefix(cap))
         }
         save()
     }
 
-    func recentItems(limit: Int = 24) -> [DockItem] {
-        Array(entries.prefix(limit).map(\.item))
+    func recentItems(limit: Int? = nil) -> [DockItem] {
+        let cap = limit ?? FeatureGate.historyLimit
+        return Array(entries.prefix(cap).map(\.item))
     }
 
     func clear() {

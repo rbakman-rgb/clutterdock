@@ -2,6 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { randomUUID } = require('crypto');
+const {
+  validate: validateLicense,
+  mask: maskLicense,
+  createFeatureGate,
+  TEST_KEY,
+} = require('./license');
 
 const CURRENT_VERSION = 1;
 
@@ -43,6 +49,8 @@ function defaultPrefs() {
     hasCompletedOnboarding: false,
     showKeyboardHints: true,
     launchAtLogin: false,
+    licenseKey: '',
+    themeAccent: 'system',
   };
 }
 
@@ -76,8 +84,32 @@ class Store {
     }
     this.history = loadJSON(historyPath(), { entries: [] });
     if (!Array.isArray(this.history.entries)) this.history.entries = [];
-    this.prefs = loadJSON(prefsPath(), defaultPrefs());
+    this.prefs = { ...defaultPrefs(), ...loadJSON(prefsPath(), {}) };
     this._ensureSmartFolders();
+  }
+
+  get isPro() {
+    return validateLicense(this.prefs.licenseKey || '');
+  }
+
+  get gate() {
+    return createFeatureGate(this.isPro);
+  }
+
+  activateLicense(key) {
+    const trimmed = String(key || '').trim();
+    if (!validateLicense(trimmed)) {
+      return { ok: false, error: 'That license key isn’t valid.' };
+    }
+    this.prefs.licenseKey = trimmed.toUpperCase();
+    this.persistPrefs();
+    return { ok: true, isPro: true, display: maskLicense(trimmed) };
+  }
+
+  deactivateLicense() {
+    this.prefs.licenseKey = '';
+    this.persistPrefs();
+    return { ok: true, isPro: false };
   }
 
   _ensureSmartFolders() {
@@ -109,12 +141,35 @@ class Store {
   }
 
   getSnapshot() {
+    const gate = this.gate;
     return {
       state: this.state,
-      prefs: this.prefs,
-      history: this.history.entries.slice(0, 30),
+      prefs: {
+        ...this.prefs,
+        licenseKey: undefined, // never send full key to renderer list dumps
+        licenseKeyDisplay: this.isPro ? maskLicense(this.prefs.licenseKey) : '',
+      },
+      history: this.history.entries.slice(0, gate.historyLimit),
       dataDir: dataDir(),
+      license: {
+        isPro: this.isPro,
+        display: this.isPro ? maskLicense(this.prefs.licenseKey) : '',
+        testKey: TEST_KEY,
+      },
+      gate: {
+        isPro: gate.isPro,
+        freeMaxFolders: gate.freeMaxFolders,
+        freeMaxItems: gate.freeMaxItems,
+        canUseGlobalSearch: gate.canUseGlobalSearch,
+        canUseWorkspaces: gate.canUseWorkspaces,
+        canExportPack: gate.canExportPack,
+        historyLimit: gate.historyLimit,
+      },
     };
+  }
+
+  normalFolderCount() {
+    return this.state.folders.filter((f) => f.smartKind === 'none').length;
   }
 
   selectedFolder() {
@@ -132,6 +187,10 @@ class Store {
   }
 
   addFolder(name) {
+    const count = this.normalFolderCount();
+    if (!this.gate.canAddFolder(count)) {
+      return { ok: false, hitLimit: true, message: this.gate.folderLimitMessage(count) };
+    }
     const folder = {
       id: randomUUID(),
       name: (name || 'Folder').trim() || 'Folder',
@@ -144,7 +203,7 @@ class Store {
     this.state.folders.push(folder);
     this.state.selectedFolderID = folder.id;
     this.persist();
-    return folder;
+    return { ok: true, folder };
   }
 
   renameFolder(id, name) {
@@ -185,10 +244,15 @@ class Store {
   addPaths(paths, folderID) {
     const targetID = folderID || this.state.selectedFolderID;
     const f = this.state.folders.find((x) => x.id === targetID);
-    if (!f || f.smartKind !== 'none') return 0;
+    if (!f || f.smartKind !== 'none') return { added: 0, hitLimit: false };
     const existing = new Set(f.items.map((i) => `${i.kind}|${i.path}`));
     let added = 0;
+    let hitLimit = false;
     for (const p of paths) {
+      if (!this.gate.canAddItem(f.items.length)) {
+        hitLimit = true;
+        break;
+      }
       if (!p || !fs.existsSync(p)) continue;
       const kind = detectKind(p);
       const key = `${kind}|${p}`;
@@ -203,23 +267,34 @@ class Store {
       added += 1;
     }
     if (added) this.persist();
-    return added;
+    return {
+      added,
+      hitLimit,
+      message: hitLimit ? this.gate.itemLimitMessage(f.items.length) : null,
+    };
   }
 
   addURL(urlString, folderID) {
     let s = (urlString || '').trim();
-    if (!s) return 0;
+    if (!s) return { added: 0, hitLimit: false };
     if (!s.includes('://')) s = 'https://' + s;
     try {
       // eslint-disable-next-line no-new
       new URL(s);
     } catch {
-      return 0;
+      return { added: 0, hitLimit: false };
     }
     const targetID = folderID || this.state.selectedFolderID;
     const f = this.state.folders.find((x) => x.id === targetID);
-    if (!f || f.smartKind !== 'none') return 0;
-    if (f.items.some((i) => i.kind === 'url' && i.path === s)) return 0;
+    if (!f || f.smartKind !== 'none') return { added: 0, hitLimit: false };
+    if (!this.gate.canAddItem(f.items.length)) {
+      return {
+        added: 0,
+        hitLimit: true,
+        message: this.gate.itemLimitMessage(f.items.length),
+      };
+    }
+    if (f.items.some((i) => i.kind === 'url' && i.path === s)) return { added: 0, hitLimit: false };
     let name;
     try {
       name = new URL(s).hostname || s;
@@ -228,7 +303,7 @@ class Store {
     }
     f.items.push({ id: randomUUID(), kind: 'url', path: s, name });
     this.persist();
-    return 1;
+    return { added: 1, hitLimit: false };
   }
 
   removeItem(itemID, folderID) {
@@ -292,7 +367,8 @@ class Store {
   }
 
   recentItems() {
-    return this.history.entries.map((e) => ({
+    const lim = this.gate.historyLimit;
+    return this.history.entries.slice(0, lim).map((e) => ({
       id: e.id,
       kind: e.kind,
       path: e.path,
@@ -331,6 +407,9 @@ class Store {
   }
 
   exportPack() {
+    if (!this.gate.canExportPack) {
+      throw new Error('Pack export requires SlaveDock Pro.');
+    }
     return JSON.stringify(this.state, null, 2);
   }
 

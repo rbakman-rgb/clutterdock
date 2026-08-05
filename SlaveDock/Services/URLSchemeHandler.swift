@@ -32,8 +32,8 @@ enum URLSchemeHandler {
 
         case "add":
             if let path = q("path") {
-                let added = store.addPaths([path])
-                if added > 0 {
+                let result = store.addPaths([path])
+                if result.added > 0 || result.hitLimit {
                     panel.show()
                 }
             }
@@ -43,7 +43,8 @@ enum URLSchemeHandler {
             }
 
         case "workspace":
-            if let name = q("name"),
+            if FeatureGate.canUseWorkspaces,
+               let name = q("name"),
                let ws = store.workspaces.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
                 store.selectWorkspace(id: ws.id)
             }

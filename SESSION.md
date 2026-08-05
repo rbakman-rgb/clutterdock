@@ -1,7 +1,7 @@
 # SlaveDock — Session save
 
 **Saved:** 2026-08-05  
-**Status:** Running product at **v1.2.1** — Mac + Windows sources in **git** (`main`, initial commit).
+**Status:** **Mac 1.3.0 / Windows 1.1.0 Free+Pro** — entitlements, license keys, `docs/PRICING.md`. GitHub: `rbakman-rgb/slavedock`.
 
 ---
 

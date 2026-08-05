@@ -6,15 +6,18 @@ struct SettingsView: View {
     @ObservedObject var store: FolderStore
     @ObservedObject var preferences: AppPreferences
     @ObservedObject var history: LaunchHistory
+    @ObservedObject private var license = LicenseManager.shared
 
     @State private var selectedFolderID: UUID?
     @State private var statusMessage: String?
+    @State private var licenseDraft = ""
 
     var body: some View {
         TabView {
             foldersTab.tabItem { Label("Folders", systemImage: "folder") }
             workspacesTab.tabItem { Label("Workspaces", systemImage: "rectangle.3.group") }
             generalTab.tabItem { Label("General", systemImage: "gearshape") }
+            proTab.tabItem { Label("Pro", systemImage: "star.fill") }
             backupTab.tabItem { Label("Backup", systemImage: "externaldrive") }
             aboutTab.tabItem { Label("About", systemImage: "info.circle") }
         }
@@ -48,8 +51,11 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItemGroup {
                     Button {
-                        store.addFolder(named: "New Folder")
-                        selectedFolderID = store.folders.last(where: { !$0.isSmart })?.id
+                        if store.addFolder(named: "New Folder") {
+                            selectedFolderID = store.folders.last(where: { !$0.isSmart })?.id
+                        } else {
+                            presentAlert("SlaveDock Pro", FeatureGate.folderLimitMessage(current: store.normalFolderCount))
+                        }
                     } label: { Image(systemName: "plus") }
                     Button {
                         if let id = selectedFolderID { store.deleteFolder(id: id) }
@@ -113,15 +119,28 @@ struct SettingsView: View {
 
                         Picker("Hotkey", selection: Binding(
                             get: { folder.hotkey },
-                            set: { store.setFolderHotkey(id: folder.id, hotkey: $0) }
+                            set: { new in
+                                if !store.setFolderHotkey(id: folder.id, hotkey: new) {
+                                    presentAlert("SlaveDock Pro", "Per-folder hotkeys are a Pro feature.")
+                                }
+                            }
                         )) {
-                            ForEach(FolderHotkey.allCases) { h in Text(h.displayName).tag(h) }
+                            ForEach(FolderHotkey.allCases) { h in
+                                Text(h.displayName + (h != .none && !FeatureGate.canUseFolderHotkeys ? " ✦" : "")).tag(h)
+                            }
                         }
+                        .disabled(!FeatureGate.canUseFolderHotkeys && folder.hotkey == .none)
 
                         HStack {
-                            Button("Custom Image…") { pickFolderImage(for: folder.id) }
+                            Button("Custom Image…") {
+                                if FeatureGate.canUseCustomFolderImages {
+                                    pickFolderImage(for: folder.id)
+                                } else {
+                                    presentAlert("SlaveDock Pro", "Custom folder images are a Pro feature.")
+                                }
+                            }
                             if folder.customImagePath != nil {
-                                Button("Clear Image") { store.setFolderCustomImage(id: folder.id, path: nil) }
+                                Button("Clear Image") { _ = store.setFolderCustomImage(id: folder.id, path: nil) }
                             }
                         }
                     } else {
@@ -200,45 +219,145 @@ struct SettingsView: View {
 
     private var workspacesTab: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Workspaces show different sets of folders. “All” (empty selection) shows every folder.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack {
-                Button("Add Workspace") {
-                    store.addWorkspace(named: "Workspace \(store.workspaces.count + 1)")
+            if !FeatureGate.canUseWorkspaces {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Workspaces are a Pro feature")
+                        .font(.title3.weight(.semibold))
+                    Text("Switch between Work / Personal / Client folder sets with one click. Included in SlaveDock Pro (one-time unlock).")
+                        .foregroundStyle(.secondary)
+                    Text(FeatureGate.proUpgradeSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Go to Pro…") { /* user switches tab */ }
+                        .buttonStyle(.borderedProminent)
                 }
+                .padding()
                 Spacer()
-            }
+            } else {
+                Text("Workspaces show different sets of folders. “All” (empty selection) shows every folder.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            List {
-                ForEach(store.workspaces) { ws in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            TextField("Name", text: Binding(
-                                get: { ws.name },
-                                set: { store.renameWorkspace(id: ws.id, to: $0) }
-                            ))
-                            .textFieldStyle(.roundedBorder)
-                            Button("Activate") { store.selectWorkspace(id: ws.id) }
-                            if store.workspaces.count > 1 {
-                                Button("Delete", role: .destructive) {
-                                    store.deleteWorkspace(id: ws.id)
+                HStack {
+                    Button("Add Workspace") {
+                        _ = store.addWorkspace(named: "Workspace \(store.workspaces.count + 1)")
+                    }
+                    Spacer()
+                }
+
+                List {
+                    ForEach(store.workspaces) { ws in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                TextField("Name", text: Binding(
+                                    get: { ws.name },
+                                    set: { store.renameWorkspace(id: ws.id, to: $0) }
+                                ))
+                                .textFieldStyle(.roundedBorder)
+                                Button("Activate") { store.selectWorkspace(id: ws.id) }
+                                if store.workspaces.count > 1 {
+                                    Button("Delete", role: .destructive) {
+                                        store.deleteWorkspace(id: ws.id)
+                                    }
                                 }
                             }
+                            Text("Folders in this workspace (none checked = all folders):")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            FlowCheckboxes(workspace: ws, folders: store.folders.filter { !$0.isSmart }) { folderID in
+                                store.toggleFolderInWorkspace(workspaceID: ws.id, folderID: folderID)
+                            }
                         }
-                        Text("Folders in this workspace (none checked = all folders):")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        FlowCheckboxes(workspace: ws, folders: store.folders.filter { !$0.isSmart }) { folderID in
-                            store.toggleFolderInWorkspace(workspaceID: ws.id, folderID: folderID)
-                        }
+                        .padding(.vertical, 6)
                     }
-                    .padding(.vertical, 6)
                 }
             }
         }
         .padding()
+    }
+
+    // MARK: - Pro
+
+    private var proTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(license.isPro ? "You’re on Pro" : "SlaveDock Free")
+                            .font(.title2.weight(.bold))
+                        Text(license.isPro
+                             ? "Thanks for supporting SlaveDock. All Pro features are unlocked on this Mac."
+                             : "Free forever for daily use. Pro is a one-time unlock for power features.")
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text(license.isPro ? "PRO" : "FREE")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(license.isPro ? Color.orange.opacity(0.3) : Color.primary.opacity(0.1)))
+                }
+
+                GroupBox("What’s included") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Free: launcher, up to \(FeatureGate.freeMaxNormalFolders) folders, \(FeatureGate.freeMaxItemsPerFolder) items each, Recents, search in folder, hotkey, JSON backup")
+                        Text("Pro: unlimited · workspaces · search all · folder hotkeys · custom images · themes · .slavedock packs")
+                            .fontWeight(.medium)
+                    }
+                    .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(4)
+                }
+
+                if license.isPro {
+                    GroupBox("License") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Active key: \(license.licenseKeyDisplay)")
+                            Button("Deactivate Pro on this Mac", role: .destructive) {
+                                license.deactivate()
+                                statusMessage = "Pro deactivated."
+                            }
+                        }
+                        .padding(4)
+                    }
+                } else {
+                    GroupBox("Activate license") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Paste your Pro key (from purchase or \(LicenseManager.testUnlockKey) for testing).")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            TextField("SDPRO-XXXX-XXXX-XXXX", text: $licenseDraft)
+                                .textFieldStyle(.roundedBorder)
+                            HStack {
+                                Button("Activate") {
+                                    if license.activate(key: licenseDraft) {
+                                        statusMessage = "Pro activated — thank you!"
+                                        licenseDraft = ""
+                                    } else {
+                                        statusMessage = license.lastError ?? "Invalid key."
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                Button("Buy Me a Coffee") {
+                                    if let url = AppSupport.buyMeACoffeeURL {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }
+                            }
+                            Text("Target price: ~$14.99 one-time · Mac + Windows. Payment store wiring comes next; keys work offline now.")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(4)
+                    }
+                }
+
+                if let statusMessage {
+                    Text(statusMessage).font(.callout).foregroundStyle(.secondary)
+                }
+            }
+            .padding(20)
+        }
     }
 
     // MARK: - General
@@ -254,7 +373,30 @@ struct SettingsView: View {
                 Slider(value: $preferences.iconSize, in: 40...80, step: 4)
                 Toggle("Show running-app indicator", isOn: $preferences.showRunningIndicator)
                 Toggle("Close launcher after opening", isOn: $preferences.closeAfterLaunch)
-                Toggle("Default search to “All folders”", isOn: $preferences.globalSearchDefault)
+                Toggle(isOn: Binding(
+                    get: { preferences.globalSearchDefault },
+                    set: { new in
+                        if new && !FeatureGate.canUseGlobalSearch {
+                            presentAlert("SlaveDock Pro", "Search all folders is a Pro feature.")
+                        } else {
+                            preferences.globalSearchDefault = new
+                        }
+                    }
+                )) {
+                    Text(FeatureGate.canUseGlobalSearch ? "Default search to “All folders”" : "Default search to “All folders” (Pro)")
+                }
+
+                if FeatureGate.canUseThemes {
+                    Picker("Theme accent", selection: $preferences.themeAccent) {
+                        ForEach(AppPreferences.themeOptions, id: \.self) { t in
+                            Text(t.capitalized).tag(t)
+                        }
+                    }
+                } else {
+                    Text("Themes are included in Pro.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Section("Access") {
                 Toggle("Show menu bar icon", isOn: $preferences.showMenuBarIcon)
@@ -330,7 +472,13 @@ struct SettingsView: View {
 
             HStack(spacing: 12) {
                 Button("Export JSON…") { exportJSON() }
-                Button("Export .slavedock Pack…") { exportPack() }
+                Button(FeatureGate.canExportPack ? "Export .slavedock Pack…" : "Export Pack… (Pro)") {
+                    if FeatureGate.canExportPack {
+                        exportPack()
+                    } else {
+                        presentAlert("SlaveDock Pro", "Pack export (.slavedock) is a Pro feature. JSON backup stays free.")
+                    }
+                }
             }
             HStack(spacing: 12) {
                 Button("Import (Replace)…") { importFile(merge: false) }
@@ -355,8 +503,11 @@ struct SettingsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .shadow(radius: 6, y: 2)
             Text("SlaveDock").font(.title.weight(.bold))
-            Text("Version \(appVersion) (\(appBuild))").foregroundStyle(.secondary)
-            Text("Free Dock folders for apps, files, folders & URLs.\nWorkspaces · hotkeys · Recents · Running · packs.")
+            Text("Version \(appVersion) (\(appBuild)) · \(FeatureGate.tierDisplayName)")
+                .foregroundStyle(.secondary)
+            Text(license.isPro
+                 ? "Pro unlocked · apps, files, folders & URLs · unlimited stacks"
+                 : "Free Dock folders · upgrade anytime for Pro power features")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
@@ -411,8 +562,11 @@ struct SettingsView: View {
         panel.allowsMultipleSelection = true
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         if panel.runModal() == .OK {
-            let n = store.addPaths(panel.urls.map(\.path), to: folderID)
-            statusMessage = "Added \(n) item(s)."
+            let result = store.addPaths(panel.urls.map(\.path), to: folderID)
+            if result.hitLimit {
+                presentAlert("SlaveDock Pro", FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == folderID })?.items.count ?? 0))
+            }
+            statusMessage = "Added \(result.added) item(s)."
         }
     }
 
@@ -425,7 +579,10 @@ struct SettingsView: View {
         field.frame = NSRect(x: 0, y: 0, width: 280, height: 24)
         alert.accessoryView = field
         if alert.runModal() == .alertFirstButtonReturn {
-            _ = store.addURL(field.stringValue, to: folderID)
+            let result = store.addURL(field.stringValue, to: folderID)
+            if result.hitLimit {
+                presentAlert("SlaveDock Pro", FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == folderID })?.items.count ?? 0))
+            }
         }
     }
 

@@ -21,6 +21,7 @@ struct LauncherView: View {
     @State private var selectedItemID: UUID?
     @State private var showingHelp = false
     @State private var dragSourceID: UUID?
+    @ObservedObject private var license = LicenseManager.shared
     @FocusState private var searchFocused: Bool
 
     private var columns: [GridItem] {
@@ -96,7 +97,9 @@ struct LauncherView: View {
             TextField("Folder name", text: $newFolderName)
             Button("Cancel", role: .cancel) { newFolderName = "" }
             Button("Create") {
-                store.addFolder(named: newFolderName)
+                if !store.addFolder(named: newFolderName) {
+                    promptUpgrade(FeatureGate.folderLimitMessage(current: store.normalFolderCount))
+                }
                 newFolderName = ""
             }
         }
@@ -104,7 +107,10 @@ struct LauncherView: View {
             TextField("https://…", text: $urlDraft)
             Button("Cancel", role: .cancel) { urlDraft = "" }
             Button("Add") {
-                _ = store.addURL(urlDraft)
+                let result = store.addURL(urlDraft)
+                if result.hitLimit {
+                    promptUpgrade(FeatureGate.itemLimitMessage(current: store.selectedFolder?.items.count ?? 0))
+                }
                 urlDraft = ""
             }
         }
@@ -126,7 +132,7 @@ struct LauncherView: View {
             .frame(width: 420, height: 340)
         }
         .onAppear {
-            searchGlobal = preferences.globalSearchDefault
+            searchGlobal = FeatureGate.canUseGlobalSearch && preferences.globalSearchDefault
             searchText = ""
             selectedItemID = selectableIDs.first
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { searchFocused = true }
@@ -158,7 +164,11 @@ struct LauncherView: View {
         }
         .onKeyPress(keys: [.init("g")]) { press in
             guard press.modifiers.contains(.command) else { return .ignored }
-            searchGlobal.toggle()
+            if FeatureGate.canUseGlobalSearch {
+                searchGlobal.toggle()
+            } else {
+                promptUpgrade("Search across all folders is a Pro feature.")
+            }
             return .handled
         }
         .onKeyPress(keys: [.init("?")]) { _ in
@@ -189,7 +199,7 @@ struct LauncherView: View {
 
     private var workspaceBar: some View {
         Group {
-            if store.workspaces.count > 1 {
+            if FeatureGate.canUseWorkspaces && store.workspaces.count > 1 {
                 HStack(spacing: 6) {
                     Image(systemName: "rectangle.3.group")
                         .font(.caption)
@@ -211,9 +221,25 @@ struct LauncherView: View {
                         .buttonStyle(.plain)
                     }
                     Spacer()
+                    Text(license.isPro ? "Pro" : "Free")
+                        .font(.system(size: 9, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(license.isPro ? Color.orange.opacity(0.25) : Color.primary.opacity(0.08)))
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 8)
+            } else if !license.isPro {
+                HStack {
+                    Spacer()
+                    Text("Free")
+                        .font(.system(size: 9, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.primary.opacity(0.08)))
+                        .padding(.trailing, 14)
+                        .padding(.top, 6)
+                }
             }
         }
     }
@@ -295,12 +321,22 @@ struct LauncherView: View {
             TextField(searchGlobal ? "Search all folders" : "Search", text: $searchText)
                 .textFieldStyle(.plain)
                 .focused($searchFocused)
-            Toggle(isOn: $searchGlobal) {
-                Text("All")
+            Toggle(isOn: Binding(
+                get: { searchGlobal },
+                set: { new in
+                    if new && !FeatureGate.canUseGlobalSearch {
+                        promptUpgrade("Search across all folders is a Pro feature.")
+                        searchGlobal = false
+                    } else {
+                        searchGlobal = new
+                    }
+                }
+            )) {
+                Text(FeatureGate.canUseGlobalSearch ? "All" : "All ✦")
                     .font(.caption2)
             }
             .toggleStyle(.button)
-            .help("Search all folders (⌘G)")
+            .help(FeatureGate.canUseGlobalSearch ? "Search all folders (⌘G)" : "Pro: search all folders")
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -578,6 +614,13 @@ struct LauncherView: View {
                 }
                 .menuStyle(.borderlessButton)
             }
+            if !license.isPro {
+                Button("Pro") { onOpenSettings() }
+                    .buttonStyle(.borderless)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .help("Upgrade to SlaveDock Pro")
+            }
             Button {
                 showingHelp = true
             } label: {
@@ -591,6 +634,18 @@ struct LauncherView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
+    }
+
+    private func promptUpgrade(_ message: String) {
+        UpgradePresenter.showLimitAlert(message: message) {
+            onOpenSettings()
+        }
+    }
+
+    private func applyAddResult(_ result: FolderStore.AddItemsResult) {
+        if result.hitLimit {
+            promptUpgrade(FeatureGate.itemLimitMessage(current: store.selectedFolder?.items.count ?? 0))
+        }
     }
 
     // MARK: - Actions
@@ -650,7 +705,7 @@ struct LauncherView: View {
         panel.prompt = "Add"
         panel.message = "Choose apps, files, or folders"
         if panel.runModal() == .OK {
-            store.addPaths(panel.urls.map(\.path))
+            applyAddResult(store.addPaths(panel.urls.map(\.path)))
         }
     }
 
@@ -668,14 +723,14 @@ struct LauncherView: View {
                     } else { url = nil }
                     guard let url else { return }
                     Task { @MainActor in
-                        store.addPaths([url.path])
+                        applyAddResult(store.addPaths([url.path]))
                     }
                 }
             } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
                 handled = true
                 provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
                     if let url = item as? URL {
-                        Task { @MainActor in _ = store.addURL(url.absoluteString) }
+                        Task { @MainActor in applyAddResult(store.addURL(url.absoluteString)) }
                     }
                 }
             }

@@ -126,12 +126,15 @@ final class FolderStore: ObservableObject {
 
     // MARK: - Workspaces
 
-    func addWorkspace(named name: String) {
+    @discardableResult
+    func addWorkspace(named name: String) -> Bool {
+        guard FeatureGate.canUseWorkspaces else { return false }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let ws = Workspace(name: trimmed.isEmpty ? "Workspace" : trimmed, folderIDs: [])
         workspaces.append(ws)
         activeWorkspaceID = ws.id
         persist()
+        return true
     }
 
     func renameWorkspace(id: UUID, to name: String) {
@@ -180,7 +183,15 @@ final class FolderStore: ObservableObject {
 
     // MARK: - Folders
 
-    func addFolder(named name: String, symbolName: String? = "folder.fill", smartKind: SmartFolderKind = .none) {
+    /// Returns false if Free folder limit reached.
+    @discardableResult
+    func addFolder(named name: String, symbolName: String? = "folder.fill", smartKind: SmartFolderKind = .none) -> Bool {
+        if smartKind == .none {
+            let normalCount = folders.filter { !$0.isSmart }.count
+            guard FeatureGate.canAddNormalFolder(currentNormalCount: normalCount) else {
+                return false
+            }
+        }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let folder = AppFolder(
             name: trimmed.isEmpty ? "Folder" : trimmed,
@@ -191,6 +202,7 @@ final class FolderStore: ObservableObject {
         selectedFolderID = folder.id
         persist()
         NotificationCenter.default.post(name: .slaveDockHotkeysNeedRefresh, object: nil)
+        return true
     }
 
     func renameFolder(id: UUID, to name: String) {
@@ -219,23 +231,33 @@ final class FolderStore: ObservableObject {
         persist()
     }
 
-    func setFolderHotkey(id: UUID, hotkey: FolderHotkey) {
+    @discardableResult
+    func setFolderHotkey(id: UUID, hotkey: FolderHotkey) -> Bool {
+        if hotkey != .none && !FeatureGate.canUseFolderHotkeys {
+            return false
+        }
         // Ensure uniqueness
         if hotkey != .none {
             for i in folders.indices where folders[i].id != id && folders[i].hotkey == hotkey {
                 folders[i].hotkey = .none
             }
         }
-        guard let idx = folders.firstIndex(where: { $0.id == id }) else { return }
+        guard let idx = folders.firstIndex(where: { $0.id == id }) else { return false }
         folders[idx].hotkey = hotkey
         persist()
         NotificationCenter.default.post(name: .slaveDockHotkeysNeedRefresh, object: nil)
+        return true
     }
 
-    func setFolderCustomImage(id: UUID, path: String?) {
-        guard let idx = folders.firstIndex(where: { $0.id == id }) else { return }
+    @discardableResult
+    func setFolderCustomImage(id: UUID, path: String?) -> Bool {
+        if path != nil && !FeatureGate.canUseCustomFolderImages {
+            return false
+        }
+        guard let idx = folders.firstIndex(where: { $0.id == id }) else { return false }
         folders[idx].customImagePath = path
         persist()
+        return true
     }
 
     func deleteFolder(id: UUID) {
@@ -275,16 +297,26 @@ final class FolderStore: ObservableObject {
 
     // MARK: - Items
 
+    struct AddItemsResult {
+        var added: Int
+        var hitLimit: Bool
+    }
+
     @discardableResult
-    func addItems(_ newItems: [DockItem], to folderID: UUID? = nil) -> Int {
+    func addItems(_ newItems: [DockItem], to folderID: UUID? = nil) -> AddItemsResult {
         let targetID = folderID ?? selectedFolderID ?? folders.first(where: { !$0.isSmart })?.id
         guard let targetID,
               let idx = folders.firstIndex(where: { $0.id == targetID }),
-              !folders[idx].isSmart else { return 0 }
+              !folders[idx].isSmart else { return AddItemsResult(added: 0, hitLimit: false) }
 
         var existing = Set(folders[idx].items.map { "\($0.kind.rawValue)|\($0.path)" })
         var added = 0
+        var hitLimit = false
         for item in newItems {
+            if !FeatureGate.canAddItem(currentCount: folders[idx].items.count) {
+                hitLimit = true
+                break
+            }
             let key = "\(item.kind.rawValue)|\(item.path)"
             guard !existing.contains(key) else { continue }
             if item.kind != .url && !item.exists { continue }
@@ -293,24 +325,30 @@ final class FolderStore: ObservableObject {
             added += 1
         }
         if added > 0 { persist() }
-        return added
+        return AddItemsResult(added: added, hitLimit: hitLimit)
     }
 
     @discardableResult
-    func addPaths(_ paths: [String], to folderID: UUID? = nil) -> Int {
+    func addPaths(_ paths: [String], to folderID: UUID? = nil) -> AddItemsResult {
         let items = paths.compactMap { DockItem.fromPath($0) }
         return addItems(items, to: folderID)
     }
 
     @discardableResult
-    func addApps(paths: [String], to folderID: UUID? = nil) -> Int {
+    func addApps(paths: [String], to folderID: UUID? = nil) -> AddItemsResult {
         addPaths(paths, to: folderID)
     }
 
     @discardableResult
-    func addURL(_ string: String, to folderID: UUID? = nil) -> Int {
-        guard let item = DockItem.fromURLString(string) else { return 0 }
+    func addURL(_ string: String, to folderID: UUID? = nil) -> AddItemsResult {
+        guard let item = DockItem.fromURLString(string) else {
+            return AddItemsResult(added: 0, hitLimit: false)
+        }
         return addItems([item], to: folderID)
+    }
+
+    var normalFolderCount: Int {
+        folders.filter { !$0.isSmart }.count
     }
 
     func removeApp(id: UUID, from folderID: UUID? = nil) {
@@ -484,6 +522,9 @@ final class FolderStore: ObservableObject {
 
     /// Export a `.slavedock` pack (JSON with that extension).
     func exportPack(to url: URL) throws {
+        guard FeatureGate.canExportPack else {
+            throw StoreError.proRequired
+        }
         let data = try exportData()
         try data.write(to: url, options: .atomic)
     }
@@ -495,9 +536,11 @@ final class FolderStore: ObservableObject {
 
     enum StoreError: LocalizedError {
         case emptyImport
+        case proRequired
         var errorDescription: String? {
             switch self {
             case .emptyImport: return "The file did not contain any folders."
+            case .proRequired: return "Pack export requires SlaveDock Pro."
             }
         }
     }
