@@ -33,4 +33,6 @@ contextBridge.exposeInMainWorld('slaveDock', {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   activateLicense: (key) => ipcRenderer.invoke('activate-license', key),
   deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
+  checkForUpdates: (interactive) => ipcRenderer.invoke('check-for-updates', interactive),
+  getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
 });

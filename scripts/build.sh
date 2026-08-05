@@ -34,6 +34,7 @@ SOURCES=(
   "$SRC/Services/HotKeyService.swift"
   "$SRC/Services/LoginItemService.swift"
   "$SRC/Services/URLSchemeHandler.swift"
+  "$SRC/Services/UpdateService.swift"
   "$SRC/Helpers/PanelController.swift"
   "$SRC/Views/LauncherView.swift"
   "$SRC/Views/SettingsView.swift"

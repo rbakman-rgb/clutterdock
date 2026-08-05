@@ -93,6 +93,10 @@ final class AppPreferences: ObservableObject {
         }
     }
 
+    @Published var checkForUpdatesAutomatically: Bool {
+        didSet { defaults.set(checkForUpdatesAutomatically, forKey: Keys.checkForUpdatesAutomatically) }
+    }
+
     private let defaults: UserDefaults
 
     enum Keys {
@@ -108,6 +112,7 @@ final class AppPreferences: ObservableObject {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let showKeyboardHints = "showKeyboardHints"
         static let themeAccent = "themeAccent"
+        static let checkForUpdatesAutomatically = "checkForUpdatesAutomatically"
     }
 
     static let themeOptions = ["system", "blue", "purple", "teal", "orange"]
@@ -137,6 +142,7 @@ final class AppPreferences: ObservableObject {
         showKeyboardHints = defaults.object(forKey: Keys.showKeyboardHints) as? Bool ?? true
         let theme = defaults.string(forKey: Keys.themeAccent) ?? "system"
         themeAccent = Self.themeOptions.contains(theme) ? theme : "system"
+        checkForUpdatesAutomatically = defaults.object(forKey: Keys.checkForUpdatesAutomatically) as? Bool ?? true
     }
 
     func resetOnboarding() {

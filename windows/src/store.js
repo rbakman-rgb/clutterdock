@@ -51,6 +51,7 @@ function defaultPrefs() {
     launchAtLogin: false,
     licenseKey: '',
     themeAccent: 'system',
+    checkForUpdatesAutomatically: true,
   };
 }
 

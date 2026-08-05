@@ -13,6 +13,7 @@ const {
 const path = require('path');
 const fs = require('fs');
 const { Store } = require('./store');
+const { setupUpdater } = require('./updater');
 
 /** @type {BrowserWindow | null} */
 let panel = null;
@@ -22,6 +23,9 @@ let settingsWin = null;
 let tray = null;
 /** @type {Store} */
 let store;
+/** @type {{ check: Function } | null} */
+let updater = null;
+let updateStatus = '';
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -156,6 +160,10 @@ function createTray() {
     const menu = Menu.buildFromTemplate([
       { label: 'Open Launcher', click: () => showPanel() },
       { label: 'Settings…', click: () => createSettings() },
+      {
+        label: 'Check for Updates…',
+        click: () => updater?.check(true),
+      },
       { type: 'separator' },
       {
         label: 'Buy Me a Coffee…',
@@ -366,6 +374,18 @@ function wireIpc() {
     // Renderer uses emoji/type glyphs; on Windows native icons can be added later.
     return null;
   });
+
+  ipcMain.handle('check-for-updates', async (_e, interactive) => {
+    if (!updater) {
+      return { ok: false, error: 'Updater not ready' };
+    }
+    return updater.check(!!interactive);
+  });
+
+  ipcMain.handle('get-update-status', () => ({
+    status: updateStatus,
+    version: app.getVersion(),
+  }));
 }
 
 const gotLock = app.requestSingleInstanceLock();
@@ -393,9 +413,23 @@ if (!gotLock) {
     createPanel();
     registerHotkey();
 
+    updater = setupUpdater({
+      store,
+      onStatus: (msg) => {
+        updateStatus = msg || '';
+      },
+    });
+
     // First run: show panel
     if (!store.prefs.hasCompletedOnboarding) {
       setTimeout(() => showPanel(), 400);
+    }
+
+    // Background update check (NSIS installs)
+    if (store.prefs.checkForUpdatesAutomatically !== false && !process.env.SLAVE_DOCK_NO_UPDATE) {
+      setTimeout(() => {
+        updater?.check(false).catch(() => {});
+      }, 12000);
     }
 
     app.on('activate', () => showPanel());

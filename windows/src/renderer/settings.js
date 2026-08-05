@@ -9,8 +9,13 @@ async function load() {
   $('hints').checked = !!snapshot.prefs.showKeyboardHints;
   $('login').checked = !!snapshot.prefs.launchAtLogin;
   $('hotkey').value = snapshot.prefs.hotkey || 'CommandOrControl+Shift+D';
+  if ($('autoUpdate')) {
+    $('autoUpdate').checked = snapshot.prefs.checkForUpdatesAutomatically !== false;
+  }
   const tier = snapshot.license?.isPro ? 'Pro' : 'Free';
-  $('version').textContent = `Version 1.0.0 · ${tier} · ${snapshot.dataDir}`;
+  const ver = (await slaveDock.getUpdateStatus?.())?.version || '1.1.1';
+  $('version').textContent = `Version ${ver} · ${tier} · ${snapshot.dataDir}`;
+  if ($('updateHint')) $('updateHint').textContent = `Installed ${ver}`;
   $('proStatus').textContent = snapshot.license?.isPro
     ? `You’re on Pro (${snapshot.license.display || 'active'})`
     : 'SlaveDock Free — upgrade anytime';
@@ -29,6 +34,24 @@ $('login').onchange = (e) => savePrefs({ launchAtLogin: e.target.checked });
 $('hotkey').onchange = (e) => savePrefs({ hotkey: e.target.value.trim() || 'CommandOrControl+Shift+D' });
 
 $('resetTips').onclick = () => savePrefs({ hasCompletedOnboarding: false });
+if ($('autoUpdate')) {
+  $('autoUpdate').onchange = (e) => savePrefs({ checkForUpdatesAutomatically: e.target.checked });
+}
+if ($('checkUpdates')) {
+  $('checkUpdates').onclick = async () => {
+    $('status').textContent = 'Checking for updates…';
+    const res = await slaveDock.checkForUpdates(true);
+    if (res?.ok && !res.available && !res.downloading) {
+      $('status').textContent = 'You’re on the latest version.';
+    } else if (res?.downloading) {
+      $('status').textContent = 'Downloading update…';
+    } else if (res?.error) {
+      $('status').textContent = res.error;
+    } else {
+      $('status').textContent = res?.available ? 'Update available.' : 'Update check finished.';
+    }
+  };
+}
 
 $('activatePro').onclick = async () => {
   const key = $('licenseKey').value;

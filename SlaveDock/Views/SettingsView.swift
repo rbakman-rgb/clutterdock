@@ -430,6 +430,18 @@ struct SettingsView: View {
                     statusMessage = "Open the launcher to see tips."
                 }
             }
+            Section("Updates") {
+                Toggle("Check for updates automatically", isOn: $preferences.checkForUpdatesAutomatically)
+                Text("Current version \(appVersion) (\(appBuild))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Check for Updates…") {
+                    UpdateService.checkAndPrompt(interactive: true)
+                }
+                Text("Updates download from GitHub Releases. Replace the app in Applications, then reopen — your data and Pro license stay put.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Maintenance") {
                 HStack {
                     Button("Remove missing") {

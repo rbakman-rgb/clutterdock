@@ -79,8 +79,9 @@ jobs:
         id: files
         run: |
           mkdir -p release-assets
-          find artifacts -type f \( -name '*.zip' -o -name '*.exe' \) -print
-          find artifacts -type f \( -name '*.zip' -o -name '*.exe' \) -exec cp {} release-assets/ \;
+          # Include yml + blockmap so electron-updater can find Windows updates
+          find artifacts -type f \( -name '*.zip' -o -name '*.exe' -o -name '*.yml' -o -name '*.blockmap' \) -print
+          find artifacts -type f \( -name '*.zip' -o -name '*.exe' -o -name '*.yml' -o -name '*.blockmap' \) -exec cp {} release-assets/ \;
           ls -la release-assets
           echo "count=$(ls release-assets | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
@@ -112,9 +113,14 @@ jobs:
             3. First open: right-click → **Open** (unsigned build until Developer ID notarization)
 
             ### Windows
-            1. Download the `.exe` installer or portable build
+            1. Download the **NSIS** `.exe` installer (preferred for auto-updates)
             2. Run and look for the tray icon
             3. Default hotkey: **Ctrl+Shift+D**
+            4. Updates: Settings → **Check for Updates** (or automatic)
+
+            ### Updates
+            - **Mac:** Settings → Check for Updates (opens new build from GitHub)
+            - **Windows (NSIS):** in-app download & restart via electron-updater
 
             ### Pro
             Purchase / activate via the [pricing page](https://rbakman-rgb.github.io/slavedock/pricing.html) (checkout wiring may still be manual).

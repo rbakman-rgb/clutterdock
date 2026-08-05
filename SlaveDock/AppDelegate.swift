@@ -80,6 +80,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        // Background update check (GitHub Releases)
+        if preferences.checkForUpdatesAutomatically {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                UpdateService.checkAndPrompt(interactive: false)
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -200,6 +207,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Open Launcher", action: #selector(showLauncher), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: ""))
 
         if store.workspaces.count > 1 {
             menu.addItem(NSMenuItem.separator())
@@ -240,6 +248,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showLauncher() { panelController.show() }
     @objc private func showSettings() { panelController.showSettings() }
+
+    @objc private func checkForUpdates() {
+        UpdateService.checkAndPrompt(interactive: true)
+    }
 
     @objc private func openBuyMeACoffee() {
         if let url = AppSupport.buyMeACoffeeURL {
