@@ -1,7 +1,8 @@
 # SlaveDock — Session save
 
 **Saved:** 2026-08-05  
-**Status:** **Mac 1.3.0 / Windows 1.1.0 Free+Pro** — entitlements, license keys, `docs/PRICING.md`. GitHub: `rbakman-rgb/slavedock`.
+**Status:** **Public launch path** — Mac 1.3.0 / Windows 1.1.0 Free+Pro, marketing site, release CI, GitHub Releases.  
+**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · [docs/SHIP.md](docs/SHIP.md)
 
 ---
 
@@ -89,7 +90,7 @@ open /Applications/SlaveDock.app
 ## Intentionally not done yet
 
 - Apple notarization / Developer ID ($99) for Gatekeeper-clean distribution
-- GitHub Releases + public repo
+- Lemon Squeezy / Gumroad / Paddle auto-checkout + key email
 - Sparkle auto-update
 - iCloud sync
 - Custom hotkey *recorder* (presets only today)
@@ -99,10 +100,10 @@ open /Applications/SlaveDock.app
 
 ## Good next sessions (pick one)
 
-1. **Ship free public build** — GitHub repo, Releases zip, README polish, notarize if you have a developer account  
-2. **UX harden** — reorder drag reliability, first-run tips, Services enablement guide  
-3. **More power** — per-app hotkeys, schedule/contexts, badge counts  
-4. **Polish only** — animations, empty states, About keyboard cheat sheet  
+1. **Payment** — create store product, wire website Unlock Pro, deliver keys  
+2. **Notarize** — Apple Developer ID + notarize Mac zip  
+3. **UX harden** — reorder drag reliability, Services enablement guide  
+4. **More power** — per-app hotkeys, schedule/contexts, badge counts  
 
 ---
 

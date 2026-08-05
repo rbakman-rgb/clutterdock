@@ -1,20 +1,40 @@
 # SlaveDock
 
-Folders of apps, files, folders, and URLs — on **Mac** (Dock) and **Windows** (system tray).
+**Folders of apps, files, folders, and URLs** — on your **Mac Dock** or **Windows tray**.
 
-**Free forever** for daily use · **Pro** one-time unlock for power features · Tips optional via [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky).
+[Download](https://github.com/rbakman-rgb/slavedock/releases/latest) · [Website](https://rbakman-rgb.github.io/slavedock/) · [Pricing](https://rbakman-rgb.github.io/slavedock/pricing.html) · [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
-| Platform | Code | Stack |
-|----------|------|--------|
-| macOS 14+ | `SlaveDock/` | Native Swift / SwiftUI · **v1.3.0** Free/Pro |
-| Windows 10/11 | `windows/` | Electron tray · **v1.1.0** Free/Pro |
+**Free forever** for daily use. **Pro** is an optional **one-time** unlock (no subscription).
 
-Windows: **[windows/README.md](windows/README.md)** · Pricing: **[docs/PRICING.md](docs/PRICING.md)**
+| Platform | Stack | Version |
+|----------|--------|---------|
+| macOS 14+ | Native Swift / SwiftUI | **1.3.0** |
+| Windows 10/11 | Electron tray launcher | **1.1.0** |
+
+---
+
+## Install
+
+### macOS
+
+1. Download **`SlaveDock-*-mac.zip`** from [Releases](https://github.com/rbakman-rgb/slavedock/releases/latest)
+2. Unzip → drag **SlaveDock.app** to **Applications**
+3. First launch: **right-click → Open** (build is ad-hoc signed until Apple Developer ID notarization)
+4. Optional: right-click Dock icon → Options → **Keep in Dock**
+5. Hotkey default: **⌘⇧D**
+
+### Windows
+
+1. Download the installer or portable **`.exe`** from [Releases](https://github.com/rbakman-rgb/slavedock/releases/latest)
+2. Run it and find **SlaveDock** in the system tray
+3. Hotkey default: **Ctrl+Shift+D**
+
+---
 
 ## Free vs Pro
 
-| | Free | Pro |
-|--|------|-----|
+| | Free | Pro (~$14.99 once) |
+|--|------|---------------------|
 | Folders | Up to **5** | Unlimited |
 | Items per folder | Up to **20** | Unlimited |
 | Search all folders | — | Yes |
@@ -24,65 +44,65 @@ Windows: **[windows/README.md](windows/README.md)** · Pricing: **[docs/PRICING.
 | `.slavedock` pack export | — | Yes |
 | Core launcher, Recents, JSON backup | Yes | Yes |
 
-Activate Pro: **Settings → Pro** (same license key on Mac + Windows).
+Activate Pro: **Settings → Pro** (same key on Mac + Windows).  
+Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://rbakman-rgb.github.io/slavedock/pricing.html)
 
-Test unlock: `SDPRO-TEST-UNLOCK-2026`  
-Generate keys: `swift scripts/generate-license.swift A1B2`
+---
 
-Target price: **~$14.99** one-time (payment store next).
+## Features
 
-## Features (macOS)
+- Dock (Mac) / tray (Windows) launcher + global hotkey  
+- Apps, files, folders, URLs · grid or list · drag reorder  
+- Smart folders: **Recents**, **Running**  
+- Workspaces, global search, per-folder hotkeys (Pro)  
+- Import/export JSON; pack export (Pro)  
+- URL scheme: `slavedock://open`, `add`, `workspace`, …  
+- Finder Service: **Add to SlaveDock** (Mac)
 
-### Launcher
-- Dock icon + optional menu bar + global hotkey (⌘⇧D)
-- Multiple folders with grid or list view
-- **Apps, files, folders, URLs**
-- Drag-and-drop + reorder
-- Search in folder; **search all** (Pro, ⌘G)
-- Keyboard: arrows, Return, Esc, ⌘1–9
-- Running indicators
-- Per-folder hotkeys (Pro)
-- **Workspaces** (Pro)
-- Smart folders: **Recents**, **Running**
+---
 
-### Settings
-- Folder symbols / custom images (Pro)
-- Open at login
-- Free/Pro license tab
-- JSON backup (free) · pack export (Pro)
-- Cleanup missing / duplicates
+## Build from source
 
-### Automation
-```
-slavedock://open
-slavedock://open?folder=Work
-slavedock://add?path=/Applications/Safari.app
-slavedock://add?url=https://example.com
-slavedock://workspace?name=All
-```
-
-Finder: select items → **Services → Add to SlaveDock**  
-(Enable once under System Settings → Keyboard → Keyboard Shortcuts → Services if needed.)
-
-## Build & install
+### macOS
 
 ```bash
-cd ~/Developer/SlaveDock
-./scripts/build.sh
+./scripts/build.sh              # native arch (dev)
+./scripts/build.sh universal    # Intel + Apple Silicon
+./scripts/package-mac.sh        # → dist/SlaveDock-<ver>-mac.zip
 cp -R build/SlaveDock.app /Applications/
-open /Applications/SlaveDock.app
 ```
 
-Keep in Dock: right-click → Options → Keep in Dock.
+### Windows
 
-## Data
+```bash
+cd windows
+npm install
+npm start          # dev
+npm run dist       # installer + portable (run on Windows)
+```
+
+See [windows/README.md](windows/README.md).
+
+### Release automation
+
+Push a tag `vX.Y.Z` → GitHub Actions builds Mac + Windows and publishes a Release.  
+Ship notes: [docs/SHIP.md](docs/SHIP.md)
+
+---
+
+## Data (local only)
 
 ```
-~/Library/Application Support/SlaveDock/folders.json
-~/Library/Application Support/SlaveDock/history.json
+macOS:    ~/Library/Application Support/SlaveDock/
+Windows:  %APPDATA%/slavedock/SlaveDock/
 ```
 
-## Version
+No account. No cloud required. [Privacy](https://rbakman-rgb.github.io/slavedock/privacy.html)
 
-- **Mac 1.3.0** — Free/Pro entitlements, license keys, upgrade UX  
-- **Windows 1.1.0** — matching Free/Pro gates
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Not affiliated with Apple or Microsoft.

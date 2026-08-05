@@ -323,7 +323,7 @@ struct SettingsView: View {
                 } else {
                     GroupBox("Activate license") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Paste your Pro key (from purchase or \(LicenseManager.testUnlockKey) for testing).")
+                            Text("Paste your Pro license key (format SDPRO-XXXX-YYYY-ZZZZ).")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             TextField("SDPRO-XXXX-XXXX-XXXX", text: $licenseDraft)
@@ -338,13 +338,16 @@ struct SettingsView: View {
                                     }
                                 }
                                 .buttonStyle(.borderedProminent)
+                                Button("Get Pro…") {
+                                    NSWorkspace.shared.open(AppSupport.pricingURL)
+                                }
                                 Button("Buy Me a Coffee") {
                                     if let url = AppSupport.buyMeACoffeeURL {
                                         NSWorkspace.shared.open(url)
                                     }
                                 }
                             }
-                            Text("Target price: ~$14.99 one-time · Mac + Windows. Payment store wiring comes next; keys work offline now.")
+                            Text("Pro is ~$14.99 one-time · works on Mac + Windows · offline key, no account.")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }

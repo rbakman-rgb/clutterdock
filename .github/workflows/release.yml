@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create/update (e.g. v1.3.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    name: Build macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build & package
+        run: |
+          chmod +x scripts/build.sh scripts/package-mac.sh
+          ./scripts/package-mac.sh
+
+      - name: Upload Mac artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-zip
+          path: dist/SlaveDock-*-mac.zip
+          if-no-files-found: error
+
+  windows:
+    name: Build Windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+
+      - name: Install & package
+        run: |
+          npm ci
+          npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-dist
+          path: |
+            windows/dist/*.exe
+            windows/dist/*.yml
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect release files
+        id: files
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name '*.zip' -o -name '*.exe' \) -print
+          find artifacts -type f \( -name '*.zip' -o -name '*.exe' \) -exec cp {} release-assets/ \;
+          ls -la release-assets
+          echo "count=$(ls release-assets | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: SlaveDock ${{ steps.tag.outputs.name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## SlaveDock ${{ steps.tag.outputs.name }}
+
+            **Free forever** core launcher · **Pro** one-time unlock (license key in Settings → Pro).
+
+            ### macOS
+            1. Download `SlaveDock-*-mac.zip`
+            2. Unzip and drag **SlaveDock.app** to Applications
+            3. First open: right-click → **Open** (unsigned build until Developer ID notarization)
+
+            ### Windows
+            1. Download the `.exe` installer or portable build
+            2. Run and look for the tray icon
+            3. Default hotkey: **Ctrl+Shift+D**
+
+            ### Pro
+            Purchase / activate via the [pricing page](https://rbakman-rgb.github.io/slavedock/pricing.html) (checkout wiring may still be manual).
+
+            Tips: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

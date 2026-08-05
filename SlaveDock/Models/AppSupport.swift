@@ -1,12 +1,15 @@
 import Foundation
 
-/// Support / donation links for the free app.
-///
-/// 1. Create a page at https://www.buymeacoffee.com
-/// 2. Put your username (the part after buymeacoffee.com/) below.
+/// Support / donation / product website links.
 enum AppSupport {
-    /// Your Buy Me a Coffee username (page slug). Example: `"ronald"` → buymeacoffee.com/ronald
+    /// Buy Me a Coffee page slug → buymeacoffee.com/<slug>
     static let buyMeACoffeeUsername = "chidichidovsky"
+
+    /// Public marketing site (GitHub Pages).
+    static let websiteURL = URL(string: "https://rbakman-rgb.github.io/slavedock/")!
+    static let pricingURL = URL(string: "https://rbakman-rgb.github.io/slavedock/pricing.html")!
+    static let releasesURL = URL(string: "https://github.com/rbakman-rgb/slavedock/releases/latest")!
+    static let githubURL = URL(string: "https://github.com/rbakman-rgb/slavedock")!
 
     static var buyMeACoffeeURL: URL? {
         let slug = buyMeACoffeeUsername.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -14,7 +17,6 @@ enum AppSupport {
         return URL(string: "https://www.buymeacoffee.com/\(slug)")
     }
 
-    /// True once you've set a real username above.
     static var isDonateConfigured: Bool {
         buyMeACoffeeURL != nil
     }
