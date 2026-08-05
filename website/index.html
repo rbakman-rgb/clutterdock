@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SlaveDock — Folders for your Dock &amp; tray</title>
+  <meta name="description" content="SlaveDock puts folders of apps, files, folders, and URLs on your Mac Dock or Windows tray. Free forever core. Pro is a one-time unlock." />
+  <link rel="icon" href="assets/icon-256.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/icon-256.png" alt="" width="32" height="32" />
+        SlaveDock
+      </a>
+      <button class="nav-toggle" type="button" aria-label="Menu" data-nav-toggle>☰</button>
+      <nav class="nav-links" data-nav-links>
+        <a href="index.html" aria-current="page">Product</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="#download">Download</a>
+        <a href="https://buymeacoffee.com/chidichidovsky" target="_blank" rel="noopener">Tip jar</a>
+        <a class="nav-cta" href="#download">Get SlaveDock</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="landing-hero container">
+      <div class="eyebrow">Mac Dock · Windows tray</div>
+      <h1>Your apps, stacked.<br />Always one hotkey away.</h1>
+      <p class="lead">
+        SlaveDock turns folders of apps, files, folders, and URLs into a fast launcher —
+        living in the Dock on Mac or the system tray on Windows. Free forever. Pro is optional.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#download">Download free</a>
+        <a class="btn btn-secondary" href="pricing.html">See pricing</a>
+      </div>
+      <div class="hero-visual">
+        <img src="assets/icon.png" alt="SlaveDock app icon — colorful app tiles hanging from a bar" width="160" height="160" />
+      </div>
+    </section>
+
+    <section class="section container">
+      <div class="section-header">
+        <h2>Built for daily launch, not Dock drama</h2>
+        <p>Public APIs only. No Dock replacement. Just faster access to what you open all day.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <h3>Folders that behave</h3>
+          <p>Grid or list, drag to reorder, sort modes, and running indicators — without replacing the system Dock.</p>
+        </article>
+        <article class="feature-card">
+          <h3>More than apps</h3>
+          <p>Drop in files, folders, and URLs alongside apps. One place for the things you actually open.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Keyboard-first</h3>
+          <p>Global hotkey, arrow navigation, ⌘1–9, and (with Pro) per-folder hotkeys and search-all.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Smart folders</h3>
+          <p>Recents from launch history and a live Running list keep momentum without manual tidy-up.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Workspaces (Pro)</h3>
+          <p>Switch whole sets of folders for home, work, or deep-focus modes in one step.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Cross-platform</h3>
+          <p>Native Swift on macOS 14+. Electron tray app on Windows 10/11. Same product idea, platform-native feel.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section container">
+      <div class="cta-band">
+        <h2>Free core. One-time Pro.</h2>
+        <p>
+          Start with 5 folders and 20 items each — enough for most people.
+          Unlock unlimited stacks, workspaces, and power tools once, forever.
+        </p>
+        <div class="cta-actions">
+          <a class="btn btn-primary" href="pricing.html">View pricing</a>
+          <a class="btn btn-ghost" href="https://buymeacoffee.com/chidichidovsky" target="_blank" rel="noopener">Tip on Coffee</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section container" id="download">
+      <div class="section-header">
+        <h2>Get SlaveDock</h2>
+        <p>Install free. Upgrade later in Settings → Pro when you’re ready.</p>
+      </div>
+      <div class="download-grid">
+        <div class="download-card">
+          <h3>Mac</h3>
+          <p>Native app for macOS 14+. Global hotkey ⌘⇧D.</p>
+          <a class="btn btn-primary" href="https://github.com">Download for Mac</a>
+          <div class="code-hint">./scripts/build.sh → /Applications/SlaveDock.app</div>
+        </div>
+        <div class="download-card">
+          <h3>Windows</h3>
+          <p>Tray launcher for Windows 10/11. Ctrl+Shift+D.</p>
+          <a class="btn btn-secondary" href="https://github.com">Download for Windows</a>
+          <div class="code-hint">cd windows && npm start · npm run dist</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <img src="assets/icon-256.png" alt="" width="32" height="32" />
+          SlaveDock
+        </a>
+        <p>Folders of apps, files, and URLs — free forever core, one-time Pro unlock.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="index.html">Overview</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="#download">Download</a>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <a href="pricing.html#faq">FAQ</a>
+          <a href="https://buymeacoffee.com/chidichidovsky" target="_blank" rel="noopener">Tip jar</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span data-year></span> SlaveDock</span>
+      <span>Not affiliated with Apple or Microsoft</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
