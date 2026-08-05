@@ -2,7 +2,8 @@
 
 **Saved:** 2026-08-05  
 **Status:** **Public launch path** — Mac 1.3.0 / Windows 1.1.0 Free+Pro, marketing site, release CI, GitHub Releases.  
-**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · [docs/SHIP.md](docs/SHIP.md) · [docs/LINEAR.md](docs/LINEAR.md)
+**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · [docs/SHIP.md](docs/SHIP.md) · [docs/LINEAR.md](docs/LINEAR.md)  
+**Backlog:** [Linear — SlaveDock V1 Public Launch](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…377 · live IDs in [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md) · sync protocol in `AGENTS.md`)
 
 ---
 
@@ -127,6 +128,9 @@ scripts/build.sh
 ```
 Continue SlaveDock at ~/Developer/SlaveDock.
 Read SESSION.md and README.md first.
+Backlog is in Linear (project "SlaveDock — V1 Public Launch", team RON). Use the Linear
+MCP: check In Progress/Todo before starting, and keep issues updated as you work —
+protocol and issue map are in AGENTS.md.
 App is free, icon is custom AppIcon.icns, donate is buymeacoffee.com/chidichidovsky.
 Installed at /Applications/SlaveDock.app. Rebuild with ./scripts/build.sh.
 Do not replace the system Dock. Prefer stable public APIs.

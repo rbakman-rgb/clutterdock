@@ -21,6 +21,41 @@ This matches how your other products use Linear:
 
 ---
 
+## ✅ Created in Linear (2026-08-05)
+
+**Project:** https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795 — status In Progress, 26 issues seeded. Agents: follow the **Linear sync protocol in `AGENTS.md`** (update issues as you work).
+
+| ID | Issue | State |
+|----|-------|-------|
+| RON-352 | G0-01 Native Mac launcher Free core | Done |
+| RON-353 | G0-02 Windows Electron tray Free core | Done |
+| RON-354 | G0-03 Free/Pro entitlements + offline license keys | Done |
+| RON-355 | G0-04 Marketing site GitHub Pages | Done |
+| RON-356 | G0-05 Release CI Mac zip + Windows exe | Done |
+| RON-357 | G0-06 App update checks Mac + Windows | Done |
+| RON-358 | G0-07 Public GitHub + release assets | Done |
+| RON-359 | G1-01 Enroll Apple Developer Program ($99) | Todo · Urgent |
+| RON-360 | G1-02 Developer ID cert + signed Mac build | Todo · Urgent |
+| RON-361 | G1-03 Notarize Mac release zip | Todo · Urgent |
+| RON-362 | G1-04 Windows code signing / SmartScreen doc | Todo · High |
+| RON-363 | G1-05 Clean-machine install smoke (Mac + Win) | Todo · Urgent |
+| RON-364 | G2-01 Choose merchant | Todo · Urgent |
+| RON-365 | G2-02 Create Pro $14.99 + Multi $29 products | Todo · Urgent |
+| RON-366 | G2-03 Auto-email license key on purchase | Todo · Urgent |
+| RON-367 | G2-04 Wire site Unlock Pro to checkout | Todo · Urgent |
+| RON-368 | G2-05 Optional webhook key generation | Todo · Low |
+| RON-369 | G3-01 Homepage screenshots / launcher GIF | Todo · High |
+| RON-370 | G3-02 Install FAQ Gatekeeper + SmartScreen | Todo · High |
+| RON-371 | G3-03 Support contact / Issues link on site | Todo · Medium |
+| RON-372 | G3-04 Direct asset download links on site | Todo · Low |
+| RON-373 | G3-05 Terms of use for Pro license | Todo · Low |
+| RON-374 | G4-01 Soft launch posts (blocked by RON-363) | Todo · High |
+| RON-375 | G4-02 Rebrand decision | Todo · Medium |
+| RON-376 | G4-03 Homebrew cask (blocked by RON-361) | Todo · Low |
+| RON-377 | G4-04 iCloud/OneDrive sync Pro pillar | Backlog · Low |
+
+---
+
 ## Project description (paste into Linear)
 
 ```
