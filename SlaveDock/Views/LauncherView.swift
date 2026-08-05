@@ -51,49 +51,13 @@ struct LauncherView: View {
     }
 
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                workspaceBar
-                folderTabs
-                searchBar
-                Divider().opacity(0.35)
-                content
-                if preferences.showKeyboardHints {
-                    KeyboardHintsBar()
-                }
-                Divider().opacity(0.35)
-                footer
-            }
-
-            if !preferences.hasCompletedOnboarding {
-                Color.black.opacity(0.18)
-                    .ignoresSafeArea()
-                OnboardingCard(
-                    onDismiss: { preferences.hasCompletedOnboarding = true },
-                    onAddApps: {
-                        preferences.hasCompletedOnboarding = true
-                        addFiles()
-                    },
-                    onOpenSettings: {
-                        preferences.hasCompletedOnboarding = true
-                        onOpenSettings()
-                    }
-                )
-            }
-        }
-        .frame(width: preferences.panelWidth, height: preferences.panelHeight)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(isTargeted ? Color.accentColor : .clear, lineWidth: 2)
-        )
-        .onDrop(of: [.fileURL], isTargeted: $isTargeted, perform: handleDrop)
-        .alert("New Folder", isPresented: $showingNewFolder) {
+        launcherChrome
+            .frame(width: preferences.panelWidth, height: preferences.panelHeight)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(panelBorder)
+            .onDrop(of: [.fileURL], isTargeted: $isTargeted, perform: handleDrop)
+            .alert("New Folder", isPresented: $showingNewFolder) {
             TextField("Folder name", text: $newFolderName)
             Button("Cancel", role: .cancel) { newFolderName = "" }
             Button("Create") {
@@ -180,6 +144,50 @@ struct LauncherView: View {
             showingHelp = true
             return .handled
         }
+    }
+
+    @ViewBuilder
+    private var launcherChrome: some View {
+        ZStack {
+            VStack(spacing: 0) {
+                workspaceBar
+                folderTabs
+                searchBar
+                Divider().opacity(0.35)
+                content
+                if preferences.showKeyboardHints {
+                    KeyboardHintsBar()
+                }
+                Divider().opacity(0.35)
+                footer
+            }
+
+            if !preferences.hasCompletedOnboarding {
+                Color.black.opacity(0.18)
+                    .ignoresSafeArea()
+                OnboardingCard(
+                    onDismiss: { preferences.hasCompletedOnboarding = true },
+                    onAddApps: {
+                        preferences.hasCompletedOnboarding = true
+                        addFiles()
+                    },
+                    onOpenSettings: {
+                        preferences.hasCompletedOnboarding = true
+                        onOpenSettings()
+                    }
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var panelBorder: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(isTargeted ? Color.accentColor : .clear, lineWidth: 2)
+            )
     }
 
     private func handleLeftRight(delta: Int) -> KeyPress.Result {

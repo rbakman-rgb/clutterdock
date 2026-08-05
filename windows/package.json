@@ -16,13 +16,12 @@
     "start": "electron .",
     "dev": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win",
-    "dist:portable": "electron-builder --win portable"
+    "dist": "electron-builder --win --publish never",
+    "dist:portable": "electron-builder --win portable --publish never"
   },
   "build": {
     "appId": "com.ronald.SlaveDock",
     "productName": "SlaveDock",
-    "publish": null,
     "directories": {
       "output": "dist"
     },

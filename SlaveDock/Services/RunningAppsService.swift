@@ -17,14 +17,14 @@ final class RunningAppsService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.refresh() }
+            DispatchQueue.main.async { [weak self] in self?.refresh() }
         }
         let terminate = workspace.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.refresh() }
+            DispatchQueue.main.async { [weak self] in self?.refresh() }
         }
         observers = [launch, terminate]
     }

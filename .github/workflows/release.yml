@@ -36,9 +36,6 @@ jobs:
   windows:
     name: Build Windows
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: windows
     steps:
       - uses: actions/checkout@v4
 
@@ -49,9 +46,10 @@ jobs:
           cache-dependency-path: windows/package-lock.json
 
       - name: Install & package
+        working-directory: windows
         run: |
           npm ci
-          npm run dist
+          npx electron-builder --win --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
