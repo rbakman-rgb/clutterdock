@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>SlaveDock Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="settings-body">
+    <h1>SlaveDock Settings</h1>
+    <p class="lead">Free forever · Windows tray launcher for apps, files, folders &amp; URLs</p>
+
+    <div class="section">
+      <h3>General</h3>
+      <div class="field">
+        <label>Close launcher after opening an item
+          <span class="sub">Like the Mac app</span>
+        </label>
+        <input type="checkbox" id="closeAfter" />
+      </div>
+      <div class="field">
+        <label>Show keyboard hints
+          <span class="sub">Footer tips in the launcher</span>
+        </label>
+        <input type="checkbox" id="hints" />
+      </div>
+      <div class="field">
+        <label>Open at login
+          <span class="sub">Start SlaveDock with Windows</span>
+        </label>
+        <input type="checkbox" id="login" />
+      </div>
+      <div class="field">
+        <label>Global hotkey
+          <span class="sub">Electron accelerator string</span>
+        </label>
+        <input type="text" id="hotkey" placeholder="CommandOrControl+Shift+D" />
+      </div>
+      <div class="field">
+        <label>Welcome tips</label>
+        <button class="btn secondary" id="resetTips">Show tips again</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Backup</h3>
+      <div class="field">
+        <label>Export / import packs
+          <span class="sub">.slavedock or .json</span>
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn secondary" id="exportBtn">Export…</button>
+          <button class="btn secondary" id="importReplace">Import replace…</button>
+          <button class="btn secondary" id="importMerge">Import merge…</button>
+        </div>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="section">
+      <h3>About</h3>
+      <p style="margin:0 0 10px;font-size:13px;line-height:1.5">
+        SlaveDock for Windows keeps folders of apps and files in your system tray.
+        Same idea as the Mac Dock version — free, local-first, optional tips.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn coffee" id="coffee">☕ Buy me a coffee</button>
+        <button class="btn secondary" id="dataDir">Open data folder</button>
+      </div>
+      <p class="status" id="version">Version 1.0.0</p>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+</body>
+</html>

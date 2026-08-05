@@ -1,0 +1,524 @@
+import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
+
+struct SettingsView: View {
+    @ObservedObject var store: FolderStore
+    @ObservedObject var preferences: AppPreferences
+    @ObservedObject var history: LaunchHistory
+
+    @State private var selectedFolderID: UUID?
+    @State private var statusMessage: String?
+
+    var body: some View {
+        TabView {
+            foldersTab.tabItem { Label("Folders", systemImage: "folder") }
+            workspacesTab.tabItem { Label("Workspaces", systemImage: "rectangle.3.group") }
+            generalTab.tabItem { Label("General", systemImage: "gearshape") }
+            backupTab.tabItem { Label("Backup", systemImage: "externaldrive") }
+            aboutTab.tabItem { Label("About", systemImage: "info.circle") }
+        }
+        .padding(.top, 8)
+        .frame(minWidth: 640, minHeight: 480)
+    }
+
+    // MARK: - Folders
+
+    private var foldersTab: some View {
+        NavigationSplitView {
+            List(selection: $selectedFolderID) {
+                ForEach(store.folders) { folder in
+                    Label {
+                        HStack {
+                            Text(folder.name)
+                            if folder.isSmart {
+                                Text("smart")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    } icon: {
+                        Image(systemName: folder.symbolName ?? "folder.fill")
+                    }
+                    .tag(folder.id)
+                }
+                .onMove { s, d in store.moveFolder(from: s, to: d) }
+            }
+            .navigationSplitViewColumnWidth(min: 170, ideal: 200)
+            .toolbar {
+                ToolbarItemGroup {
+                    Button {
+                        store.addFolder(named: "New Folder")
+                        selectedFolderID = store.folders.last(where: { !$0.isSmart })?.id
+                    } label: { Image(systemName: "plus") }
+                    Button {
+                        if let id = selectedFolderID { store.deleteFolder(id: id) }
+                        selectedFolderID = store.selectedFolderID
+                    } label: { Image(systemName: "minus") }
+                    .disabled(selectedFolderID == nil)
+                }
+            }
+        } detail: {
+            if let folder = currentFolder {
+                folderDetail(folder)
+            } else {
+                emptyState("Select a Folder", "folder", "Choose a folder to manage items.")
+            }
+        }
+        .onAppear { selectedFolderID = store.selectedFolderID ?? store.folders.first?.id }
+        .onChange(of: selectedFolderID) {
+            if let selectedFolderID { store.selectFolder(id: selectedFolderID) }
+        }
+    }
+
+    private var currentFolder: AppFolder? {
+        guard let selectedFolderID else { return nil }
+        return store.folders.first { $0.id == selectedFolderID }
+    }
+
+    @ViewBuilder
+    private func folderDetail(_ folder: AppFolder) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Form {
+                Section("Folder") {
+                    TextField("Name", text: Binding(
+                        get: { folder.name },
+                        set: { store.renameFolder(id: folder.id, to: $0) }
+                    ))
+                    .disabled(folder.isSmart)
+
+                    if !folder.isSmart {
+                        Picker("Icon", selection: Binding(
+                            get: { folder.symbolName ?? "folder.fill" },
+                            set: { store.setFolderSymbol(id: folder.id, symbolName: $0) }
+                        )) {
+                            ForEach(Self.folderSymbols, id: \.self) { s in
+                                Image(systemName: s).tag(s)
+                            }
+                        }
+
+                        Picker("Sort", selection: Binding(
+                            get: { folder.sortMode },
+                            set: { store.setFolderSort(id: folder.id, mode: $0) }
+                        )) {
+                            ForEach(FolderSortMode.allCases) { m in Text(m.label).tag(m) }
+                        }
+
+                        Picker("View", selection: Binding(
+                            get: { folder.viewMode },
+                            set: { store.setFolderView(id: folder.id, mode: $0) }
+                        )) {
+                            ForEach(FolderViewMode.allCases) { m in Text(m.label).tag(m) }
+                        }
+
+                        Picker("Hotkey", selection: Binding(
+                            get: { folder.hotkey },
+                            set: { store.setFolderHotkey(id: folder.id, hotkey: $0) }
+                        )) {
+                            ForEach(FolderHotkey.allCases) { h in Text(h.displayName).tag(h) }
+                        }
+
+                        HStack {
+                            Button("Custom Image…") { pickFolderImage(for: folder.id) }
+                            if folder.customImagePath != nil {
+                                Button("Clear Image") { store.setFolderCustomImage(id: folder.id, path: nil) }
+                            }
+                        }
+                    } else {
+                        Text("Smart folder — contents are filled automatically.")
+                            .foregroundStyle(.secondary)
+                        if folder.smartKind == .recents {
+                            Button("Clear launch history") {
+                                history.clear()
+                                statusMessage = "History cleared."
+                            }
+                        }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .frame(height: folder.isSmart ? 160 : 280)
+
+            if !folder.isSmart {
+                HStack {
+                    Button("Add Items…") { addItems(to: folder.id) }
+                    Button("Add URL…") { addURL(to: folder.id) }
+                    Spacer()
+                }
+                .padding(.horizontal)
+
+                if folder.items.isEmpty {
+                    emptyState("No Items", "app.dashed", "Add apps, files, folders, or URLs.")
+                } else {
+                    List {
+                        ForEach(folder.items) { item in
+                            HStack(spacing: 12) {
+                                Image(nsImage: AppIconService.icon(for: item, size: 28))
+                                    .resizable().frame(width: 28, height: 28)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name)
+                                    Text("\(item.kind.label) · \(item.path)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+                                if !item.exists && item.kind != .url {
+                                    Text("Missing").font(.caption).foregroundStyle(.red)
+                                }
+                            }
+                            .contextMenu {
+                                Button("Open") { LaunchService.open(item) }
+                                Button("Reveal") { LaunchService.reveal(item) }
+                                Button("Remove", role: .destructive) {
+                                    store.removeItem(id: item.id, from: folder.id)
+                                }
+                            }
+                        }
+                        .onDelete { indexSet in
+                            for i in indexSet {
+                                store.removeItem(id: folder.items[i].id, from: folder.id)
+                            }
+                        }
+                        .onMove { s, d in store.moveItem(from: s, to: d, in: folder.id) }
+                    }
+                    .listStyle(.inset)
+                }
+            } else {
+                Spacer()
+            }
+        }
+    }
+
+    private static let folderSymbols = [
+        "folder.fill", "square.grid.2x2.fill", "briefcase.fill", "paintbrush.fill",
+        "hammer.fill", "gamecontroller.fill", "music.note", "photo.fill",
+        "envelope.fill", "star.fill", "heart.fill", "clock", "link"
+    ]
+
+    // MARK: - Workspaces
+
+    private var workspacesTab: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Workspaces show different sets of folders. “All” (empty selection) shows every folder.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Button("Add Workspace") {
+                    store.addWorkspace(named: "Workspace \(store.workspaces.count + 1)")
+                }
+                Spacer()
+            }
+
+            List {
+                ForEach(store.workspaces) { ws in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            TextField("Name", text: Binding(
+                                get: { ws.name },
+                                set: { store.renameWorkspace(id: ws.id, to: $0) }
+                            ))
+                            .textFieldStyle(.roundedBorder)
+                            Button("Activate") { store.selectWorkspace(id: ws.id) }
+                            if store.workspaces.count > 1 {
+                                Button("Delete", role: .destructive) {
+                                    store.deleteWorkspace(id: ws.id)
+                                }
+                            }
+                        }
+                        Text("Folders in this workspace (none checked = all folders):")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        FlowCheckboxes(workspace: ws, folders: store.folders.filter { !$0.isSmart }) { folderID in
+                            store.toggleFolderInWorkspace(workspaceID: ws.id, folderID: folderID)
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+            }
+        }
+        .padding()
+    }
+
+    // MARK: - General
+
+    private var generalTab: some View {
+        Form {
+            Section("Appearance") {
+                HStack {
+                    Text("Icon size")
+                    Spacer()
+                    Text("\(Int(preferences.iconSize)) pt").foregroundStyle(.secondary).monospacedDigit()
+                }
+                Slider(value: $preferences.iconSize, in: 40...80, step: 4)
+                Toggle("Show running-app indicator", isOn: $preferences.showRunningIndicator)
+                Toggle("Close launcher after opening", isOn: $preferences.closeAfterLaunch)
+                Toggle("Default search to “All folders”", isOn: $preferences.globalSearchDefault)
+            }
+            Section("Access") {
+                Toggle("Show menu bar icon", isOn: $preferences.showMenuBarIcon)
+                Toggle(isOn: Binding(
+                    get: { preferences.launchAtLogin },
+                    set: { new in
+                        if LoginItemService.setEnabled(new) {
+                            preferences.launchAtLogin = new
+                        } else {
+                            presentAlert("Login Items", "Allow SlaveDock in System Settings → Login Items, or keep the app in /Applications.")
+                        }
+                    }
+                )) { Text("Open at login") }
+                Toggle("Global hotkey", isOn: $preferences.hotkeyEnabled)
+                Picker("Hotkey", selection: $preferences.hotkeyPreset) {
+                    ForEach(HotkeyPreset.allCases) { p in Text(p.displayName).tag(p) }
+                }
+                .disabled(!preferences.hotkeyEnabled)
+                Text("Per-folder hotkeys: set under Folders. URL scheme: slavedock://open")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Startup & tips") {
+                Toggle("Open launcher when empty on first launch", isOn: $preferences.openEmptyOnLaunch)
+                Toggle("Show keyboard hints in launcher", isOn: $preferences.showKeyboardHints)
+                Button("Show welcome tips again") {
+                    preferences.resetOnboarding()
+                    statusMessage = "Open the launcher to see tips."
+                }
+            }
+            Section("Maintenance") {
+                HStack {
+                    Button("Remove missing") {
+                        let n = store.removeMissingApps()
+                        statusMessage = n == 0 ? "Nothing missing." : "Removed \(n)."
+                    }
+                    Button("Remove duplicates") {
+                        let n = store.removeDuplicateApps()
+                        statusMessage = n == 0 ? "No duplicates." : "Removed \(n)."
+                    }
+                    Button("Refresh names") {
+                        store.refreshAppNames()
+                        statusMessage = "Names refreshed."
+                    }
+                }
+                if let statusMessage {
+                    Text(statusMessage).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Section("Automation") {
+                Text("slavedock://open")
+                Text("slavedock://open?folder=Work")
+                Text("slavedock://add?path=/Applications/Safari.app")
+                Text("slavedock://add?url=https://example.com")
+                Text("slavedock://workspace?name=All")
+                    .font(.system(.caption, design: .monospaced))
+                Text("Finder: select items → Services → Add to SlaveDock (after enabling in Keyboard settings once).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+
+    // MARK: - Backup
+
+    private var backupTab: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Backup & Packs").font(.title2.weight(.semibold))
+            Text("Export JSON or a .slavedock pack. Import can replace everything or merge by folder name.")
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Button("Export JSON…") { exportJSON() }
+                Button("Export .slavedock Pack…") { exportPack() }
+            }
+            HStack(spacing: 12) {
+                Button("Import (Replace)…") { importFile(merge: false) }
+                Button("Import (Merge)…") { importFile(merge: true) }
+            }
+            if let statusMessage {
+                Text(statusMessage).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    // MARK: - About
+
+    private var aboutTab: some View {
+        VStack(spacing: 14) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 96, height: 96)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(radius: 6, y: 2)
+            Text("SlaveDock").font(.title.weight(.bold))
+            Text("Version \(appVersion) (\(appBuild))").foregroundStyle(.secondary)
+            Text("Free Dock folders for apps, files, folders & URLs.\nWorkspaces · hotkeys · Recents · Running · packs.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+
+            KeyboardCheatSheet()
+                .padding(12)
+                .background(Color.primary.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.horizontal, 24)
+
+            Button {
+                openBuyMeACoffee()
+            } label: {
+                HStack {
+                    Image(systemName: "cup.and.saucer.fill")
+                    Text("Buy me a coffee").fontWeight(.semibold)
+                }
+                .frame(minWidth: 180)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(red: 1.0, green: 0.81, blue: 0.25))
+            .foregroundStyle(.black)
+            Text("© \(Calendar.current.component(.year, from: Date())) · Free forever")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
+    }
+    private var appBuild: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "3"
+    }
+
+    // MARK: - Helpers
+
+    private func emptyState(_ title: String, _ symbol: String, _ sub: String) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 40, weight: .light)).foregroundStyle(.secondary)
+            Text(title).font(.title3.weight(.semibold))
+            Text(sub).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func addItems(to folderID: UUID) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        if panel.runModal() == .OK {
+            let n = store.addPaths(panel.urls.map(\.path), to: folderID)
+            statusMessage = "Added \(n) item(s)."
+        }
+    }
+
+    private func addURL(to folderID: UUID) {
+        let alert = NSAlert()
+        alert.messageText = "Add URL"
+        alert.addButton(withTitle: "Add")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(string: "https://")
+        field.frame = NSRect(x: 0, y: 0, width: 280, height: 24)
+        alert.accessoryView = field
+        if alert.runModal() == .alertFirstButtonReturn {
+            _ = store.addURL(field.stringValue, to: folderID)
+        }
+    }
+
+    private func pickFolderImage(for folderID: UUID) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg, .tiff, .webP]
+        panel.canChooseFiles = true
+        if panel.runModal() == .OK, let url = panel.url {
+            // Copy into Application Support
+            let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let dir = support.appendingPathComponent("SlaveDock/FolderImages", isDirectory: true)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let dest = dir.appendingPathComponent("\(folderID.uuidString).\(url.pathExtension)")
+            try? FileManager.default.removeItem(at: dest)
+            try? FileManager.default.copyItem(at: url, to: dest)
+            store.setFolderCustomImage(id: folderID, path: dest.path)
+            AppIconService.clearCache()
+        }
+    }
+
+    private func exportJSON() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "SlaveDock-backup.json"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try store.exportData().write(to: url, options: .atomic)
+            statusMessage = "Exported \(url.lastPathComponent)"
+        } catch {
+            presentAlert("Export failed", error.localizedDescription)
+        }
+    }
+
+    private func exportPack() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "slavedock") ?? .json]
+        panel.nameFieldStringValue = "MyPack.slavedock"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try store.exportPack(to: url)
+            statusMessage = "Exported pack \(url.lastPathComponent)"
+        } catch {
+            presentAlert("Export failed", error.localizedDescription)
+        }
+    }
+
+    private func importFile(merge: Bool) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json, UTType(filenameExtension: "slavedock") ?? .data]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try store.importPack(from: url, merge: merge)
+            selectedFolderID = store.selectedFolderID
+            statusMessage = merge ? "Merged \(url.lastPathComponent)" : "Replaced from \(url.lastPathComponent)"
+        } catch {
+            presentAlert("Import failed", error.localizedDescription)
+        }
+    }
+
+    private func openBuyMeACoffee() {
+        if let url = AppSupport.buyMeACoffeeURL {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func presentAlert(_ title: String, _ message: String) {
+        let a = NSAlert()
+        a.messageText = title
+        a.informativeText = message
+        a.runModal()
+    }
+}
+
+// Simple checkbox list for workspace folders
+private struct FlowCheckboxes: View {
+    let workspace: Workspace
+    let folders: [AppFolder]
+    var onToggle: (UUID) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(folders) { folder in
+                Toggle(isOn: Binding(
+                    get: {
+                        // Empty list means all — show as unchecked for "filter mode"
+                        workspace.folderIDs.contains(folder.id)
+                    },
+                    set: { _ in onToggle(folder.id) }
+                )) {
+                    Text(folder.name)
+                }
+                .toggleStyle(.checkbox)
+            }
+        }
+    }
+}

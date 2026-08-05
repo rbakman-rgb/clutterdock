@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlaveDock</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <div class="tabs" id="tabs"></div>
+    <div class="search-row">
+      <input id="search" type="search" placeholder="Search…" autocomplete="off" />
+      <button class="toggle" id="searchAll" title="Search all folders">All</button>
+    </div>
+    <div class="content" id="content"></div>
+    <div class="hints" id="hints"></div>
+    <div class="footer">
+      <span id="count">0 items</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="helpBtn" title="Help">❓</button>
+      <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+    </div>
+  </div>
+  <div id="overlay" hidden></div>
+  <div id="ctx" class="ctx" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

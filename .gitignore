@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+*.swp
+.idea/
+
+# Mac app build
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Windows / Electron
+windows/node_modules/
+windows/dist/
+windows/out/
+*.log
+
+# Env / secrets (none expected, but safe)
+.env
+.env.*
+*.pem
+
+# Editor
+.vscode/
+*.code-workspace
