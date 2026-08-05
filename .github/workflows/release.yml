@@ -17,7 +17,7 @@ permissions:
 jobs:
   mac:
     name: Build macOS
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -54,6 +54,7 @@ jobs:
           npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

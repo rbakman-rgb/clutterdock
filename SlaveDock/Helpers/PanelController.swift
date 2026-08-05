@@ -27,7 +27,7 @@ final class PanelController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.syncPanelSize() }
+            Task { @MainActor [weak self] in self?.syncPanelSize() }
         }
     }
 
@@ -128,7 +128,7 @@ final class PanelController {
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 120_000_000)
                 if NSApp.modalWindow != nil { return }
                 if self?.settingsWindow?.isKeyWindow == true { return }

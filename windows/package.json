@@ -7,6 +7,11 @@
   "author": "Ronald",
   "license": "MIT",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rbakman-rgb/slavedock.git"
+  },
+  "homepage": "https://rbakman-rgb.github.io/slavedock/",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
@@ -17,6 +22,7 @@
   "build": {
     "appId": "com.ronald.SlaveDock",
     "productName": "SlaveDock",
+    "publish": null,
     "directories": {
       "output": "dist"
     },

@@ -51,6 +51,7 @@ compile_arch() {
     -parse-as-library \
     -O \
     -whole-module-optimization \
+    -Xfrontend -strict-concurrency=minimal \
     -framework SwiftUI \
     -framework AppKit \
     -framework Carbon \

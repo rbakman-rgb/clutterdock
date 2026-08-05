@@ -38,9 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            Task { @MainActor in
+            let key = note.object as? String
+            Task { @MainActor [weak self] in
                 guard let self else { return }
-                let key = note.object as? String
                 if key == AppPreferences.Keys.showMenuBarIcon || key == nil {
                     self.applyMenuBarIcon()
                 }
@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.applyHotkeys() }
+            Task { @MainActor [weak self] in self?.applyHotkeys() }
         }
 
         NotificationCenter.default.addObserver(
@@ -66,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.applyHotkeys()
                 self?.rebuildDockMenu()
             }
