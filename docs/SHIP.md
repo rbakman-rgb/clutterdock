@@ -6,8 +6,8 @@
 |------|-----|
 | Repo | https://github.com/rbakman-rgb/clutterdock |
 | Releases | https://github.com/rbakman-rgb/clutterdock/releases |
-| Website | https://rbakman-rgb.github.io/clutterdock/ |
-| Pricing | https://rbakman-rgb.github.io/clutterdock/pricing.html |
+| Website | https://clutterdock.com/ |
+| Pricing | https://clutterdock.com/pricing.html |
 
 ## Release checklist
 
@@ -33,7 +33,7 @@ gh release create vX.Y.Z dist/ClutterDock-*-mac.zip --generate-notes
 
 1. Repo **Settings → Pages → Source**: GitHub Actions  
 2. Push to `main` (or run **Deploy website** workflow)  
-3. Site: `https://rbakman-rgb.github.io/clutterdock/`
+3. Site: `https://clutterdock.com/`
 
 ### Make the product public
 

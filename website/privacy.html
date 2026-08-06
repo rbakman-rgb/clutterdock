@@ -5,7 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Privacy · ClutterDock</title>
   <meta name="description" content="ClutterDock privacy policy — local-first, no account required." />
+  <meta name="theme-color" content="#0b0f17" />
+  <link rel="canonical" href="https://clutterdock.com/privacy.html" />
   <link rel="icon" href="assets/icon-256.png" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/icon-256.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ClutterDock" />
+  <meta property="og:title" content="Privacy · ClutterDock" />
+  <meta property="og:description" content="ClutterDock is local-first. No account required. Your folders stay on your device." />
+  <meta property="og:url" content="https://clutterdock.com/privacy.html" />
+  <meta property="og:image" content="https://clutterdock.com/assets/icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -50,7 +59,8 @@
       <h3>What we store on your device</h3>
       <p>
         Configuration such as folder contents, preferences, launch history, and (if you activate Pro)
-        your license key are stored in local application support directories on macOS or Windows.
+        your license key are stored in local application support directories on macOS or Windows
+        (for example <code>~/Library/Application Support/ClutterDock/</code> on Mac).
       </p>
     </div>
 
@@ -58,7 +68,7 @@
       <h3>What we do not collect</h3>
       <p>
         ClutterDock does not include analytics SDKs, ad trackers, or forced cloud sync in the current builds.
-        Opening external links (for example Buy Me a Coffee or the product website) is under your control.
+        Opening external links (for example Buy Me a Coffee, GitHub Releases, or this website) is under your control.
       </p>
     </div>
 
@@ -73,8 +83,18 @@
     <div class="trust-card" style="margin-bottom: 1rem;">
       <h3>Website</h3>
       <p>
-        This marketing site is static. Hosting (for example GitHub Pages) may log standard web requests
-        such as IP address and user agent according to the host’s policies.
+        This marketing site is static and may be served from <strong>clutterdock.com</strong>,
+        <strong>clutterdock.app</strong>, or a static host such as GitHub Pages.
+        Hosting providers may log standard web requests (IP address, user agent) according to their policies.
+      </p>
+    </div>
+
+    <div class="trust-card" style="margin-bottom: 1rem;">
+      <h3>Update checks</h3>
+      <p>
+        Optional in-app update checks query GitHub Releases for
+        <a href="https://github.com/rbakman-rgb/clutterdock" style="color: var(--accent);">rbakman-rgb/clutterdock</a>.
+        That request is a normal HTTPS call to GitHub’s API/CDN under GitHub’s privacy policy.
       </p>
     </div>
 
@@ -91,7 +111,11 @@
   <footer class="footer">
     <div class="footer-bottom" style="border: none;">
       <span>© <span data-year></span> ClutterDock</span>
-      <a href="index.html" style="color: var(--text-muted);">Home</a>
+      <span class="footer-domains">
+        <a href="https://clutterdock.com">clutterdock.com</a>
+        ·
+        <a href="index.html" style="color: var(--text-muted);">Home</a>
+      </span>
     </div>
   </footer>
   <script src="js/main.js"></script>

@@ -15,4 +15,15 @@
       a.addEventListener("click", () => links.classList.remove("open"));
     });
   }
+
+  // Soft-highlight the download card matching the visitor's OS
+  const ua = navigator.userAgent || "";
+  const isMac = /Mac|iPhone|iPad|iPod/i.test(ua);
+  const isWin = /Windows/i.test(ua);
+  document.querySelectorAll(".download-card").forEach((card) => {
+    const title = (card.querySelector("h3")?.textContent || "").toLowerCase();
+    if ((isMac && title.includes("mac")) || (isWin && title.includes("windows"))) {
+      card.classList.add("recommended");
+    }
+  });
 })();

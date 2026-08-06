@@ -2,7 +2,7 @@
 
 **Folders of apps, files, folders, and URLs** — on your **Mac Dock** or **Windows tray**.
 
-[Download](https://github.com/rbakman-rgb/clutterdock/releases/latest) · [Website](https://rbakman-rgb.github.io/clutterdock/) · [Pricing](https://rbakman-rgb.github.io/clutterdock/pricing.html) · [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
+[Download](https://github.com/rbakman-rgb/clutterdock/releases/latest) · [Website](https://clutterdock.com/) · [Pricing](https://clutterdock.com/pricing.html) · [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
 **Free forever** for daily use. **Pro** is an optional **one-time** unlock (no subscription).
 
@@ -45,7 +45,7 @@
 | Core launcher, Recents, JSON backup | Yes | Yes |
 
 Activate Pro: **Settings → Pro** (same key on Mac + Windows).  
-Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://rbakman-rgb.github.io/clutterdock/pricing.html)
+Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://clutterdock.com/pricing.html)
 
 ---
 
@@ -97,7 +97,7 @@ macOS:    ~/Library/Application Support/ClutterDock/
 Windows:  %APPDATA%/clutterdock/ClutterDock/
 ```
 
-No account. No cloud required. [Privacy](https://rbakman-rgb.github.io/clutterdock/privacy.html)
+No account. No cloud required. [Privacy](https://clutterdock.com/privacy.html)
 
 ---
 

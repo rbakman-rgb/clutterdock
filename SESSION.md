@@ -2,7 +2,7 @@
 
 **Saved:** 2026-08-05  
 **Status:** **Rebranded to ClutterDock** — Mac 1.4.0 / Windows 1.1.1 Free+Pro. Public launch path continues.  
-**URLs:** https://github.com/rbakman-rgb/clutterdock · https://rbakman-rgb.github.io/clutterdock/ · domains **clutterdock.com** · **clutterdock.app**  
+**URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ · domains **clutterdock.com** · **clutterdock.app**  
 **Backlog:** [Linear — project still slug `slavedock-v1-public-launch`](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…377 · live IDs in [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md) · sync protocol in `AGENTS.md`)
 
 ---

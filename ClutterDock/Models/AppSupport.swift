@@ -6,9 +6,8 @@ enum AppSupport {
     static let buyMeACoffeeUsername = "chidichidovsky"
 
     /// Product domains (owned): clutterdock.com · clutterdock.app
-    /// Marketing site (GitHub Pages until custom domain DNS is wired).
-    static let websiteURL = URL(string: "https://rbakman-rgb.github.io/clutterdock/")!
-    static let pricingURL = URL(string: "https://rbakman-rgb.github.io/clutterdock/pricing.html")!
+    static let websiteURL = URL(string: "https://clutterdock.com/")!
+    static let pricingURL = URL(string: "https://clutterdock.com/pricing.html")!
     /// Canonical GitHub repo: rbakman-rgb/clutterdock
     static let releasesURL = URL(string: "https://github.com/rbakman-rgb/clutterdock/releases/latest")!
     static let githubURL = URL(string: "https://github.com/rbakman-rgb/clutterdock")!
