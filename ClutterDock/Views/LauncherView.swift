@@ -278,8 +278,8 @@ struct LauncherView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 8)
+            }
             // Free badge lives in the footer so the top stays clean
-
         }
     }
 
