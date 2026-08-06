@@ -1,0 +1,25 @@
+name = "clutterdock-site"
+main = "scripts/site-worker.mjs"
+compatibility_date = "2026-08-05"
+
+[assets]
+directory = "website"
+binding = "ASSETS"
+# Worker must run first so non-canonical hosts redirect instead of serving assets.
+run_worker_first = true
+
+[[routes]]
+pattern = "clutterdock.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.clutterdock.com"
+custom_domain = true
+
+[[routes]]
+pattern = "clutterdock.app"
+custom_domain = true
+
+[[routes]]
+pattern = "www.clutterdock.app"
+custom_domain = true

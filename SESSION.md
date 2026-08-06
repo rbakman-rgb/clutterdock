@@ -2,7 +2,7 @@
 
 **Saved:** 2026-08-05  
 **Status:** **Rebranded to ClutterDock** — Mac 1.4.0 / Windows 1.1.1 Free+Pro. Public launch path continues.  
-**URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ · domains **clutterdock.com** · **clutterdock.app**  
+**URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ (**live** — Cloudflare Workers; clutterdock.app + www 301 → clutterdock.com)  
 **Backlog:** [Linear — project still slug `slavedock-v1-public-launch`](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…377 · live IDs in [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md) · sync protocol in `AGENTS.md`)
 
 ---
@@ -26,7 +26,7 @@
 ## Product decisions (locked in)
 
 - **Name:** **ClutterDock** (formerly SlaveDock; briefly DockFolder)
-- **Domains owned:** clutterdock.com · clutterdock.app (DNS / site wiring pending)
+- **Domains owned:** clutterdock.com · clutterdock.app — **site live** on Cloudflare Workers (worker `clutterdock-site`, account rbakman@gmail.com; deploy `npx wrangler@latest deploy`); .app and www hosts 301 → clutterdock.com
 - **GitHub repo:** `rbakman-rgb/clutterdock` (canonical)
 - **Price:** Free forever
 - **Tips:** [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)

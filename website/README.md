@@ -19,20 +19,33 @@ python3 -m http.server 5173
 | `privacy.html` | Privacy policy |
 | `css/styles.css` | Shared dark theme |
 | `assets/` | Real app icon only (no fake UI screenshots) |
-| `CNAME` | `clutterdock.com` for custom domain |
 | `robots.txt` / `sitemap.xml` | SEO |
 
 ## Deploy
 
-**GitHub Pages** (repo `rbakman-rgb/clutterdock`):
+**Cloudflare Workers** (static assets), account rbakman@gmail.com, worker `clutterdock-site`:
 
-1. Repo must be **public** (free plan) or on a plan that allows Pages for private repos.
-2. Settings → Pages → Source: **GitHub Actions**.
-3. Push to `main` (or run **Deploy website** workflow).
-4. Optional custom domain: DNS for `clutterdock.com` → GitHub Pages; `CNAME` file is already in this folder.
-5. Also point `clutterdock.app` (CNAME or redirect) to the same site if desired.
+```bash
+cd ~/Developer/ClutterDock
+npx wrangler@latest deploy
+```
 
-**Fallback hosts:** Cloudflare Pages, Netlify, or any static host — publish the `website/` directory.
+Config is [`wrangler.toml`](../wrangler.toml) at the repo root; the worker script
+[`scripts/site-worker.mjs`](../scripts/site-worker.mjs) serves this directory and
+301-redirects every non-canonical host to **https://clutterdock.com**.
+
+Custom domains (DNS records auto-managed by Cloudflare):
+
+| Host | Behavior |
+|------|----------|
+| `clutterdock.com` | canonical — serves the site |
+| `www.clutterdock.com` | 301 → clutterdock.com |
+| `clutterdock.app` | 301 → clutterdock.com |
+| `www.clutterdock.app` | 301 → clutterdock.com |
+
+Deploys are manual (`wrangler login` as rbakman@gmail.com required). If you want
+auto-deploy on push later, add a `CLOUDFLARE_API_TOKEN` repo secret and a workflow
+that runs `wrangler deploy`.
 
 ## Content source of truth
 
@@ -41,7 +54,6 @@ Pricing numbers and Free/Pro limits come from [`docs/PRICING.md`](../docs/PRICIN
 ## Placeholders still manual
 
 1. **Checkout** — wire “Unlock Pro” / “Get Pro Multi” to Lemon Squeezy, Gumroad, or Paddle.
-2. **DNS** — apex + www for clutterdock.com (and clutterdock.app) once hosting is live.
 
 Do not publish license generator secrets on this site.
 
