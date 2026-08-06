@@ -68,6 +68,6 @@ Use real captures of the launcher/settings when ready (Linear G3-01).
 - [x] Coming soon (no public downloads yet)
 - [x] Accessibility: skip link, focus styles, mobile nav
 - [x] SEO: meta, OG, canonical, sitemap, schema
-- [ ] Custom domain DNS + HTTPS
+- [x] Custom domain DNS + HTTPS (Cloudflare Workers, both domains, .app + www → 301 clutterdock.com)
 - [ ] Real product screenshots when ready
 - [ ] Enable public downloads after release

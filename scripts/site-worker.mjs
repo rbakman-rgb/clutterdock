@@ -11,6 +11,16 @@ export default {
       url.port = "";
       return Response.redirect(url.toString(), 301);
     }
-    return env.ASSETS.fetch(request);
+    const res = await env.ASSETS.fetch(request);
+    if (res.status === 404 && (request.method === "GET" || request.method === "HEAD")) {
+      const page = await env.ASSETS.fetch(new Request(new URL("/404.html", request.url)));
+      if (page.ok) {
+        return new Response(page.body, {
+          status: 404,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      }
+    }
+    return res;
   },
 };

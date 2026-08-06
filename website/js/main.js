@@ -36,11 +36,13 @@
     });
   }
 
-  // Soft highlight current page in nav
-  const path = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+  // Soft highlight current page in nav. Pages are served extensionless
+  // (/pricing) in production, so compare with .html stripped.
+  const norm = (s) => s.replace(/\.html$/, "") || "index";
+  const path = norm((location.pathname.split("/").pop() || "index.html").toLowerCase());
   document.querySelectorAll(".nav-links a[href]").forEach((a) => {
-    const href = a.getAttribute("href") || "";
-    if (href === path || (path === "" && href === "index.html")) {
+    const href = (a.getAttribute("href") || "").toLowerCase();
+    if (norm(href) === path) {
       a.setAttribute("aria-current", "page");
     }
   });
