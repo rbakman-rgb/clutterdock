@@ -83,6 +83,10 @@ function renderTabs() {
     const b = document.createElement('button');
     b.className = 'tab' + (f.id === snapshot.state.selectedFolderID ? ' active' : '');
     b.textContent = f.name;
+    b.title =
+      f.smartKind && f.smartKind !== 'none'
+        ? `${f.name} (smart — drop on normal stacks only)`
+        : `Drop apps/files here · click to open`;
     b.onclick = async () => {
       await refresh(await clutterDock.selectFolder(f.id));
     };
@@ -90,6 +94,31 @@ function renderTabs() {
       e.preventDefault();
       showFolderMenu(e.clientX, e.clientY, f);
     };
+    // Drop Finder/Explorer files or stack items onto a tab
+    b.addEventListener('dragover', (e) => {
+      if (f.smartKind && f.smartKind !== 'none') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
+      b.classList.add('drop-target');
+    });
+    b.addEventListener('dragleave', () => b.classList.remove('drop-target'));
+    b.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      b.classList.remove('drop-target');
+      if (f.smartKind && f.smartKind !== 'none') return;
+      const itemId = e.dataTransfer.getData('text/plain') || dragId;
+      const files = [...(e.dataTransfer.files || [])].map((x) => x.path).filter(Boolean);
+      if (itemId && !files.length) {
+        await refresh(await clutterDock.relocateItem(itemId, f.id));
+        dragId = null;
+        return;
+      }
+      if (files.length) {
+        const snap = await clutterDock.addPaths(files, f.id);
+        if (snap?._limitMessage) alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
+        await refresh(snap);
+      }
+    });
     tabs.appendChild(b);
   }
   const actions = document.createElement('div');
@@ -342,10 +371,11 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-// Drag files into panel
+// Drag files / URLs into panel
 const contentEl = $('content');
 contentEl.addEventListener('dragover', (e) => {
-  if ([...e.dataTransfer.types].includes('Files')) {
+  const types = [...e.dataTransfer.types];
+  if (types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain')) {
     e.preventDefault();
     contentEl.classList.add('drop-active');
   }
@@ -355,7 +385,23 @@ contentEl.addEventListener('drop', async (e) => {
   e.preventDefault();
   contentEl.classList.remove('drop-active');
   const files = [...(e.dataTransfer.files || [])].map((f) => f.path).filter(Boolean);
-  if (files.length) await refresh(await clutterDock.addPaths(files));
+  if (files.length) {
+    const snap = await clutterDock.addPaths(files);
+    if (snap?._limitMessage) alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
+    await refresh(snap);
+    return;
+  }
+  // Browser link or pasted URL text
+  const uri =
+    e.dataTransfer.getData('text/uri-list') ||
+    e.dataTransfer.getData('text/plain') ||
+    '';
+  const first = uri.split('\n').map((s) => s.trim()).find((s) => s && !s.startsWith('#'));
+  if (first && (first.includes('://') || first.includes('.'))) {
+    const snap = await clutterDock.addURL(first);
+    if (snap?._limitMessage) alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
+    await refresh(snap);
+  }
 });
 
 $('search').addEventListener('input', async (e) => {

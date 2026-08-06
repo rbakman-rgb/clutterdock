@@ -12,6 +12,7 @@ struct LauncherView: View {
     var onOpenSettings: () -> Void
 
     @State private var isTargeted = false
+    @State private var dropTargetFolderID: UUID?
     @State private var newFolderName = ""
     @State private var showingNewFolder = false
     @State private var showingAddURL = false
@@ -21,6 +22,7 @@ struct LauncherView: View {
     @State private var selectedItemID: UUID?
     @State private var showingHelp = false
     @State private var dragSourceID: UUID?
+    @State private var dropStatus: String?
     @ObservedObject private var license = LicenseManager.shared
     @FocusState private var searchFocused: Bool
 
@@ -62,7 +64,23 @@ struct LauncherView: View {
             // Soft ambient shadow only — no system blue key-window ring
             .shadow(color: .black.opacity(0.45), radius: 32, y: 16)
             .compositingGroup()
-            .onDrop(of: [.fileURL], isTargeted: $isTargeted, perform: handleDrop)
+            .onDrop(
+                of: DropImport.allAcceptedTypes,
+                isTargeted: $isTargeted,
+                perform: { providers in handleDrop(providers, to: nil) }
+            )
+            .overlay(alignment: .top) {
+                if let dropStatus {
+                    Text(dropStatus)
+                        .font(.system(size: 12, weight: .semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.top, 10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .allowsHitTesting(false)
+                }
+            }
             .alert("New Folder", isPresented: $showingNewFolder) {
             TextField("Folder name", text: $newFolderName)
             Button("Cancel", role: .cancel) { newFolderName = "" }
@@ -290,6 +308,7 @@ struct LauncherView: View {
                     HStack(spacing: 6) {
                         ForEach(Array(store.visibleFolders.enumerated()), id: \.element.id) { index, folder in
                             let selected = folder.id == store.selectedFolderID
+                            let dropHighlight = dropTargetFolderID == folder.id
                             Button {
                                 withAnimation(.easeOut(duration: 0.14)) {
                                     store.selectFolder(id: folder.id)
@@ -321,21 +340,39 @@ struct LauncherView: View {
                                 .padding(.vertical, 6)
                                 .background(
                                     Capsule()
-                                        .fill(selected
-                                              ? Color.accentColor.opacity(0.22)
-                                              : Color.primary.opacity(0.05))
+                                        .fill(dropHighlight
+                                              ? Color.accentColor.opacity(0.35)
+                                              : (selected
+                                                 ? Color.accentColor.opacity(0.22)
+                                                 : Color.primary.opacity(0.05)))
                                 )
                                 .overlay(
                                     Capsule()
                                         .strokeBorder(
-                                            selected ? Color.accentColor.opacity(0.35) : Color.clear,
-                                            lineWidth: 1
+                                            dropHighlight
+                                                ? Color.accentColor.opacity(0.9)
+                                                : (selected ? Color.accentColor.opacity(0.35) : Color.clear),
+                                            lineWidth: dropHighlight ? 1.5 : 1
                                         )
                                 )
                             }
                             .buttonStyle(.plain)
                             .id(folder.id)
-                            .help(index < 9 ? "⌘\(index + 1) · Tab to cycle" : "\(folder.name) · Tab to cycle")
+                            .help(
+                                folder.isSmart
+                                    ? "\(folder.name) (smart — drop targets normal stacks only)"
+                                    : (index < 9
+                                       ? "⌘\(index + 1) · Drop items here · Tab to cycle"
+                                       : "Drop apps/files/URLs or stack items here")
+                            )
+                            .onDrop(
+                                of: DropImport.allAcceptedTypes,
+                                isTargeted: Binding(
+                                    get: { dropTargetFolderID == folder.id },
+                                    set: { dropTargetFolderID = $0 ? folder.id : (dropTargetFolderID == folder.id ? nil : dropTargetFolderID) }
+                                ),
+                                perform: { providers in handleDrop(providers, to: folder.id) }
+                            )
                             .contextMenu {
                                 if !folder.isSmart {
                                     Button("Rename…") { renameFolder(folder) }
@@ -434,20 +471,65 @@ struct LauncherView: View {
 
     @ViewBuilder
     private var content: some View {
-        if searchGlobal && !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            globalResults
-        } else if let folder = currentFolder {
-            let items = folderItems
-            if items.isEmpty {
-                emptyState(folder: folder)
-            } else if folder.viewMode == .list {
-                listContent(items: items, folder: folder)
-            } else {
-                gridContent(items: items, folder: folder)
+        ZStack {
+            Group {
+                if searchGlobal && !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    globalResults
+                } else if let folder = currentFolder {
+                    let items = folderItems
+                    if items.isEmpty {
+                        emptyState(folder: folder)
+                    } else if folder.viewMode == .list {
+                        listContent(items: items, folder: folder)
+                    } else {
+                        gridContent(items: items, folder: folder)
+                    }
+                } else {
+                    emptyState(folder: nil)
+                }
             }
-        } else {
-            emptyState(folder: nil)
+
+            if isTargeted {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.accentColor.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.08))
+                    )
+                    .padding(10)
+                    .overlay {
+                        VStack(spacing: 6) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(Color.accentColor)
+                            Text(dropOverlayTitle)
+                                .font(.subheadline.weight(.semibold))
+                            Text(dropOverlaySubtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(16)
+                    }
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeOut(duration: 0.12), value: isTargeted)
+    }
+
+    private var dropOverlayTitle: String {
+        if let folder = currentFolder, folder.isSmart {
+            return "Switch to a normal stack"
+        }
+        return "Drop to add"
+    }
+
+    private var dropOverlaySubtitle: String {
+        if let folder = currentFolder, folder.isSmart {
+            return "Recents and Running can’t hold drops — pick Apps or your own stack"
+        }
+        return "Apps · files · folders · URLs"
     }
 
     private func emptyState(folder: AppFolder?) -> some View {
@@ -551,51 +633,27 @@ struct LauncherView: View {
                         .id(item.id)
                         .opacity(dragSourceID == item.id ? 0.45 : 1)
                         .onDrag {
+                            guard canReorder else {
+                                return NSItemProvider()
+                            }
                             dragSourceID = item.id
                             selectedItemID = item.id
-                            let provider = NSItemProvider()
-                            let idString = item.id.uuidString
-                            provider.registerDataRepresentation(
-                                forTypeIdentifier: UTType.plainText.identifier,
-                                visibility: .ownProcess
-                            ) { completion in
-                                completion(idString.data(using: .utf8), nil)
-                                return nil
-                            }
-                            return provider
+                            return DropImport.itemProvider(for: item.id)
                         }
-                        .onDrop(of: [.text, .plainText, .utf8PlainText], isTargeted: nil) { providers in
-                            guard canReorder else {
-                                dragSourceID = nil
-                                return false
-                            }
-                            guard let provider = providers.first else {
-                                dragSourceID = nil
-                                return false
-                            }
-                            let typeID = provider.registeredTypeIdentifiers.first ?? UTType.plainText.identifier
-                            provider.loadItem(forTypeIdentifier: typeID, options: nil) { data, _ in
-                                let uuidString: String?
-                                if let s = data as? String {
-                                    uuidString = s
-                                } else if let d = data as? Data {
-                                    uuidString = String(data: d, encoding: .utf8)
-                                } else if let s = data as? NSString {
-                                    uuidString = s as String
-                                } else {
-                                    uuidString = nil
-                                }
-                                guard let uuidString,
-                                      let fromID = UUID(uuidString: uuidString.trimmingCharacters(in: .whitespacesAndNewlines)),
-                                      let toIndex = items.firstIndex(where: { $0.id == item.id }) else {
-                                    DispatchQueue.main.async { dragSourceID = nil }
-                                    return
-                                }
-                                DispatchQueue.main.async {
+                        .onDrop(of: DropImport.allAcceptedTypes, isTargeted: nil) { providers in
+                            // Prefer reorder when dropping an internal item; otherwise add files/URLs
+                            Task { @MainActor in
+                                let parsed = await DropImport.parse(providers)
+                                if canReorder, let fromID = parsed.itemIDs.first,
+                                   let toIndex = items.firstIndex(where: { $0.id == item.id }) {
                                     store.reorderItem(id: fromID, toIndex: toIndex, in: folder.id)
                                     selectedItemID = fromID
                                     dragSourceID = nil
+                                    flashDropStatus("Reordered")
+                                    return
                                 }
+                                dragSourceID = nil
+                                _ = await applyParsedDrop(parsed, to: folder.id)
                             }
                             return true
                         }
@@ -612,7 +670,8 @@ struct LauncherView: View {
     }
 
     private func listContent(items: [DockItem], folder: AppFolder) -> some View {
-        ScrollViewReader { proxy in
+        let canReorder = !folder.isSmart && !searchGlobal && searchText.isEmpty
+        return ScrollViewReader { proxy in
             List(selection: $selectedItemID) {
                 ForEach(items) { item in
                     HStack(spacing: 10) {
@@ -634,12 +693,36 @@ struct LauncherView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { open(item) }
                     .contextMenu { itemContext(item) }
+                    .onDrag {
+                        guard canReorder else { return NSItemProvider() }
+                        dragSourceID = item.id
+                        return DropImport.itemProvider(for: item.id)
+                    }
+                    .onDrop(of: DropImport.allAcceptedTypes, isTargeted: nil) { providers in
+                        Task { @MainActor in
+                            let parsed = await DropImport.parse(providers)
+                            if canReorder, let fromID = parsed.itemIDs.first,
+                               let toIndex = items.firstIndex(where: { $0.id == item.id }) {
+                                store.reorderItem(id: fromID, toIndex: toIndex, in: folder.id)
+                                selectedItemID = fromID
+                                dragSourceID = nil
+                                flashDropStatus("Reordered")
+                                return
+                            }
+                            dragSourceID = nil
+                            _ = await applyParsedDrop(parsed, to: folder.id)
+                        }
+                        return true
+                    }
                 }
                 .onMove { source, dest in
                     store.moveItem(from: source, to: dest, in: folder.id)
                 }
             }
             .listStyle(.plain)
+            .onDrop(of: DropImport.externalTypes, isTargeted: $isTargeted) { providers in
+                handleDrop(providers, to: folder.id)
+            }
             .onChange(of: selectedItemID) {
                 if let id = selectedItemID {
                     proxy.scrollTo(id, anchor: .center)
@@ -832,33 +915,114 @@ struct LauncherView: View {
         }
     }
 
-    private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        var handled = false
-        for provider in providers {
-            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                handled = true
-                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                    let url: URL?
-                    if let data = item as? Data {
-                        url = URL(dataRepresentation: data, relativeTo: nil)
-                    } else if let u = item as? URL {
-                        url = u
-                    } else { url = nil }
-                    guard let url else { return }
-                    Task { @MainActor in
-                        applyAddResult(store.addPaths([url.path]))
-                    }
+    @discardableResult
+    private func handleDrop(_ providers: [NSItemProvider], to folderID: UUID?) -> Bool {
+        guard !providers.isEmpty else { return false }
+        Task { @MainActor in
+            let parsed = await DropImport.parse(providers)
+            _ = await applyParsedDrop(parsed, to: folderID)
+            dragSourceID = nil
+        }
+        return true
+    }
+
+    @MainActor
+    @discardableResult
+    private func applyParsedDrop(_ parsed: DropImport.ParsedDrop, to folderID: UUID?) async -> Bool {
+        // Relocate existing stack items (drag onto another tab)
+        if !parsed.itemIDs.isEmpty {
+            let targetID = folderID ?? store.selectedFolderID
+            guard let targetID,
+                  let target = store.folders.first(where: { $0.id == targetID }),
+                  !target.isSmart else {
+                flashDropStatus("Drop on a normal stack tab")
+                return false
+            }
+            var moved = 0
+            var hitLimit = false
+            for id in parsed.itemIDs {
+                if store.folderID(containingItem: id) == targetID {
+                    // Same folder — ignore as a no-op move (reorder handled on tiles)
+                    continue
                 }
-            } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-                handled = true
-                provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
-                    if let url = item as? URL {
-                        Task { @MainActor in applyAddResult(store.addURL(url.absoluteString)) }
-                    }
+                if store.relocateItem(id: id, toFolder: targetID) {
+                    moved += 1
+                    selectedItemID = id
+                } else if !FeatureGate.canAddItem(currentCount: target.items.count) {
+                    hitLimit = true
                 }
             }
+            if moved > 0 {
+                store.selectFolder(id: targetID)
+                flashDropStatus(moved == 1 ? "Moved to \(target.name)" : "Moved \(moved) items")
+                return true
+            }
+            if hitLimit {
+                promptUpgrade(FeatureGate.itemLimitMessage(current: target.items.count))
+                return false
+            }
+            if parsed.paths.isEmpty && parsed.urlStrings.isEmpty {
+                flashDropStatus("Couldn’t move item")
+                return false
+            }
         }
-        return handled
+
+        let targetID = resolvedDropFolderID(folderID)
+        guard let targetID,
+              let target = store.folders.first(where: { $0.id == targetID }),
+              !target.isSmart else {
+            flashDropStatus("Switch to a normal stack to drop")
+            return false
+        }
+
+        var totalAdded = 0
+        var hitLimit = false
+
+        if !parsed.paths.isEmpty {
+            let r = store.addPaths(parsed.paths, to: targetID)
+            totalAdded += r.added
+            hitLimit = hitLimit || r.hitLimit
+        }
+        for urlString in parsed.urlStrings {
+            let r = store.addURL(urlString, to: targetID)
+            totalAdded += r.added
+            hitLimit = hitLimit || r.hitLimit
+        }
+
+        if hitLimit {
+            promptUpgrade(FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == targetID })?.items.count ?? 0))
+        }
+        if totalAdded > 0 {
+            store.selectFolder(id: targetID)
+            flashDropStatus(totalAdded == 1 ? "Added to \(target.name)" : "Added \(totalAdded) items")
+            return true
+        }
+        if !hitLimit {
+            flashDropStatus("Nothing new to add")
+        }
+        return totalAdded > 0
+    }
+
+    private func resolvedDropFolderID(_ preferred: UUID?) -> UUID? {
+        if let preferred,
+           let f = store.folders.first(where: { $0.id == preferred }),
+           !f.isSmart {
+            return preferred
+        }
+        if let selected = store.selectedFolder, !selected.isSmart {
+            return selected.id
+        }
+        return store.folders.first(where: { !$0.isSmart })?.id
+    }
+
+    private func flashDropStatus(_ message: String) {
+        withAnimation(.easeOut(duration: 0.15)) { dropStatus = message }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            if dropStatus == message {
+                withAnimation(.easeIn(duration: 0.2)) { dropStatus = nil }
+            }
+        }
     }
 
     private func renameFolder(_ folder: AppFolder) {

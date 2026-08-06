@@ -391,6 +391,51 @@ final class FolderStore: ObservableObject {
         persist()
     }
 
+    /// Move an item into another normal (non-smart) folder. Keeps the same identity.
+    @discardableResult
+    func relocateItem(id: UUID, toFolder destinationID: UUID) -> Bool {
+        guard let destIdx = folders.firstIndex(where: { $0.id == destinationID }),
+              !folders[destIdx].isSmart else { return false }
+
+        var sourceIdx: Int?
+        var itemIndex: Int?
+        for (fi, folder) in folders.enumerated() where !folder.isSmart {
+            if let ii = folder.items.firstIndex(where: { $0.id == id }) {
+                sourceIdx = fi
+                itemIndex = ii
+                break
+            }
+        }
+        guard let sourceIdx, let itemIndex else { return false }
+        if sourceIdx == destIdx { return true }
+
+        let item = folders[sourceIdx].items[itemIndex]
+        // Free-tier item cap on destination
+        if !FeatureGate.canAddItem(currentCount: folders[destIdx].items.count) {
+            return false
+        }
+        let key = "\(item.kind.rawValue)|\(item.path)"
+        if folders[destIdx].items.contains(where: { "\($0.kind.rawValue)|\($0.path)" == key }) {
+            // Already present in destination — just remove from source
+            folders[sourceIdx].items.remove(at: itemIndex)
+            persist()
+            return true
+        }
+        folders[sourceIdx].items.remove(at: itemIndex)
+        folders[destIdx].items.append(item)
+        folders[destIdx].sortMode = .manual
+        persist()
+        return true
+    }
+
+    /// Find which folder currently owns an item (normal folders only).
+    func folderID(containingItem id: UUID) -> UUID? {
+        for folder in folders where !folder.isSmart {
+            if folder.items.contains(where: { $0.id == id }) { return folder.id }
+        }
+        return nil
+    }
+
     /// Move item one step left (−1) or right (+1) within its folder.
     @discardableResult
     func nudgeItem(id: UUID, by delta: Int, in folderID: UUID? = nil) -> Bool {

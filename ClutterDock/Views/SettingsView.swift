@@ -163,11 +163,17 @@ struct SettingsView: View {
                     Button("Add Items…") { addItems(to: folder.id) }
                     Button("Add URL…") { addURL(to: folder.id) }
                     Spacer()
+                    Text("Drag & drop from Finder")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
                 .padding(.horizontal)
 
                 if folder.items.isEmpty {
-                    emptyState("No Items", "app.dashed", "Add apps, files, folders, or URLs.")
+                    emptyState("No Items", "app.dashed", "Drop apps, files, or folders here — or use Add Items…")
+                        .onDrop(of: DropImport.externalTypes, isTargeted: nil) { providers in
+                            handleSettingsDrop(providers, folderID: folder.id)
+                        }
                 } else {
                     List {
                         ForEach(folder.items) { item in
@@ -202,11 +208,41 @@ struct SettingsView: View {
                         .onMove { s, d in store.moveItem(from: s, to: d, in: folder.id) }
                     }
                     .listStyle(.inset)
+                    .onDrop(of: DropImport.externalTypes, isTargeted: nil) { providers in
+                        handleSettingsDrop(providers, folderID: folder.id)
+                    }
                 }
             } else {
                 Spacer()
             }
         }
+    }
+
+    @discardableResult
+    private func handleSettingsDrop(_ providers: [NSItemProvider], folderID: UUID) -> Bool {
+        Task { @MainActor in
+            let parsed = await DropImport.parse(providers)
+            var added = 0
+            var hitLimit = false
+            if !parsed.paths.isEmpty {
+                let r = store.addPaths(parsed.paths, to: folderID)
+                added += r.added
+                hitLimit = hitLimit || r.hitLimit
+            }
+            for url in parsed.urlStrings {
+                let r = store.addURL(url, to: folderID)
+                added += r.added
+                hitLimit = hitLimit || r.hitLimit
+            }
+            if hitLimit {
+                presentAlert("ClutterDock Pro", FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == folderID })?.items.count ?? 0))
+            } else if added > 0 {
+                statusMessage = added == 1 ? "Added 1 item." : "Added \(added) items."
+            } else {
+                statusMessage = "Nothing new to add."
+            }
+        }
+        return true
     }
 
     private static let folderSymbols = [

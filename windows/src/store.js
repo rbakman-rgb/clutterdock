@@ -342,6 +342,47 @@ class Store {
     this.persist();
   }
 
+  relocateItem(itemID, destinationID) {
+    const dest = this.state.folders.find((x) => x.id === destinationID);
+    if (!dest || dest.smartKind !== 'none') return { ok: false, hitLimit: false };
+
+    let source = null;
+    let item = null;
+    for (const f of this.state.folders) {
+      if (f.smartKind !== 'none') continue;
+      const idx = f.items.findIndex((i) => i.id === itemID);
+      if (idx >= 0) {
+        source = f;
+        item = f.items[idx];
+        f.items.splice(idx, 1);
+        break;
+      }
+    }
+    if (!source || !item) return { ok: false, hitLimit: false };
+    if (source.id === dest.id) {
+      // put back if same folder
+      source.items.push(item);
+      return { ok: true, hitLimit: false };
+    }
+    const key = `${item.kind}|${item.path}`;
+    if (dest.items.some((i) => `${i.kind}|${i.path}` === key)) {
+      this.persist();
+      return { ok: true, hitLimit: false };
+    }
+    if (!this.gate.canAddItem(dest.items.length)) {
+      source.items.push(item); // restore
+      return {
+        ok: false,
+        hitLimit: true,
+        message: this.gate.itemLimitMessage(dest.items.length),
+      };
+    }
+    dest.sortMode = 'manual';
+    dest.items.push(item);
+    this.persist();
+    return { ok: true, hitLimit: false };
+  }
+
   nudgeItem(itemID, delta, folderID) {
     const targetID = folderID || this.state.selectedFolderID;
     const f = this.state.folders.find((x) => x.id === targetID);

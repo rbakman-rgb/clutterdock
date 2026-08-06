@@ -82,6 +82,8 @@ struct KeyboardCheatSheet: View {
                 row("⌘1 … ⌘9", "Switch folder tab")
                 row("⌘G", "Toggle search all folders")
                 row("⌥← / ⌥→", "Reorder selected item")
+                row("Drag", "Reorder · drop on tab to move")
+                row("Drop", "Apps/files/folders/URLs from Finder")
                 row("⌘⇧D", "Open/close (default hotkey)")
                 row("Type", "Filter items")
             }
@@ -103,7 +105,7 @@ struct KeyboardCheatSheet: View {
 
 struct KeyboardHintsBar: View {
     var body: some View {
-        Text("↑↓←→  ·  ⏎ open  ·  esc  ·  ⌘1–9 stacks")
+        Text("↑↓←→  ·  ⏎ open  ·  drop files  ·  drag to reorder  ·  ⌘1–9")
             .font(.system(size: 10, weight: .medium))
             .foregroundStyle(.quaternary)
             .lineLimit(1)

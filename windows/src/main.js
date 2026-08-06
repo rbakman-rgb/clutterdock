@@ -247,15 +247,22 @@ function wireIpc() {
     return snap;
   });
 
-  ipcMain.handle('add-paths', (_e, paths) => {
-    const addResult = store.addPaths(paths || []);
+  ipcMain.handle('add-paths', (_e, paths, folderID) => {
+    const addResult = store.addPaths(paths || [], folderID);
     const snap = store.getSnapshot();
     if (addResult?.hitLimit) return { ...snap, _limitMessage: addResult.message };
     return snap;
   });
 
-  ipcMain.handle('add-url', (_e, url) => {
-    const addResult = store.addURL(url);
+  ipcMain.handle('relocate-item', (_e, itemID, folderID) => {
+    const result = store.relocateItem(itemID, folderID);
+    const snap = store.getSnapshot();
+    if (result?.hitLimit) return { ...snap, _limitMessage: result.message };
+    return snap;
+  });
+
+  ipcMain.handle('add-url', (_e, url, folderID) => {
+    const addResult = store.addURL(url, folderID);
     const snap = store.getSnapshot();
     if (addResult?.hitLimit) return { ...snap, _limitMessage: addResult.message };
     return snap;

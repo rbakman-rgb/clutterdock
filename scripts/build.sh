@@ -36,6 +36,7 @@ SOURCES=(
   "$SRC/Services/URLSchemeHandler.swift"
   "$SRC/Services/UpdateService.swift"
   "$SRC/Helpers/PanelController.swift"
+  "$SRC/Helpers/DropImport.swift"
   "$SRC/Views/LauncherView.swift"
   "$SRC/Views/SettingsView.swift"
   "$SRC/Views/OnboardingView.swift"
