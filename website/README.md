@@ -1,4 +1,4 @@
-# SlaveDock website
+# ClutterDock website
 
 Static marketing + pricing site (Warp-inspired layout).
 

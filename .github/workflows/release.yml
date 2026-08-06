@@ -30,7 +30,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-zip
-          path: dist/SlaveDock-*-mac.zip
+          path: dist/ClutterDock-*-mac.zip
           if-no-files-found: error
 
   windows:
@@ -98,18 +98,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
-          name: SlaveDock ${{ steps.tag.outputs.name }}
+          name: ClutterDock ${{ steps.tag.outputs.name }}
           draft: false
           prerelease: false
           generate_release_notes: true
           body: |
-            ## SlaveDock ${{ steps.tag.outputs.name }}
+            ## ClutterDock ${{ steps.tag.outputs.name }}
 
             **Free forever** core launcher · **Pro** one-time unlock (license key in Settings → Pro).
 
             ### macOS
-            1. Download `SlaveDock-*-mac.zip`
-            2. Unzip and drag **SlaveDock.app** to Applications
+            1. Download `ClutterDock-*-mac.zip`
+            2. Unzip and drag **ClutterDock.app** to Applications
             3. First open: right-click → **Open** (unsigned build until Developer ID notarization)
 
             ### Windows

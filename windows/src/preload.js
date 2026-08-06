@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('slaveDock', {
+contextBridge.exposeInMainWorld('clutterDock', {
   getSnapshot: () => ipcRenderer.invoke('get-snapshot'),
   onSnapshot: (cb) => {
     const handler = (_e, data) => cb(data);

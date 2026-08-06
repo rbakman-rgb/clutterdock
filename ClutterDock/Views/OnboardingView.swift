@@ -11,7 +11,7 @@ struct OnboardingCard: View {
             HStack {
                 Image(systemName: "sparkles")
                     .foregroundStyle(.orange)
-                Text("Welcome to SlaveDock")
+                Text("Welcome to ClutterDock")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -27,7 +27,7 @@ struct OnboardingCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 tipRow("1", "Drop apps, files, or folders here — or click +")
                 tipRow("2", "Click an icon to open · Esc closes the panel")
-                tipRow("3", "⌘⇧D opens SlaveDock from anywhere")
+                tipRow("3", "⌘⇧D opens ClutterDock from anywhere")
                 tipRow("4", "⌘G searches all folders · ⌘1–9 switches tabs")
                 tipRow("5", "⌥← / ⌥→ reorders the selected item")
             }

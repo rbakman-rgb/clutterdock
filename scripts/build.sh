@@ -2,12 +2,12 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SRC="$ROOT/SlaveDock"
+SRC="$ROOT/ClutterDock"
 BUILD="$ROOT/build"
-APP="$BUILD/SlaveDock.app"
+APP="$BUILD/ClutterDock.app"
 MACOS="$APP/Contents/MacOS"
 RES="$APP/Contents/Resources"
-BIN="$MACOS/SlaveDock"
+BIN="$MACOS/ClutterDock"
 
 SDK="$(xcrun --show-sdk-path --sdk macosx)"
 MIN_OS="14.0"
@@ -18,7 +18,7 @@ ARCH_MODE="${1:-native}"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$SRC/Info.plist" 2>/dev/null || echo "0.0.0")"
 
 SOURCES=(
-  "$SRC/SlaveDockApp.swift"
+  "$SRC/ClutterDockApp.swift"
   "$SRC/AppDelegate.swift"
   "$SRC/Models/DockItem.swift"
   "$SRC/Models/AppFolder.swift"
@@ -63,7 +63,7 @@ compile_arch() {
     -o "$out"
 }
 
-echo "→ Building SlaveDock v${VERSION} (${ARCH_MODE})"
+echo "→ Building ClutterDock v${VERSION} (${ARCH_MODE})"
 
 rm -rf "$APP"
 mkdir -p "$MACOS" "$RES"
@@ -78,9 +78,9 @@ case "$ARCH_MODE" in
     ;;
   universal)
     TMP="$(mktemp -d)"
-    compile_arch arm64 "$TMP/SlaveDock-arm64"
-    compile_arch x86_64 "$TMP/SlaveDock-x86_64"
-    lipo -create -output "$BIN" "$TMP/SlaveDock-arm64" "$TMP/SlaveDock-x86_64"
+    compile_arch arm64 "$TMP/ClutterDock-arm64"
+    compile_arch x86_64 "$TMP/ClutterDock-x86_64"
+    lipo -create -output "$BIN" "$TMP/ClutterDock-arm64" "$TMP/ClutterDock-x86_64"
     rm -rf "$TMP"
     lipo -info "$BIN"
     ;;

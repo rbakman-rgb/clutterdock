@@ -124,7 +124,7 @@ function createSettings() {
   settingsWin = new BrowserWindow({
     width: 720,
     height: 560,
-    title: 'SlaveDock Settings',
+    title: 'ClutterDock Settings',
     show: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -154,7 +154,7 @@ function createTray() {
   else image = image.resize({ width: 16, height: 16 });
 
   tray = new Tray(image);
-  tray.setToolTip('SlaveDock');
+  tray.setToolTip('ClutterDock');
   tray.on('click', () => togglePanel());
   tray.on('right-click', () => {
     const menu = Menu.buildFromTemplate([
@@ -170,7 +170,7 @@ function createTray() {
         click: () => shell.openExternal('https://buymeacoffee.com/chidichidovsky'),
       },
       { type: 'separator' },
-      { label: 'Quit SlaveDock', click: () => app.quit() },
+      { label: 'Quit ClutterDock', click: () => app.quit() },
     ]);
     tray.popUpContextMenu(menu);
   });
@@ -226,7 +226,7 @@ function wireIpc() {
   ipcMain.handle('pick-and-add', async () => {
     hidePanel();
     const result = await dialog.showOpenDialog({
-      title: 'Add to SlaveDock',
+      title: 'Add to ClutterDock',
       properties: ['openFile', 'openDirectory', 'multiSelections'],
       filters: isWin
         ? [
@@ -331,12 +331,12 @@ function wireIpc() {
 
   ipcMain.handle('export-pack', async () => {
     if (!store.gate.canExportPack) {
-      return { ok: false, error: 'Pack export requires SlaveDock Pro.' };
+      return { ok: false, error: 'Pack export requires ClutterDock Pro.' };
     }
     const result = await dialog.showSaveDialog({
-      title: 'Export SlaveDock pack',
-      defaultPath: 'SlaveDock-pack.slavedock',
-      filters: [{ name: 'SlaveDock pack', extensions: ['slavedock', 'json'] }],
+      title: 'Export ClutterDock pack',
+      defaultPath: 'ClutterDock-pack.clutterdock',
+      filters: [{ name: 'ClutterDock pack', extensions: ['clutterdock', 'slavedock', 'json'] }],
     });
     if (result.canceled || !result.filePath) return { ok: false };
     try {
@@ -349,9 +349,9 @@ function wireIpc() {
 
   ipcMain.handle('import-pack', async (_e, merge) => {
     const result = await dialog.showOpenDialog({
-      title: 'Import SlaveDock pack',
+      title: 'Import ClutterDock pack',
       properties: ['openFile'],
-      filters: [{ name: 'SlaveDock pack', extensions: ['slavedock', 'json'] }],
+      filters: [{ name: 'ClutterDock pack', extensions: ['clutterdock', 'slavedock', 'json'] }],
     });
     if (result.canceled || !result.filePaths[0]) return store.getSnapshot();
     const raw = fs.readFileSync(result.filePaths[0], 'utf8');
@@ -426,7 +426,7 @@ if (!gotLock) {
     }
 
     // Background update check (NSIS installs)
-    if (store.prefs.checkForUpdatesAutomatically !== false && !process.env.SLAVE_DOCK_NO_UPDATE) {
+    if (store.prefs.checkForUpdatesAutomatically !== false && !process.env.CLUTTER_DOCK_NO_UPDATE) {
       setTimeout(() => {
         updater?.check(false).catch(() => {});
       }, 12000);

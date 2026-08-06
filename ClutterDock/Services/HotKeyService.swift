@@ -106,7 +106,7 @@ final class HotKeyService {
             &eventHandler
         )
         if status != noErr {
-            NSLog("SlaveDock: InstallEventHandler failed (\(status))")
+            NSLog("ClutterDock: InstallEventHandler failed (\(status))")
         }
     }
 
@@ -125,7 +125,7 @@ final class HotKeyService {
         if status == noErr, let ref {
             hotKeyRefs[id] = ref
         } else {
-            NSLog("SlaveDock: RegisterEventHotKey failed id=\(id) status=\(status)")
+            NSLog("ClutterDock: RegisterEventHotKey failed id=\(id) status=\(status)")
             handlers[id] = nil
         }
     }

@@ -12,7 +12,21 @@ const {
 const CURRENT_VERSION = 1;
 
 function dataDir() {
-  const dir = path.join(app.getPath('userData'), 'SlaveDock');
+  const root = app.getPath('userData');
+  const dir = path.join(root, 'ClutterDock');
+  if (!fs.existsSync(dir)) {
+    for (const legacy of ['SlaveDock', 'DockFolder']) {
+      const src = path.join(root, legacy);
+      if (fs.existsSync(src)) {
+        try {
+          fs.cpSync(src, dir, { recursive: true });
+        } catch (e) {
+          console.error('ClutterDock migrate data dir', e);
+        }
+        break;
+      }
+    }
+  }
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -61,7 +75,7 @@ function loadJSON(file, fallback) {
       return { ...fallback, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
     }
   } catch (e) {
-    console.error('SlaveDock load error', file, e);
+    console.error('ClutterDock load error', file, e);
   }
   return fallback;
 }
@@ -70,7 +84,7 @@ function saveJSON(file, data) {
   try {
     fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
   } catch (e) {
-    console.error('SlaveDock save error', file, e);
+    console.error('ClutterDock save error', file, e);
   }
 }
 
@@ -409,7 +423,7 @@ class Store {
 
   exportPack() {
     if (!this.gate.canExportPack) {
-      throw new Error('Pack export requires SlaveDock Pro.');
+      throw new Error('Pack export requires ClutterDock Pro.');
     }
     return JSON.stringify(this.state, null, 2);
   }

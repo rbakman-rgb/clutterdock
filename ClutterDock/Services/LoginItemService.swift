@@ -17,7 +17,7 @@ enum LoginItemService {
                 }
                 return true
             } catch {
-                NSLog("SlaveDock: login item error: \(error.localizedDescription)")
+                NSLog("ClutterDock: login item error: \(error.localizedDescription)")
                 return false
             }
         }

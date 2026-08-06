@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SlaveDockApp: App {
+struct ClutterDockApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

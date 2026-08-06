@@ -55,7 +55,7 @@ enum UpdateService {
     static func check(completion: @escaping (CheckResult) -> Void) {
         var request = URLRequest(url: apiLatestURL)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("SlaveDock/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("ClutterDock/\(currentVersion)", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
 
         URLSession.shared.dataTask(with: request) { data, response, error in
@@ -118,7 +118,7 @@ enum UpdateService {
                 guard interactive else { return }
                 let alert = NSAlert()
                 alert.messageText = "You’re up to date"
-                alert.informativeText = "SlaveDock \(current) is the latest release."
+                alert.informativeText = "ClutterDock \(current) is the latest release."
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
@@ -127,9 +127,9 @@ enum UpdateService {
                 let alert = NSAlert()
                 alert.messageText = "Update available"
                 alert.informativeText = """
-                SlaveDock \(info.tagName) is ready (you have \(currentVersion)).
+                ClutterDock \(info.tagName) is ready (you have \(currentVersion)).
 
-                Download the new build, replace the app in Applications, and reopen SlaveDock.
+                Download the new build, replace the app in Applications, and reopen ClutterDock.
                 Your folders and Pro license stay on this Mac.
                 """
                 alert.alertStyle = .informational

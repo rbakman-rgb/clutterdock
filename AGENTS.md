@@ -1,4 +1,4 @@
-# SlaveDock — Agent instructions
+# ClutterDock — Agent instructions
 
 Read `SESSION.md` first for project layout, build commands, and product decisions.
 Constraints: no Dock replacement / private Dock APIs; free core stays usable (never paywall launch).
@@ -7,7 +7,7 @@ Constraints: no Dock replacement / private Dock APIs; free core stays usable (ne
 
 Linear is the **source of truth for the backlog**. Git is code. Keep them in sync using the Linear MCP (`mcp.linear.app`).
 
-- **Project:** SlaveDock — V1 Public Launch — https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795
+- **Project:** ClutterDock — V1 Public Launch — https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795
 - **Team:** RON · **Milestones:** G0 — Foundation · G1 — Install trust · G2 — Pro commerce · G3 — Product polish · G4 — Growth
 
 Protocol:

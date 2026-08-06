@@ -1,10 +1,10 @@
-# SlaveDock — Linear (LIVE)
+# ClutterDock — Linear (LIVE)
 
 > This file describes what actually exists in Linear, created from the plan in
 > [docs/LINEAR.md](LINEAR.md). Agents: treat Linear as the backlog source of truth
 > and follow the sync protocol in [`AGENTS.md`](../AGENTS.md).
 
-**Grok:** when asked about the SlaveDock backlog, roadmap, or "what's next," use this
+**Grok:** when asked about the ClutterDock backlog, roadmap, or "what's next," use this
 project URL and these issue IDs — do not create a new project. Read state live via the
 Linear MCP (`mcp.linear.app`); update issues (In Progress / Done + evidence comment) as
 you work, and reference IDs like `RON-363` in commits and branches.
@@ -13,7 +13,7 @@ you work, and reference IDs like `RON-363` in commits and branches.
 
 | Field | Value |
 |-------|-------|
-| Project | **SlaveDock — V1 Public Launch** |
+| Project | **ClutterDock — V1 Public Launch** |
 | URL | https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795 |
 | Project ID | `653f8d91-1839-4a67-b327-ff3980feeb47` |
 | Workspace | linear.app/rbakman |
@@ -64,6 +64,6 @@ you work, and reference IDs like `RON-363` in commits and branches.
 | RON-372 | G3-04 Direct asset download links on site | Todo · Low |
 | RON-373 | G3-05 Terms of use for Pro license | Todo · Low |
 | RON-374 | G4-01 Soft launch posts — **blocked by RON-363** | Todo · High |
-| RON-375 | G4-02 Rebrand decision (SlaveDock vs Dockpack/Stackly) | Todo · Medium |
+| RON-375 | G4-02 Rebrand decision (ClutterDock vs Dockpack/Stackly) | Todo · Medium |
 | RON-376 | G4-03 Homebrew cask — **blocked by RON-361** | Todo · Low |
 | RON-377 | G4-04 iCloud/OneDrive sync Pro pillar | Backlog · Low |

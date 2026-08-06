@@ -1,4 +1,4 @@
-# Shipping SlaveDock
+# Shipping ClutterDock
 
 ## Public URLs
 
@@ -14,7 +14,7 @@
 ### Every version
 
 1. Bump version in:
-   - `SlaveDock/Info.plist` (`CFBundleShortVersionString` + `CFBundleVersion`)
+   - `ClutterDock/Info.plist` (`CFBundleShortVersionString` + `CFBundleVersion`)
    - `windows/package.json` `version` (when shipping Windows)
    - README version blurb
 2. `git commit` + `git tag vX.Y.Z` + `git push origin main --tags`
@@ -25,8 +25,8 @@
 
 ```bash
 ./scripts/package-mac.sh
-# → dist/SlaveDock-<version>-mac.zip
-gh release create vX.Y.Z dist/SlaveDock-*-mac.zip --generate-notes
+# → dist/ClutterDock-<version>-mac.zip
+gh release create vX.Y.Z dist/ClutterDock-*-mac.zip --generate-notes
 ```
 
 ### First-time GitHub Pages
@@ -38,7 +38,7 @@ gh release create vX.Y.Z dist/SlaveDock-*-mac.zip --generate-notes
 ### Make the product public
 
 ```bash
-gh repo edit rbakman-rgb/slavedock --visibility public
+gh repo edit rbakman-rgb/clutterdock --visibility public
 ```
 
 ## Still manual / blocked without accounts
@@ -49,7 +49,7 @@ gh repo edit rbakman-rgb/slavedock --visibility public
 | **Apple notarization** | No Developer ID cert on this Mac | Enroll Apple Developer ($99), create Developer ID Application cert, update `build.sh` / notarize script |
 | **Custom domain** | Optional | DNS → GitHub Pages |
 | **Sparkle silent Mac replace** | GitHub check ships; full Sparkle later | After notarization |
-| **Linear project** | MCP needs OAuth / API key | See docs/LINEAR.md · `node scripts/linear-seed-slavedock.mjs` |
+| **Linear project** | MCP needs OAuth / API key | See docs/LINEAR.md · `node scripts/linear-seed-clutterdock.mjs` |
 
 ## License keys (seller side)
 
@@ -65,7 +65,7 @@ swift scripts/generate-license.swift A1B2 CUST
 
 Until notarized:
 
-1. Unzip SlaveDock  
+1. Unzip ClutterDock  
 2. Drag to Applications  
 3. **Right-click → Open** the first time (or System Settings → Privacy & Security → Open Anyway)
 

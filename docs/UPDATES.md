@@ -1,4 +1,4 @@
-# SlaveDock updates
+# ClutterDock updates
 
 ## How it works
 
@@ -10,8 +10,8 @@
 
 Release assets must include:
 
-- `SlaveDock-*-mac.zip`
-- `SlaveDock-*-x64.exe` (NSIS)
+- `ClutterDock-*-mac.zip`
+- `ClutterDock-*-x64.exe` (NSIS)
 - `latest.yml` (+ `.blockmap` if present) for Windows auto-update
 
 CI (`.github/workflows/release.yml`) uploads these when you push a `v*` tag.
@@ -32,7 +32,7 @@ Later: Sparkle 2 + Developer ID for silent replace.
 
 ## Shipping a new version
 
-1. Bump version in `SlaveDock/Info.plist` and `windows/package.json`  
+1. Bump version in `ClutterDock/Info.plist` and `windows/package.json`  
 2. `git tag vX.Y.Z && git push origin vX.Y.Z`  
 3. Wait for Release workflow  
 4. Confirm release has mac zip + exe + `latest.yml`  
@@ -42,4 +42,4 @@ Later: Sparkle 2 + Developer ID for silent replace.
 
 - Mac: Settings → Check for Updates (with a higher tag published)  
 - Windows: install NSIS build, publish newer version, Check for Updates  
-- Dev: `SLAVE_DOCK_NO_UPDATE=1` skips background check on Windows  
+- Dev: `CLUTTER_DOCK_NO_UPDATE=1` skips background check on Windows  

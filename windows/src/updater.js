@@ -69,7 +69,7 @@ function setupUpdater({ onStatus }) {
       .showMessageBox({
         type: 'info',
         title: 'Update ready',
-        message: `SlaveDock ${info.version} was downloaded.`,
+        message: `ClutterDock ${info.version} was downloaded.`,
         detail: 'Restart now to install? Your folders and Pro license stay on this PC.',
         buttons: ['Restart now', 'Later'],
         defaultId: 0,
@@ -93,7 +93,7 @@ function setupUpdater({ onStatus }) {
           const { response } = await dialog.showMessageBox({
             type: 'info',
             title: 'Update available',
-            message: `SlaveDock ${remote} is available.`,
+            message: `ClutterDock ${remote} is available.`,
             detail: `You have ${local}. Download and install now?\n\n(NSIS installs update in-app. Portable builds should use the releases page.)`,
             buttons: ['Download', 'Open releases page', 'Later'],
             defaultId: 0,
@@ -113,7 +113,7 @@ function setupUpdater({ onStatus }) {
         const { response } = await dialog.showMessageBox({
           type: 'info',
           title: 'Update available',
-          message: `SlaveDock ${remote} is available.`,
+          message: `ClutterDock ${remote} is available.`,
           detail: `You have ${local}.`,
           buttons: ['Download now', 'Later'],
           defaultId: 0,
@@ -130,7 +130,7 @@ function setupUpdater({ onStatus }) {
         await dialog.showMessageBox({
           type: 'info',
           title: 'You’re up to date',
-          message: `SlaveDock ${local} is the latest release.`,
+          message: `ClutterDock ${local} is the latest release.`,
           buttons: ['OK'],
         });
       }

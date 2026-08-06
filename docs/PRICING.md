@@ -1,4 +1,4 @@
-# SlaveDock Free & Pro
+# ClutterDock Free & Pro
 
 **Positioning:** Free forever for daily Dock/tray folders. Pro is a **one-time unlock** for power users (unlimited stacks, workspaces, hotkeys, global search, themes). Cross-platform license (Mac + Windows).
 
@@ -33,7 +33,7 @@ Payment later: Lemon Squeezy / Gumroad / Paddle → deliver license key.
 | Custom folder images | No | Yes |
 | Themes / accent | Default only | Yes |
 | Launch history (Recents) | Last **15** | Last **40** |
-| Pack export `.slavedock` | No | Yes |
+| Pack export `.clutterdock` | No | Yes |
 | JSON backup export | Yes | Yes |
 | Core hotkey, Recents, Running, drag/drop | Yes | Yes |
 
@@ -78,7 +78,7 @@ Do not publish the generator secret publicly in marketing pages.
 
 ## Naming note
 
-Public product remains **SlaveDock Free / SlaveDock Pro** for now (GitHub + installs).  
+Public product remains **ClutterDock Free / ClutterDock Pro** for now (GitHub + installs).  
 Future rebrand candidates: Dockpack, Stackly, NestDock, AppStash — see SESSION / product notes.
 
 ---

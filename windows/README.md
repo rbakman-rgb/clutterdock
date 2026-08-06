@@ -1,6 +1,6 @@
-# SlaveDock for Windows
+# ClutterDock for Windows
 
-Free tray launcher that mirrors the Mac **SlaveDock** idea: group apps, files, folders, and URLs into folders; open them from a floating panel.
+Free tray launcher that mirrors the Mac **ClutterDock** idea: group apps, files, folders, and URLs into folders; open them from a floating panel.
 
 **Free forever.** Tips optional: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
@@ -47,7 +47,7 @@ npm run dist
 
 Outputs under `windows/dist/`:
 
-- `SlaveDock-1.0.0-x64.exe` — NSIS installer  
+- `ClutterDock-1.0.0-x64.exe` — NSIS installer  
 - Portable build as well (`dist:portable` or full `dist`)
 
 From macOS, `electron-builder --win` may need extra tooling; prefer building on Windows/Parallels.
@@ -55,13 +55,13 @@ From macOS, `electron-builder --win` may need extra tooling; prefer building on 
 ## Data location
 
 ```
-%APPDATA%\slavedock\SlaveDock\
+%APPDATA%\clutterdock\ClutterDock\
   folders.json
   history.json
   prefs.json
 ```
 
-(Electron `userData` path; exact parent folder name may be `SlaveDock` depending on Electron version.)
+(Electron `userData` path; exact parent folder name may be `ClutterDock` depending on Electron version.)
 
 ## Keyboard
 
@@ -78,7 +78,7 @@ From macOS, `electron-builder --win` may need extra tooling; prefer building on 
 
 | | Mac | Windows |
 |--|-----|---------|
-| Path | `SlaveDock/` (Swift) | `windows/` (Electron) |
+| Path | `ClutterDock/` (Swift) | `windows/` (Electron) |
 | Chrome | Dock + menu bar | System tray |
 | Config | Application Support JSON | AppData JSON |
 | Donate | Same Buy Me a Coffee page | Same |

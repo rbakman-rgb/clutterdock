@@ -1,12 +1,12 @@
-# SlaveDock — Linear project plan
+# ClutterDock — Linear project plan
 
 **Workspace:** [linear.app/rbakman](https://linear.app/rbakman)  
 **Team:** RON (same as Massage Key BYC, Nearward, Exposure)  
-**Project name (create as):** **SlaveDock — V1 Public Launch**
+**Project name (create as):** **ClutterDock — V1 Public Launch**
 
 This matches how your other products use Linear:
 
-| Pattern (from your repos) | SlaveDock application |
+| Pattern (from your repos) | ClutterDock application |
 |---------------------------|------------------------|
 | One **project** per product wave | Single project for V1 public launch |
 | **Milestones** = gates / phases | G0–G4 below |
@@ -17,7 +17,7 @@ This matches how your other products use Linear:
 
 **Code:** https://github.com/rbakman-rgb/slavedock  
 **Site:** https://rbakman-rgb.github.io/slavedock/  
-**Local:** `/Users/ronald/Developer/SlaveDock`
+**Local:** `/Users/ronald/Developer/ClutterDock`
 
 ---
 
@@ -59,14 +59,14 @@ This matches how your other products use Linear:
 ## Project description (paste into Linear)
 
 ```
-SlaveDock — folders of apps, files, folders, and URLs on Mac Dock & Windows tray.
+ClutterDock — folders of apps, files, folders, and URLs on Mac Dock & Windows tray.
 
 Free forever core · Pro one-time unlock · Coffee tips optional.
 
 Repo: https://github.com/rbakman-rgb/slavedock
 Site: https://rbakman-rgb.github.io/slavedock/
 Pricing: https://rbakman-rgb.github.io/slavedock/pricing.html
-Local: ~/Developer/SlaveDock
+Local: ~/Developer/ClutterDock
 
 Sources of truth:
 - Product backlog & status → this Linear project
@@ -146,7 +146,7 @@ Constraints:
 | Title | Priority | State |
 |-------|----------|-------|
 | G4-01 Soft launch post (r/macapps, r/windowsapps, X) | P1 | Todo |
-| G4-02 Rebrand decision (keep SlaveDock vs Dockpack/Stackly) | P2 | Todo |
+| G4-02 Rebrand decision (keep ClutterDock vs Dockpack/Stackly) | P2 | Todo |
 | G4-03 Homebrew cask (after notarization) | P2 | Todo |
 | G4-04 iCloud / OneDrive sync (Pro pillar) | P2 | Backlog |
 
@@ -157,7 +157,7 @@ Constraints:
 ### Option A — Linear UI (fast)
 
 1. Open https://linear.app/rbakman  
-2. **Projects → New project** → name **SlaveDock — V1 Public Launch**  
+2. **Projects → New project** → name **ClutterDock — V1 Public Launch**  
 3. Paste project description above  
 4. Add milestones G0–G4  
 5. Create issues from the tables (mark G0 as Done)
@@ -166,14 +166,14 @@ Constraints:
 
 ```bash
 export LINEAR_API_KEY="lin_api_..."   # Linear → Settings → API → Personal API keys
-node scripts/linear-seed-slavedock.mjs
+node scripts/linear-seed-clutterdock.mjs
 ```
 
 ### Option C — Grok Linear MCP
 
 1. Linear MCP is **enabled** in `~/.grok/config.toml`  
 2. Restart Grok / complete OAuth for `https://mcp.linear.app/mcp`  
-3. Ask: *“Create the SlaveDock Linear project from docs/LINEAR.md”*
+3. Ask: *“Create the ClutterDock Linear project from docs/LINEAR.md”*
 
 ---
 
@@ -188,4 +188,4 @@ From Massage Key BYC, Nearward, Orbit, Exposure:
 5. **Done means evidence** (links to commits, releases, docs).  
 6. **MCP** is configured but was often **disabled until OAuth** — same blocker as Massage Key PENDING-SLACK-LINEAR notes.
 
-SlaveDock should follow that: one project, gate milestones, ship evidence in issue comments.
+ClutterDock should follow that: one project, gate milestones, ship evidence in issue comments.

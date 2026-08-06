@@ -52,13 +52,13 @@ enum FeatureGate {
     }
 
     static let proUpgradeSummary = """
-    SlaveDock Pro unlocks:
+    ClutterDock Pro unlocks:
     • Unlimited folders & items
     • Workspaces
     • Search all folders
     • Per-folder hotkeys
     • Custom folder images & themes
-    • .slavedock pack export
+    • .clutterdock pack export
 
     One-time purchase · Mac + Windows · Free core stays free forever.
     """

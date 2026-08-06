@@ -1,9 +1,9 @@
-# SlaveDock — Session save
+# ClutterDock — Session save
 
 **Saved:** 2026-08-05  
-**Status:** **Public launch path** — Mac 1.3.0 / Windows 1.1.0 Free+Pro, marketing site, release CI, GitHub Releases.  
-**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · [docs/SHIP.md](docs/SHIP.md) · [docs/LINEAR.md](docs/LINEAR.md)  
-**Backlog:** [Linear — SlaveDock V1 Public Launch](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…377 · live IDs in [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md) · sync protocol in `AGENTS.md`)
+**Status:** **Rebranded to ClutterDock** — Mac 1.4.0 / Windows 1.1.1 Free+Pro. Public launch path continues.  
+**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · domains **clutterdock.com** · **clutterdock.app**  
+**Backlog:** [Linear — project still slug `slavedock-v1-public-launch`](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…377 · live IDs in [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md) · sync protocol in `AGENTS.md`)
 
 ---
 
@@ -11,13 +11,13 @@
 
 | Role | Path |
 |------|------|
-| Source project | `/Users/ronald/Developer/SlaveDock` |
-| **Mac** app sources | `/Users/ronald/Developer/SlaveDock/SlaveDock/` |
-| **Windows** app | `/Users/ronald/Developer/SlaveDock/windows/` |
-| Mac build output | `/Users/ronald/Developer/SlaveDock/build/SlaveDock.app` |
-| Mac installed | `/Applications/SlaveDock.app` |
-| Mac config | `~/Library/Application Support/SlaveDock/folders.json` |
-| Windows config | `%APPDATA%/slavedock/SlaveDock/` (Electron userData) |
+| Source project | `/Users/ronald/Developer/ClutterDock` |
+| **Mac** app sources | `/Users/ronald/Developer/ClutterDock/ClutterDock/` |
+| **Windows** app | `/Users/ronald/Developer/ClutterDock/windows/` |
+| Mac build output | `/Users/ronald/Developer/ClutterDock/build/ClutterDock.app` |
+| Mac installed | `/Applications/ClutterDock.app` |
+| Mac config | `~/Library/Application Support/ClutterDock/folders.json` (migrates from `SlaveDock` / `DockFolder`) |
+| Windows config | `%APPDATA%/clutterdock/ClutterDock/` (Electron userData; migrates legacy `SlaveDock`) |
 | Windows dev | `cd windows && npm install && npm start` |
 | Windows package | `cd windows && npm run dist` **(on Windows)** |
 
@@ -25,13 +25,16 @@
 
 ## Product decisions (locked in)
 
-- **Name:** SlaveDock (was briefly DockFolder)
+- **Name:** **ClutterDock** (formerly SlaveDock; briefly DockFolder)
+- **Domains owned:** clutterdock.com · clutterdock.app (DNS / site wiring pending)
+- **GitHub repo:** still `rbakman-rgb/slavedock` until renamed
 - **Price:** Free forever
 - **Tips:** [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
-- **Icon:** User-provided light blue “hanging apps” image → `SlaveDock/Resources/AppIcon.icns`
+- **Icon:** User-provided light blue “hanging apps” image → `ClutterDock/Resources/AppIcon.icns`
 - **Stability rule:** No Dock replacement, no private Dock APIs, Carbon hotkeys (no Accessibility for main hotkey)
 - **Min OS:** macOS 14+ / Windows 10+
 - **Windows:** Electron tray app (not a full native WinUI port yet)
+- **License keys:** still `SDPRO-…` (unchanged crypto; works across rebrand)
 
 ---
 
@@ -66,24 +69,24 @@
 - **Per-folder hotkeys** ⌘⇧1–9
 - Custom folder SF Symbol or image
 - Launch history → Recents
-- Import/export JSON + **`.slavedock` packs**
-- URL scheme: `slavedock://open`, `add`, `workspace`, …
-- Finder Services: “Add to SlaveDock”
+- Import/export JSON + **`.clutterdock` packs**
+- URL scheme: `clutterdock://open`, `add`, `workspace`, …
+- Finder Services: “Add to ClutterDock”
 - Donate button → chidichidovsky
 
 ### Config
 - Versioned `folders.json` (v3)
-- Migrates older DockFolder/SlaveDock data when present
+- Migrates older DockFolder/ClutterDock data when present
 
 ---
 
 ## Rebuild / reinstall
 
 ```bash
-cd ~/Developer/SlaveDock
+cd ~/Developer/ClutterDock
 ./scripts/build.sh
-cp -R build/SlaveDock.app /Applications/
-open /Applications/SlaveDock.app
+cp -R build/ClutterDock.app /Applications/
+open /Applications/ClutterDock.app
 ```
 
 ---
@@ -111,8 +114,8 @@ open /Applications/SlaveDock.app
 ## Key source map
 
 ```
-SlaveDock/
-  SlaveDockApp.swift, AppDelegate.swift
+ClutterDock/
+  ClutterDockApp.swift, AppDelegate.swift
   Models/   DockItem, AppFolder, FolderStore, AppPreferences, LaunchHistory, AppSupport
   Services/ Launch, Icons, HotKey, Running, LoginItem, URLScheme
   Views/    LauncherView, SettingsView
@@ -126,12 +129,14 @@ scripts/build.sh
 ## Resume prompt (paste into a new agent chat)
 
 ```
-Continue SlaveDock at ~/Developer/SlaveDock.
+Continue ClutterDock at ~/Developer/ClutterDock.
 Read SESSION.md and README.md first.
-Backlog is in Linear (project "SlaveDock — V1 Public Launch", team RON). Use the Linear
+Product name is ClutterDock (was SlaveDock). Domains: clutterdock.com / clutterdock.app.
+GitHub repo is still rbakman-rgb/slavedock until renamed.
+Backlog is in Linear (project slug slavedock-v1-public-launch, team RON). Use the Linear
 MCP: check In Progress/Todo before starting, and keep issues updated as you work —
 protocol and issue map are in AGENTS.md.
 App is free, icon is custom AppIcon.icns, donate is buymeacoffee.com/chidichidovsky.
-Installed at /Applications/SlaveDock.app. Rebuild with ./scripts/build.sh.
+Installed at /Applications/ClutterDock.app. Rebuild with ./scripts/build.sh.
 Do not replace the system Dock. Prefer stable public APIs.
 ```

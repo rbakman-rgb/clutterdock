@@ -1,10 +1,10 @@
-/* global slaveDock */
+/* global clutterDock */
 
 let snapshot = null;
 const $ = (id) => document.getElementById(id);
 
 async function load() {
-  snapshot = await slaveDock.getSnapshot();
+  snapshot = await clutterDock.getSnapshot();
   $('closeAfter').checked = !!snapshot.prefs.closeAfterLaunch;
   $('hints').checked = !!snapshot.prefs.showKeyboardHints;
   $('login').checked = !!snapshot.prefs.launchAtLogin;
@@ -13,17 +13,17 @@ async function load() {
     $('autoUpdate').checked = snapshot.prefs.checkForUpdatesAutomatically !== false;
   }
   const tier = snapshot.license?.isPro ? 'Pro' : 'Free';
-  const ver = (await slaveDock.getUpdateStatus?.())?.version || '1.1.1';
+  const ver = (await clutterDock.getUpdateStatus?.())?.version || '1.1.1';
   $('version').textContent = `Version ${ver} · ${tier} · ${snapshot.dataDir}`;
   if ($('updateHint')) $('updateHint').textContent = `Installed ${ver}`;
   $('proStatus').textContent = snapshot.license?.isPro
     ? `You’re on Pro (${snapshot.license.display || 'active'})`
-    : 'SlaveDock Free — upgrade anytime';
+    : 'ClutterDock Free — upgrade anytime';
   $('exportBtn').textContent = snapshot.gate?.canExportPack ? 'Export pack…' : 'Export pack… (Pro)';
 }
 
 async function savePrefs(partial) {
-  snapshot = await slaveDock.updatePrefs(partial);
+  snapshot = await clutterDock.updatePrefs(partial);
   $('status').textContent = 'Saved.';
   await load();
 }
@@ -40,7 +40,7 @@ if ($('autoUpdate')) {
 if ($('checkUpdates')) {
   $('checkUpdates').onclick = async () => {
     $('status').textContent = 'Checking for updates…';
-    const res = await slaveDock.checkForUpdates(true);
+    const res = await clutterDock.checkForUpdates(true);
     if (res?.ok && !res.available && !res.downloading) {
       $('status').textContent = 'You’re on the latest version.';
     } else if (res?.downloading) {
@@ -55,7 +55,7 @@ if ($('checkUpdates')) {
 
 $('activatePro').onclick = async () => {
   const key = $('licenseKey').value;
-  const res = await slaveDock.activateLicense(key);
+  const res = await clutterDock.activateLicense(key);
   if (res.ok) {
     snapshot = res.snapshot;
     $('status').textContent = 'Pro activated — thank you!';
@@ -67,35 +67,35 @@ $('activatePro').onclick = async () => {
 };
 
 $('deactivatePro').onclick = async () => {
-  snapshot = await slaveDock.deactivateLicense();
+  snapshot = await clutterDock.deactivateLicense();
   $('status').textContent = 'Pro deactivated.';
   await load();
 };
 
 $('exportBtn').onclick = async () => {
-  const res = await slaveDock.exportPack();
+  const res = await clutterDock.exportPack();
   if (res.ok) $('status').textContent = `Exported: ${res.path}`;
   else $('status').textContent = res.error || 'Export cancelled.';
 };
 $('importReplace').onclick = async () => {
-  snapshot = await slaveDock.importPack(false);
+  snapshot = await clutterDock.importPack(false);
   $('status').textContent = 'Imported (replace).';
   await load();
 };
 $('importMerge').onclick = async () => {
-  snapshot = await slaveDock.importPack(true);
+  snapshot = await clutterDock.importPack(true);
   $('status').textContent = 'Imported (merge).';
   await load();
 };
 
-$('coffee').onclick = () => slaveDock.openExternal('https://buymeacoffee.com/chidichidovsky');
+$('coffee').onclick = () => clutterDock.openExternal('https://buymeacoffee.com/chidichidovsky');
 $('dataDir').onclick = async () => {
   if (snapshot?.dataDir) {
-    await slaveDock.openExternal('file://' + snapshot.dataDir.replace(/\\/g, '/'));
+    await clutterDock.openExternal('file://' + snapshot.dataDir.replace(/\\/g, '/'));
   }
 };
 
-slaveDock.onSnapshot((data) => {
+clutterDock.onSnapshot((data) => {
   snapshot = data;
 });
 

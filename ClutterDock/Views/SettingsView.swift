@@ -54,7 +54,7 @@ struct SettingsView: View {
                         if store.addFolder(named: "New Folder") {
                             selectedFolderID = store.folders.last(where: { !$0.isSmart })?.id
                         } else {
-                            presentAlert("SlaveDock Pro", FeatureGate.folderLimitMessage(current: store.normalFolderCount))
+                            presentAlert("ClutterDock Pro", FeatureGate.folderLimitMessage(current: store.normalFolderCount))
                         }
                     } label: { Image(systemName: "plus") }
                     Button {
@@ -121,7 +121,7 @@ struct SettingsView: View {
                             get: { folder.hotkey },
                             set: { new in
                                 if !store.setFolderHotkey(id: folder.id, hotkey: new) {
-                                    presentAlert("SlaveDock Pro", "Per-folder hotkeys are a Pro feature.")
+                                    presentAlert("ClutterDock Pro", "Per-folder hotkeys are a Pro feature.")
                                 }
                             }
                         )) {
@@ -136,7 +136,7 @@ struct SettingsView: View {
                                 if FeatureGate.canUseCustomFolderImages {
                                     pickFolderImage(for: folder.id)
                                 } else {
-                                    presentAlert("SlaveDock Pro", "Custom folder images are a Pro feature.")
+                                    presentAlert("ClutterDock Pro", "Custom folder images are a Pro feature.")
                                 }
                             }
                             if folder.customImagePath != nil {
@@ -223,7 +223,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Workspaces are a Pro feature")
                         .font(.title3.weight(.semibold))
-                    Text("Switch between Work / Personal / Client folder sets with one click. Included in SlaveDock Pro (one-time unlock).")
+                    Text("Switch between Work / Personal / Client folder sets with one click. Included in ClutterDock Pro (one-time unlock).")
                         .foregroundStyle(.secondary)
                     Text(FeatureGate.proUpgradeSummary)
                         .font(.caption)
@@ -283,10 +283,10 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(license.isPro ? "You’re on Pro" : "SlaveDock Free")
+                        Text(license.isPro ? "You’re on Pro" : "ClutterDock Free")
                             .font(.title2.weight(.bold))
                         Text(license.isPro
-                             ? "Thanks for supporting SlaveDock. All Pro features are unlocked on this Mac."
+                             ? "Thanks for supporting ClutterDock. All Pro features are unlocked on this Mac."
                              : "Free forever for daily use. Pro is a one-time unlock for power features.")
                             .foregroundStyle(.secondary)
                     }
@@ -301,7 +301,7 @@ struct SettingsView: View {
                 GroupBox("What’s included") {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Free: launcher, up to \(FeatureGate.freeMaxNormalFolders) folders, \(FeatureGate.freeMaxItemsPerFolder) items each, Recents, search in folder, hotkey, JSON backup")
-                        Text("Pro: unlimited · workspaces · search all · folder hotkeys · custom images · themes · .slavedock packs")
+                        Text("Pro: unlimited · workspaces · search all · folder hotkeys · custom images · themes · .clutterdock packs")
                             .fontWeight(.medium)
                     }
                     .font(.callout)
@@ -380,7 +380,7 @@ struct SettingsView: View {
                     get: { preferences.globalSearchDefault },
                     set: { new in
                         if new && !FeatureGate.canUseGlobalSearch {
-                            presentAlert("SlaveDock Pro", "Search all folders is a Pro feature.")
+                            presentAlert("ClutterDock Pro", "Search all folders is a Pro feature.")
                         } else {
                             preferences.globalSearchDefault = new
                         }
@@ -409,7 +409,7 @@ struct SettingsView: View {
                         if LoginItemService.setEnabled(new) {
                             preferences.launchAtLogin = new
                         } else {
-                            presentAlert("Login Items", "Allow SlaveDock in System Settings → Login Items, or keep the app in /Applications.")
+                            presentAlert("Login Items", "Allow ClutterDock in System Settings → Login Items, or keep the app in /Applications.")
                         }
                     }
                 )) { Text("Open at login") }
@@ -418,7 +418,7 @@ struct SettingsView: View {
                     ForEach(HotkeyPreset.allCases) { p in Text(p.displayName).tag(p) }
                 }
                 .disabled(!preferences.hotkeyEnabled)
-                Text("Per-folder hotkeys: set under Folders. URL scheme: slavedock://open")
+                Text("Per-folder hotkeys: set under Folders. URL scheme: clutterdock://open")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -462,13 +462,13 @@ struct SettingsView: View {
                 }
             }
             Section("Automation") {
-                Text("slavedock://open")
-                Text("slavedock://open?folder=Work")
-                Text("slavedock://add?path=/Applications/Safari.app")
-                Text("slavedock://add?url=https://example.com")
-                Text("slavedock://workspace?name=All")
+                Text("clutterdock://open")
+                Text("clutterdock://open?folder=Work")
+                Text("clutterdock://add?path=/Applications/Safari.app")
+                Text("clutterdock://add?url=https://example.com")
+                Text("clutterdock://workspace?name=All")
                     .font(.system(.caption, design: .monospaced))
-                Text("Finder: select items → Services → Add to SlaveDock (after enabling in Keyboard settings once).")
+                Text("Finder: select items → Services → Add to ClutterDock (after enabling in Keyboard settings once).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -482,16 +482,16 @@ struct SettingsView: View {
     private var backupTab: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Backup & Packs").font(.title2.weight(.semibold))
-            Text("Export JSON or a .slavedock pack. Import can replace everything or merge by folder name.")
+            Text("Export JSON or a .clutterdock pack. Import can replace everything or merge by folder name.")
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
                 Button("Export JSON…") { exportJSON() }
-                Button(FeatureGate.canExportPack ? "Export .slavedock Pack…" : "Export Pack… (Pro)") {
+                Button(FeatureGate.canExportPack ? "Export .clutterdock Pack…" : "Export Pack… (Pro)") {
                     if FeatureGate.canExportPack {
                         exportPack()
                     } else {
-                        presentAlert("SlaveDock Pro", "Pack export (.slavedock) is a Pro feature. JSON backup stays free.")
+                        presentAlert("ClutterDock Pro", "Pack export (.clutterdock) is a Pro feature. JSON backup stays free.")
                     }
                 }
             }
@@ -517,7 +517,7 @@ struct SettingsView: View {
                 .frame(width: 96, height: 96)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .shadow(radius: 6, y: 2)
-            Text("SlaveDock").font(.title.weight(.bold))
+            Text("ClutterDock").font(.title.weight(.bold))
             Text("Version \(appVersion) (\(appBuild)) · \(FeatureGate.tierDisplayName)")
                 .foregroundStyle(.secondary)
             Text(license.isPro
@@ -579,7 +579,7 @@ struct SettingsView: View {
         if panel.runModal() == .OK {
             let result = store.addPaths(panel.urls.map(\.path), to: folderID)
             if result.hitLimit {
-                presentAlert("SlaveDock Pro", FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == folderID })?.items.count ?? 0))
+                presentAlert("ClutterDock Pro", FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == folderID })?.items.count ?? 0))
             }
             statusMessage = "Added \(result.added) item(s)."
         }
@@ -596,7 +596,7 @@ struct SettingsView: View {
         if alert.runModal() == .alertFirstButtonReturn {
             let result = store.addURL(field.stringValue, to: folderID)
             if result.hitLimit {
-                presentAlert("SlaveDock Pro", FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == folderID })?.items.count ?? 0))
+                presentAlert("ClutterDock Pro", FeatureGate.itemLimitMessage(current: store.folders.first(where: { $0.id == folderID })?.items.count ?? 0))
             }
         }
     }
@@ -607,8 +607,7 @@ struct SettingsView: View {
         panel.canChooseFiles = true
         if panel.runModal() == .OK, let url = panel.url {
             // Copy into Application Support
-            let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            let dir = support.appendingPathComponent("SlaveDock/FolderImages", isDirectory: true)
+            let dir = AppSupport.applicationSupportDirectory.appendingPathComponent("FolderImages", isDirectory: true)
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             let dest = dir.appendingPathComponent("\(folderID.uuidString).\(url.pathExtension)")
             try? FileManager.default.removeItem(at: dest)
@@ -621,7 +620,7 @@ struct SettingsView: View {
     private func exportJSON() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue = "SlaveDock-backup.json"
+        panel.nameFieldStringValue = "ClutterDock-backup.json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try store.exportData().write(to: url, options: .atomic)
@@ -633,8 +632,8 @@ struct SettingsView: View {
 
     private func exportPack() {
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "slavedock") ?? .json]
-        panel.nameFieldStringValue = "MyPack.slavedock"
+        panel.allowedContentTypes = [UTType(filenameExtension: "clutterdock") ?? .json]
+        panel.nameFieldStringValue = "MyPack.clutterdock"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try store.exportPack(to: url)
@@ -646,7 +645,10 @@ struct SettingsView: View {
 
     private func importFile(merge: Bool) {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.json, UTType(filenameExtension: "slavedock") ?? .data]
+        var types: [UTType] = [.json]
+        if let t = UTType(filenameExtension: "clutterdock") { types.append(t) }
+        if let t = UTType(filenameExtension: "slavedock") { types.append(t) }
+        panel.allowedContentTypes = types
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try store.importPack(from: url, merge: merge)

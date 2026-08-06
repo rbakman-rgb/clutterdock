@@ -1,4 +1,4 @@
-# SlaveDock
+# ClutterDock
 
 **Folders of apps, files, folders, and URLs** — on your **Mac Dock** or **Windows tray**.
 
@@ -8,8 +8,8 @@
 
 | Platform | Stack | Version |
 |----------|--------|---------|
-| macOS 14+ | Native Swift / SwiftUI | **1.3.0** |
-| Windows 10/11 | Electron tray launcher | **1.1.0** |
+| macOS 14+ | Native Swift / SwiftUI | **1.4.0** |
+| Windows 10/11 | Electron tray launcher | **1.1.1** |
 
 ---
 
@@ -17,8 +17,8 @@
 
 ### macOS
 
-1. Download **`SlaveDock-*-mac.zip`** from [Releases](https://github.com/rbakman-rgb/slavedock/releases/latest)
-2. Unzip → drag **SlaveDock.app** to **Applications**
+1. Download **`ClutterDock-*-mac.zip`** from [Releases](https://github.com/rbakman-rgb/slavedock/releases/latest)
+2. Unzip → drag **ClutterDock.app** to **Applications**
 3. First launch: **right-click → Open** (build is ad-hoc signed until Apple Developer ID notarization)
 4. Optional: right-click Dock icon → Options → **Keep in Dock**
 5. Hotkey default: **⌘⇧D**
@@ -26,7 +26,7 @@
 ### Windows
 
 1. Download the installer or portable **`.exe`** from [Releases](https://github.com/rbakman-rgb/slavedock/releases/latest)
-2. Run it and find **SlaveDock** in the system tray
+2. Run it and find **ClutterDock** in the system tray
 3. Hotkey default: **Ctrl+Shift+D**
 
 ---
@@ -41,7 +41,7 @@
 | Workspaces | — | Yes |
 | Per-folder hotkeys | — | Yes |
 | Custom images / themes | — | Yes |
-| `.slavedock` pack export | — | Yes |
+| `.clutterdock` pack export | — | Yes |
 | Core launcher, Recents, JSON backup | Yes | Yes |
 
 Activate Pro: **Settings → Pro** (same key on Mac + Windows).  
@@ -56,8 +56,8 @@ Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://rbakman-rg
 - Smart folders: **Recents**, **Running**  
 - Workspaces, global search, per-folder hotkeys (Pro)  
 - Import/export JSON; pack export (Pro)  
-- URL scheme: `slavedock://open`, `add`, `workspace`, …  
-- Finder Service: **Add to SlaveDock** (Mac)
+- URL scheme: `clutterdock://open`, `add`, `workspace`, …  
+- Finder Service: **Add to ClutterDock** (Mac)
 
 ---
 
@@ -68,8 +68,8 @@ Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://rbakman-rg
 ```bash
 ./scripts/build.sh              # native arch (dev)
 ./scripts/build.sh universal    # Intel + Apple Silicon
-./scripts/package-mac.sh        # → dist/SlaveDock-<ver>-mac.zip
-cp -R build/SlaveDock.app /Applications/
+./scripts/package-mac.sh        # → dist/ClutterDock-<ver>-mac.zip
+cp -R build/ClutterDock.app /Applications/
 ```
 
 ### Windows
@@ -93,8 +93,8 @@ Ship notes: [docs/SHIP.md](docs/SHIP.md)
 ## Data (local only)
 
 ```
-macOS:    ~/Library/Application Support/SlaveDock/
-Windows:  %APPDATA%/slavedock/SlaveDock/
+macOS:    ~/Library/Application Support/ClutterDock/
+Windows:  %APPDATA%/clutterdock/ClutterDock/
 ```
 
 No account. No cloud required. [Privacy](https://rbakman-rgb.github.io/slavedock/privacy.html)

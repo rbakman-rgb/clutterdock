@@ -22,9 +22,7 @@ final class LaunchHistory: ObservableObject {
     private let fileURL: URL
 
     init() {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = support.appendingPathComponent("SlaveDock", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let dir = AppSupport.applicationSupportDirectory
         fileURL = dir.appendingPathComponent("history.json")
         load()
     }

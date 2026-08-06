@@ -4,10 +4,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD="$ROOT/build"
-APP="$BUILD/SlaveDock.app"
+APP="$BUILD/ClutterDock.app"
 DIST="$ROOT/dist"
-VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$ROOT/SlaveDock/Info.plist" 2>/dev/null || echo "0.0.0")"
-ZIP_NAME="SlaveDock-${VERSION}-mac.zip"
+VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$ROOT/ClutterDock/Info.plist" 2>/dev/null || echo "0.0.0")"
+ZIP_NAME="ClutterDock-${VERSION}-mac.zip"
 
 echo "→ Packaging Mac release v${VERSION}"
 
@@ -19,7 +19,7 @@ rm -f "$DIST/$ZIP_NAME"
 # ditto preserves code signature and resource forks better than zip alone.
 (
   cd "$BUILD"
-  ditto -c -k --keepParent "SlaveDock.app" "$DIST/$ZIP_NAME"
+  ditto -c -k --keepParent "ClutterDock.app" "$DIST/$ZIP_NAME"
 )
 
 # Quick sanity checks

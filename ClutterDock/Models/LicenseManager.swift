@@ -13,7 +13,9 @@ final class LicenseManager: ObservableObject {
     @Published private(set) var lastError: String?
 
     private let defaults = UserDefaults.standard
-    private let keyStorageKey = "slaveDock.proLicenseKey"
+    private let keyStorageKey = "clutterDock.proLicenseKey"
+    private let legacyKeyStorageKey = "slaveDock.proLicenseKey"
+    private let legacyBundleID = "com.ronald.SlaveDock"
 
     /// Must match windows/src/license.js PRODUCT_SECRET
     private static let productSecret = "sd-pro-v1-k9m2x7q4-rbakman-slavedock"
@@ -22,7 +24,24 @@ final class LicenseManager: ObservableObject {
     static let testUnlockKey = "SDPRO-TEST-UNLOCK-2026"
 
     private init() {
+        migrateLegacyLicenseIfNeeded()
         reload()
+    }
+
+    /// Pull Pro key from pre-rebrand defaults (old key name and/or old bundle id).
+    private func migrateLegacyLicenseIfNeeded() {
+        if let existing = defaults.string(forKey: keyStorageKey), Self.validate(existing) { return }
+
+        var candidates: [String] = []
+        if let k = defaults.string(forKey: legacyKeyStorageKey) { candidates.append(k) }
+        if let legacy = UserDefaults(suiteName: legacyBundleID) {
+            if let k = legacy.string(forKey: keyStorageKey) { candidates.append(k) }
+            if let k = legacy.string(forKey: legacyKeyStorageKey) { candidates.append(k) }
+        }
+        for key in candidates where Self.validate(key) {
+            defaults.set(key.uppercased(), forKey: keyStorageKey)
+            return
+        }
     }
 
     func reload() {
@@ -48,7 +67,7 @@ final class LicenseManager: ObservableObject {
         isPro = true
         licenseKeyDisplay = Self.mask(trimmed)
         lastError = nil
-        NotificationCenter.default.post(name: .slaveDockLicenseChanged, object: nil)
+        NotificationCenter.default.post(name: .clutterDockLicenseChanged, object: nil)
         return true
     }
 
@@ -57,7 +76,7 @@ final class LicenseManager: ObservableObject {
         isPro = false
         licenseKeyDisplay = ""
         lastError = nil
-        NotificationCenter.default.post(name: .slaveDockLicenseChanged, object: nil)
+        NotificationCenter.default.post(name: .clutterDockLicenseChanged, object: nil)
     }
 
     // MARK: - Validation
@@ -103,7 +122,7 @@ final class LicenseManager: ObservableObject {
 }
 
 extension Notification.Name {
-    static let slaveDockLicenseChanged = Notification.Name("slaveDockLicenseChanged")
+    static let clutterDockLicenseChanged = Notification.Name("clutterDockLicenseChanged")
 }
 
 // MARK: - UI helper
@@ -112,7 +131,7 @@ enum UpgradePresenter {
     @MainActor
     static func showLimitAlert(message: String, onUpgrade: @escaping () -> Void) {
         let alert = NSAlert()
-        alert.messageText = "SlaveDock Pro"
+        alert.messageText = "ClutterDock Pro"
         alert.informativeText = message + "\n\n" + FeatureGate.proUpgradeSummary
         alert.alertStyle = .informational
         alert.addButton(withTitle: "Upgrade…")

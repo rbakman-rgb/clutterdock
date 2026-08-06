@@ -1,6 +1,6 @@
 {
-  "name": "slavedock",
-  "productName": "SlaveDock",
+  "name": "clutterdock",
+  "productName": "ClutterDock",
   "version": "1.1.1",
   "description": "Free app folders for your Windows taskbar / tray — group apps, files, folders, and URLs.",
   "main": "src/main.js",
@@ -20,8 +20,8 @@
     "dist:portable": "electron-builder --win portable --publish never"
   },
   "build": {
-    "appId": "com.ronald.SlaveDock",
-    "productName": "SlaveDock",
+    "appId": "com.ronald.ClutterDock",
+    "productName": "ClutterDock",
     "directories": {
       "output": "dist"
     },
@@ -53,14 +53,14 @@
         }
       ],
       "icon": "assets/icon.png",
-      "artifactName": "SlaveDock-${version}-${arch}.${ext}"
+      "artifactName": "ClutterDock-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SlaveDock"
+      "shortcutName": "ClutterDock"
     }
   },
   "dependencies": {

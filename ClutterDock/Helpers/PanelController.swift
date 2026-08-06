@@ -23,7 +23,7 @@ final class PanelController {
         self.history = history
 
         prefsObserver = NotificationCenter.default.addObserver(
-            forName: .slaveDockPreferencesChanged,
+            forName: .clutterDockPreferencesChanged,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -73,11 +73,11 @@ final class PanelController {
             backing: .buffered,
             defer: false
         )
-        window.title = "SlaveDock Settings"
+        window.title = "ClutterDock Settings"
         window.contentView = NSHostingView(rootView: root)
         window.center()
         window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("SlaveDockSettings")
+        window.setFrameAutosaveName("ClutterDockSettings")
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow = window
@@ -108,7 +108,7 @@ final class PanelController {
             backing: .buffered,
             defer: false
         )
-        panel.title = "SlaveDock"
+        panel.title = "ClutterDock"
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.isFloatingPanel = true

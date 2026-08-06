@@ -81,13 +81,13 @@ struct LauncherView: View {
         .sheet(isPresented: $showingHelp) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("SlaveDock help").font(.title2.weight(.semibold))
+                    Text("ClutterDock help").font(.title2.weight(.semibold))
                     Spacer()
                     Button("Done") { showingHelp = false }
                         .keyboardShortcut(.cancelAction)
                 }
                 KeyboardCheatSheet()
-                Text("Tip: keep SlaveDock in the Dock, then click it or press your hotkey anytime.")
+                Text("Tip: keep ClutterDock in the Dock, then click it or press your hotkey anytime.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -432,7 +432,7 @@ struct LauncherView: View {
     private func emptySubtitle(_ folder: AppFolder?) -> String {
         if isTargeted { return "Apps, files, and folders are welcome" }
         switch folder?.smartKind {
-        case .recents: return "Items you open from SlaveDock appear here automatically"
+        case .recents: return "Items you open from ClutterDock appear here automatically"
         case .running: return "Regular apps you open will list here while they’re running"
         default: return "Drag items from Finder, or use + to add apps, files, folders, or URLs"
         }
@@ -627,7 +627,7 @@ struct LauncherView: View {
                     .buttonStyle(.borderless)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
-                    .help("Upgrade to SlaveDock Pro")
+                    .help("Upgrade to ClutterDock Pro")
             }
             Button {
                 showingHelp = true

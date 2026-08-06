@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildDockMenu()
 
         prefsObserver = NotificationCenter.default.addObserver(
-            forName: .slaveDockPreferencesChanged,
+            forName: .clutterDockPreferencesChanged,
             object: nil,
             queue: .main
         ) { [weak self] note in
@@ -54,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         hotkeyObserver = NotificationCenter.default.addObserver(
-            forName: .slaveDockHotkeysNeedRefresh,
+            forName: .clutterDockHotkeysNeedRefresh,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -62,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NotificationCenter.default.addObserver(
-            forName: .slaveDockLicenseChanged,
+            forName: .clutterDockLicenseChanged,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -121,9 +121,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
-    // MARK: - Finder Services (“Add to SlaveDock”)
+    // MARK: - Finder Services (“Add to ClutterDock”)
 
-    @objc func addToSlaveDock(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+    @objc func addToClutterDock(_ pboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
         var paths: [String] = []
         if let files = pboard.propertyList(forType: .fileURL) as? [String] {
             // uncommon path
@@ -164,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if let button = item.button {
                     button.image = NSImage(
                         systemSymbolName: "square.grid.2x2.fill",
-                        accessibilityDescription: "SlaveDock"
+                        accessibilityDescription: "ClutterDock"
                     )
                     button.image?.isTemplate = true
                     button.action = #selector(statusItemClicked(_:))
@@ -240,7 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Buy Me a Coffee…", action: #selector(openBuyMeACoffee), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Quit SlaveDock", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit ClutterDock", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         dockMenu = menu
     }
 

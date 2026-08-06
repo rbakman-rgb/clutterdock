@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
 import AppKit
 
-// Generates a simple folder+grid icon for SlaveDock
+// Generates a simple folder+grid icon for ClutterDock
 let sizes: [Int] = [16, 32, 64, 128, 256, 512, 1024]
 let outDir = CommandLine.arguments.count > 1
     ? CommandLine.arguments[1]

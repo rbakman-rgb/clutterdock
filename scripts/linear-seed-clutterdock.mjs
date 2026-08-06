@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Seed Linear project "SlaveDock — V1 Public Launch" on team RON.
+ * Seed Linear project "ClutterDock — V1 Public Launch" on team RON.
  *
  * Usage:
  *   export LINEAR_API_KEY="lin_api_..."
- *   node scripts/linear-seed-slavedock.mjs
+ *   node scripts/linear-seed-clutterdock.mjs
  *
  * Create a key: Linear → Settings → Account → Security & access → Personal API keys
  * https://linear.app/rbakman/settings/account/security
@@ -34,14 +34,14 @@ async function gql(query, variables = {}) {
   return json.data;
 }
 
-const PROJECT_DESC = `SlaveDock — folders of apps, files, folders, and URLs on Mac Dock & Windows tray.
+const PROJECT_DESC = `ClutterDock — folders of apps, files, folders, and URLs on Mac Dock & Windows tray.
 
 Free forever core · Pro one-time unlock · Coffee tips optional.
 
 - Repo: https://github.com/rbakman-rgb/slavedock
 - Site: https://rbakman-rgb.github.io/slavedock/
 - Pricing: https://rbakman-rgb.github.io/slavedock/pricing.html
-- Local: ~/Developer/SlaveDock
+- Local: ~/Developer/ClutterDock
 
 Sources of truth: Linear (backlog) · GitHub (code) · docs/SHIP.md (ship ops)
 
@@ -57,7 +57,7 @@ const MILESTONES = [
 
 // [title, description, milestoneName, priority (0=none,1=urgent,2=high,3=medium,4=low), done]
 const ISSUES = [
-  ['G0-01 Native Mac launcher Free core', 'Swift Dock launcher shipped. ~/Developer/SlaveDock', 'G0 — Foundation', 2, true],
+  ['G0-01 Native Mac launcher Free core', 'Swift Dock launcher shipped. ~/Developer/ClutterDock', 'G0 — Foundation', 2, true],
   ['G0-02 Windows Electron tray Free core', 'Tray + Ctrl+Shift+D. windows/', 'G0 — Foundation', 2, true],
   ['G0-03 Free/Pro entitlements + license keys', 'FeatureGate + Settings Pro. docs/PRICING.md', 'G0 — Foundation', 2, true],
   ['G0-04 Marketing site GitHub Pages', 'https://rbakman-rgb.github.io/slavedock/', 'G0 — Foundation', 2, true],
@@ -80,7 +80,7 @@ const ISSUES = [
   ['G3-04 Direct asset download links on site', 'Optional polish', 'G3 — Product polish', 4, false],
   ['G3-05 Terms of use for Pro license', 'Legal light', 'G3 — Product polish', 4, false],
   ['G4-01 Soft launch posts macapps windowsapps', 'After G1 smoke', 'G4 — Growth', 2, false],
-  ['G4-02 Rebrand decision SlaveDock vs Dockpack/Stackly', 'Before heavy marketing', 'G4 — Growth', 3, false],
+  ['G4-02 Rebrand decision ClutterDock vs Dockpack/Stackly', 'Before heavy marketing', 'G4 — Growth', 3, false],
   ['G4-03 Homebrew cask after notarization', 'Requires G1-03', 'G4 — Growth', 4, false],
   ['G4-04 iCloud/OneDrive sync Pro pillar', 'Backlog', 'G4 — Growth', 4, false],
 ];
@@ -96,7 +96,7 @@ async function main() {
   // Existing project?
   const projects = await gql(
     `query($f: ProjectFilter) { projects(filter: $f) { nodes { id name url } } }`,
-    { f: { name: { containsIgnoreCase: 'SlaveDock' } } }
+    { f: { name: { containsIgnoreCase: 'ClutterDock' } } }
   );
   let project = projects.projects.nodes[0];
 
@@ -110,7 +110,7 @@ async function main() {
       }`,
       {
         input: {
-          name: 'SlaveDock — V1 Public Launch',
+          name: 'ClutterDock — V1 Public Launch',
           description: PROJECT_DESC,
           teamIds: [team.id],
         },

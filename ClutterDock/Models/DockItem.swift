@@ -19,7 +19,7 @@ enum DockItemKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// An entry in a SlaveDock folder — app, file, folder, or URL.
+/// An entry in a ClutterDock folder — app, file, folder, or URL.
 struct DockItem: Identifiable, Codable, Equatable, Hashable {
     let id: UUID
     var kind: DockItemKind

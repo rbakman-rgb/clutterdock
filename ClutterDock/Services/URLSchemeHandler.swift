@@ -1,18 +1,19 @@
 import AppKit
 import Foundation
 
-/// Handles `slavedock://` URLs
+/// Handles `clutterdock://` URLs (also accepts legacy `slavedock://`).
 ///
 /// Examples:
-/// - slavedock://open
-/// - slavedock://open?folder=Work
-/// - slavedock://add?path=/Applications/Safari.app
-/// - slavedock://add?url=https://example.com
-/// - slavedock://workspace?name=Work
+/// - clutterdock://open
+/// - clutterdock://open?folder=Work
+/// - clutterdock://add?path=/Applications/Safari.app
+/// - clutterdock://add?url=https://example.com
+/// - clutterdock://workspace?name=Work
 enum URLSchemeHandler {
     @MainActor
     static func handle(_ url: URL, store: FolderStore, panel: PanelController) {
-        guard url.scheme?.lowercased() == "slavedock" else { return }
+        let scheme = url.scheme?.lowercased() ?? ""
+        guard scheme == "clutterdock" || scheme == "slavedock" else { return }
 
         let host = (url.host ?? url.path).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)

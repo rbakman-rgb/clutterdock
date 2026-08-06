@@ -1,4 +1,4 @@
-/* global slaveDock */
+/* global clutterDock */
 
 let snapshot = null;
 let searchGlobal = false;
@@ -55,9 +55,9 @@ function itemsForView() {
 }
 
 async function refresh(next) {
-  snapshot = next || (await slaveDock.getSnapshot());
+  snapshot = next || (await clutterDock.getSnapshot());
   if (searchGlobal && searchText.trim()) {
-    snapshot._globalHits = await slaveDock.searchAll(searchText);
+    snapshot._globalHits = await clutterDock.searchAll(searchText);
   } else {
     snapshot._globalHits = [];
   }
@@ -84,7 +84,7 @@ function renderTabs() {
     b.className = 'tab' + (f.id === snapshot.state.selectedFolderID ? ' active' : '');
     b.textContent = f.name;
     b.onclick = async () => {
-      await refresh(await slaveDock.selectFolder(f.id));
+      await refresh(await clutterDock.selectFolder(f.id));
     };
     b.oncontextmenu = (e) => {
       e.preventDefault();
@@ -102,15 +102,15 @@ function renderTabs() {
   $('addFolderBtn').onclick = async () => {
     const name = prompt('Folder name', 'New Folder');
     if (!name) return;
-    const snap = await slaveDock.addFolder(name);
+    const snap = await clutterDock.addFolder(name);
     if (snap && snap.ok === false && snap.hitLimit) {
       alert((snap.message || 'Folder limit reached.') + '\n\nSettings → Pro · test key SDPRO-TEST-UNLOCK-2026');
       return;
     }
-    await refresh(snap.state ? snap : snap.snapshot || (await slaveDock.getSnapshot()));
+    await refresh(snap.state ? snap : snap.snapshot || (await clutterDock.getSnapshot()));
   };
   $('addItemsBtn').onclick = async () => {
-    const snap = await slaveDock.pickAndAdd();
+    const snap = await clutterDock.pickAndAdd();
     if (snap?._limitMessage) {
       alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
     }
@@ -148,7 +148,7 @@ function renderContent() {
         }
       </div>`;
     $('emptyAdd')?.addEventListener('click', async () => {
-      await refresh(await slaveDock.pickAndAdd());
+      await refresh(await clutterDock.pickAndAdd());
     });
     $('emptyUrl')?.addEventListener('click', addUrlPrompt);
     return;
@@ -197,7 +197,7 @@ function renderContent() {
           if (!from || from === item.id) return;
           const ids = items.map((i) => i.id);
           const toIndex = ids.indexOf(item.id);
-          await refresh(await slaveDock.reorderItem(from, toIndex, folder.id));
+          await refresh(await clutterDock.reorderItem(from, toIndex, folder.id));
           selectedId = from;
           dragId = null;
         });
@@ -211,7 +211,7 @@ function wireItem(el, item, folder) {
   el.onclick = async () => {
     selectedId = item.id;
     renderContent();
-    const res = await slaveDock.openItem(item);
+    const res = await clutterDock.openItem(item);
     if (!res?.ok && res?.error) alert(res.error);
     else await refresh();
   };
@@ -254,7 +254,7 @@ function renderOnboarding() {
   overlay.className = 'overlay';
   overlay.innerHTML = `
     <div class="card">
-      <h2>✨ Welcome to SlaveDock</h2>
+      <h2>✨ Welcome to ClutterDock</h2>
       <ol>
         <li>Add apps, files, folders, or URLs into folders</li>
         <li>Click the tray icon or press <b>Ctrl+Shift+D</b></li>
@@ -268,15 +268,15 @@ function renderOnboarding() {
       </div>
     </div>`;
   $('obGot').onclick = async () => {
-    await refresh(await slaveDock.updatePrefs({ hasCompletedOnboarding: true }));
+    await refresh(await clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
   };
   $('obAdd').onclick = async () => {
-    await slaveDock.updatePrefs({ hasCompletedOnboarding: true });
-    await refresh(await slaveDock.pickAndAdd());
+    await clutterDock.updatePrefs({ hasCompletedOnboarding: true });
+    await refresh(await clutterDock.pickAndAdd());
   };
   $('obSettings').onclick = async () => {
-    await slaveDock.updatePrefs({ hasCompletedOnboarding: true });
-    await slaveDock.openSettings();
+    await clutterDock.updatePrefs({ hasCompletedOnboarding: true });
+    await clutterDock.openSettings();
   };
 }
 
@@ -296,11 +296,11 @@ function showItemMenu(x, y, item, folder) {
     const a = e.target.getAttribute('data-a');
     if (!a) return;
     ctx.hidden = true;
-    if (a === 'open') await slaveDock.openItem(item);
-    if (a === 'reveal') await slaveDock.revealItem(item);
-    if (a === 'left') await refresh(await slaveDock.nudgeItem(item.id, -1, folder.id));
-    if (a === 'right') await refresh(await slaveDock.nudgeItem(item.id, 1, folder.id));
-    if (a === 'remove') await refresh(await slaveDock.removeItem(item.id, folder.id));
+    if (a === 'open') await clutterDock.openItem(item);
+    if (a === 'reveal') await clutterDock.revealItem(item);
+    if (a === 'left') await refresh(await clutterDock.nudgeItem(item.id, -1, folder.id));
+    if (a === 'right') await refresh(await clutterDock.nudgeItem(item.id, 1, folder.id));
+    if (a === 'remove') await refresh(await clutterDock.removeItem(item.id, folder.id));
   };
 }
 
@@ -319,19 +319,19 @@ function showFolderMenu(x, y, folder) {
     const a = e.target.getAttribute('data-a');
     if (!a) return;
     ctx.hidden = true;
-    if (a === 'grid') await refresh(await slaveDock.setFolderView(folder.id, 'grid'));
-    if (a === 'list') await refresh(await slaveDock.setFolderView(folder.id, 'list'));
+    if (a === 'grid') await refresh(await clutterDock.setFolderView(folder.id, 'grid'));
+    if (a === 'list') await refresh(await clutterDock.setFolderView(folder.id, 'list'));
     if (a === 'rename') {
       const name = prompt('Rename folder', folder.name);
-      if (name) await refresh(await slaveDock.renameFolder(folder.id, name));
+      if (name) await refresh(await clutterDock.renameFolder(folder.id, name));
     }
-    if (a === 'delete') await refresh(await slaveDock.deleteFolder(folder.id));
+    if (a === 'delete') await refresh(await clutterDock.deleteFolder(folder.id));
   };
 }
 
 async function addUrlPrompt() {
   const url = prompt('URL', 'https://');
-  if (url) await refresh(await slaveDock.addURL(url));
+  if (url) await refresh(await clutterDock.addURL(url));
 }
 
 function escapeHtml(s) {
@@ -355,7 +355,7 @@ contentEl.addEventListener('drop', async (e) => {
   e.preventDefault();
   contentEl.classList.remove('drop-active');
   const files = [...(e.dataTransfer.files || [])].map((f) => f.path).filter(Boolean);
-  if (files.length) await refresh(await slaveDock.addPaths(files));
+  if (files.length) await refresh(await clutterDock.addPaths(files));
 });
 
 $('search').addEventListener('input', async (e) => {
@@ -372,10 +372,10 @@ $('searchAll').onclick = async () => {
   searchGlobal = !searchGlobal;
   await refresh();
 };
-$('settingsBtn').onclick = () => slaveDock.openSettings();
+$('settingsBtn').onclick = () => clutterDock.openSettings();
 $('helpBtn').onclick = () => {
   alert(
-    'SlaveDock keyboard\n\n' +
+    'ClutterDock keyboard\n\n' +
       'Ctrl+Shift+D — Open/close\n' +
       'Esc — Close\n' +
       'Enter — Open selected\n' +
@@ -392,10 +392,10 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', async (e) => {
   if (e.key === 'Escape') {
     if (!snapshot?.prefs?.hasCompletedOnboarding) {
-      await refresh(await slaveDock.updatePrefs({ hasCompletedOnboarding: true }));
+      await refresh(await clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
       return;
     }
-    await slaveDock.hidePanel();
+    await clutterDock.hidePanel();
     return;
   }
   if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
@@ -410,7 +410,7 @@ document.addEventListener('keydown', async (e) => {
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
     e.preventDefault();
     if (e.altKey && selectedFolder()?.smartKind === 'none' && selectedId) {
-      await refresh(await slaveDock.nudgeItem(selectedId, 1, selectedFolder().id));
+      await refresh(await clutterDock.nudgeItem(selectedId, 1, selectedFolder().id));
     } else {
       selectedId = items[Math.min(items.length - 1, idx + 1)].id;
       renderContent();
@@ -419,7 +419,7 @@ document.addEventListener('keydown', async (e) => {
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
     e.preventDefault();
     if (e.altKey && selectedFolder()?.smartKind === 'none' && selectedId) {
-      await refresh(await slaveDock.nudgeItem(selectedId, -1, selectedFolder().id));
+      await refresh(await clutterDock.nudgeItem(selectedId, -1, selectedFolder().id));
     } else {
       selectedId = items[Math.max(0, idx - 1)].id;
       renderContent();
@@ -427,11 +427,11 @@ document.addEventListener('keydown', async (e) => {
   }
   if (e.key === 'Enter' && selectedId) {
     const item = items.find((i) => i.id === selectedId);
-    if (item) await slaveDock.openItem(item);
+    if (item) await clutterDock.openItem(item);
   }
 });
 
-slaveDock.onSnapshot((data) => {
+clutterDock.onSnapshot((data) => {
   snapshot = data;
   render();
 });

@@ -37,7 +37,7 @@ final class AppPreferences: ObservableObject {
     @Published var showMenuBarIcon: Bool {
         didSet {
             defaults.set(showMenuBarIcon, forKey: Keys.showMenuBarIcon)
-            NotificationCenter.default.post(name: .slaveDockPreferencesChanged, object: Keys.showMenuBarIcon)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.showMenuBarIcon)
         }
     }
 
@@ -48,14 +48,14 @@ final class AppPreferences: ObservableObject {
     @Published var hotkeyEnabled: Bool {
         didSet {
             defaults.set(hotkeyEnabled, forKey: Keys.hotkeyEnabled)
-            NotificationCenter.default.post(name: .slaveDockPreferencesChanged, object: Keys.hotkeyEnabled)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.hotkeyEnabled)
         }
     }
 
     @Published var hotkeyPreset: HotkeyPreset {
         didSet {
             defaults.set(hotkeyPreset.rawValue, forKey: Keys.hotkeyPreset)
-            NotificationCenter.default.post(name: .slaveDockPreferencesChanged, object: Keys.hotkeyPreset)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.hotkeyPreset)
         }
     }
 
@@ -89,7 +89,7 @@ final class AppPreferences: ObservableObject {
     @Published var themeAccent: String {
         didSet {
             defaults.set(themeAccent, forKey: Keys.themeAccent)
-            NotificationCenter.default.post(name: .slaveDockPreferencesChanged, object: Keys.themeAccent)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.themeAccent)
         }
     }
 
@@ -166,5 +166,5 @@ final class AppPreferences: ObservableObject {
 }
 
 extension Notification.Name {
-    static let slaveDockPreferencesChanged = Notification.Name("slaveDockPreferencesChanged")
+    static let clutterDockPreferencesChanged = Notification.Name("clutterDockPreferencesChanged")
 }

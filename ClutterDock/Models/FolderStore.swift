@@ -16,9 +16,7 @@ final class FolderStore: ObservableObject {
     private let supportDir: URL
 
     init() {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        supportDir = support.appendingPathComponent("SlaveDock", isDirectory: true)
-        try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
+        supportDir = AppSupport.applicationSupportDirectory
         fileURL = supportDir.appendingPathComponent("folders.json")
 
         // Initialize all stored properties first (Swift requires this before reading self).
@@ -162,7 +160,7 @@ final class FolderStore: ObservableObject {
             selectedFolderID = first.id
         }
         persist()
-        NotificationCenter.default.post(name: .slaveDockHotkeysNeedRefresh, object: nil)
+        NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
     }
 
     func setWorkspaceFolders(id: UUID, folderIDs: [UUID]) {
@@ -201,7 +199,7 @@ final class FolderStore: ObservableObject {
         folders.append(folder)
         selectedFolderID = folder.id
         persist()
-        NotificationCenter.default.post(name: .slaveDockHotkeysNeedRefresh, object: nil)
+        NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
         return true
     }
 
@@ -245,7 +243,7 @@ final class FolderStore: ObservableObject {
         guard let idx = folders.firstIndex(where: { $0.id == id }) else { return false }
         folders[idx].hotkey = hotkey
         persist()
-        NotificationCenter.default.post(name: .slaveDockHotkeysNeedRefresh, object: nil)
+        NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
         return true
     }
 
@@ -274,7 +272,7 @@ final class FolderStore: ObservableObject {
             selectedFolderID = visibleFolders.first?.id ?? folders.first?.id
         }
         persist()
-        NotificationCenter.default.post(name: .slaveDockHotkeysNeedRefresh, object: nil)
+        NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
     }
 
     func selectFolder(id: UUID) {
@@ -517,10 +515,10 @@ final class FolderStore: ObservableObject {
             ensureSmartFolders()
             persistNow()
         }
-        NotificationCenter.default.post(name: .slaveDockHotkeysNeedRefresh, object: nil)
+        NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
     }
 
-    /// Export a `.slavedock` pack (JSON with that extension).
+    /// Export a `.clutterdock` pack (JSON with that extension).
     func exportPack(to url: URL) throws {
         guard FeatureGate.canExportPack else {
             throw StoreError.proRequired
@@ -540,7 +538,7 @@ final class FolderStore: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .emptyImport: return "The file did not contain any folders."
-            case .proRequired: return "Pack export requires SlaveDock Pro."
+            case .proRequired: return "Pack export requires ClutterDock Pro."
             }
         }
     }
@@ -577,7 +575,7 @@ final class FolderStore: ObservableObject {
             let data = try exportData()
             try data.write(to: fileURL, options: .atomic)
         } catch {
-            NSLog("SlaveDock: failed to save: \(error.localizedDescription)")
+            NSLog("ClutterDock: failed to save: \(error.localizedDescription)")
         }
     }
 
@@ -625,7 +623,7 @@ final class FolderStore: ObservableObject {
 }
 
 extension Notification.Name {
-    static let slaveDockHotkeysNeedRefresh = Notification.Name("slaveDockHotkeysNeedRefresh")
-    static let slaveDockOpenFolder = Notification.Name("slaveDockOpenFolder")
-    static let slaveDockAddPaths = Notification.Name("slaveDockAddPaths")
+    static let clutterDockHotkeysNeedRefresh = Notification.Name("clutterDockHotkeysNeedRefresh")
+    static let clutterDockOpenFolder = Notification.Name("clutterDockOpenFolder")
+    static let clutterDockAddPaths = Notification.Name("clutterDockAddPaths")
 }
