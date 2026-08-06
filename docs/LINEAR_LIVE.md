@@ -23,7 +23,7 @@ you work, and reference IDs like `RON-363` in commits and branches.
 | Status | In Progress |
 | Created | 2026-08-05 |
 | Milestones | 5 (G0–G4) |
-| Issues | 28+ (RON-352 … RON-379; new G3 tickets recommended in ROADMAP_NOW) |
+| Issues | 31 (RON-352 … RON-382) |
 
 ## Reality check (2026-08-05 evening)
 
@@ -31,8 +31,8 @@ you work, and reference IDs like `RON-363` in commits and branches.
 |---------------------------------------------|---------|
 | Rebrand ClutterDock | RON-375 Done; app + repo + domains |
 | Site live (Cloudflare) | RON-378 Done; clutterdock.com |
-| Mac launcher polish **1.4.3** | Commits through `f40d374` — needs Linear ticket Done |
-| Win portable friend-test exe | `ClutterDock-1.1.1-x64.exe` local — unsigned |
+| Mac launcher polish **1.4.3** | **RON-380 Done** — commits `9d2d107`…`f40d374` |
+| Win portable friend-test exe | **RON-381 Done** — `ClutterDock-1.1.1-x64.exe` local, unsigned |
 | Premium site narrative, Coming soon, no tip jar | Live site |
 
 **Next critical path:** RON-379 (GitHub Release) → RON-370 (install FAQ) → RON-369 (screenshots) → RON-359+ (Apple trust) → G2 commerce → soft launch.
@@ -77,14 +77,9 @@ you work, and reference IDs like `RON-363` in commits and branches.
 | RON-371 | G3-03 Support contact / GitHub Issues link on site | Todo · Medium |
 | RON-372 | G3-04 Direct asset download links on site | Todo · Low — blocked by RON-379; site is Coming soon for now |
 | RON-373 | G3-05 Terms of use for Pro license | Todo · Low |
-
-**Create if missing:**
-
-| Title | Suggested state | Evidence |
-|-------|-----------------|----------|
-| G3-06 Mac launcher polish 1.4.x | **Done** | 1.4.1–1.4.3; no blue ring; dock placement; keyboard |
-| G3-07 Windows portable friend-test build | **Done** or In Progress | `ClutterDock-1.1.1-x64.exe` portable |
-| G3-08 Windows UX parity with Mac 1.4 | Backlog | Electron UI lagging Mac chrome |
+| RON-380 | G3-06 Mac launcher polish 1.4.x | **Done** — 1.4.1–1.4.3, commits `9d2d107`…`f40d374` |
+| RON-381 | G3-07 Windows friend-test portable build | **Done** — `ClutterDock-1.1.1-x64.exe` portable, unsigned |
+| RON-382 | G3-08 Windows launcher UX parity with Mac 1.4 | Backlog · Low |
 
 ## G4 — Growth
 

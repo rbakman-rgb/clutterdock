@@ -28,7 +28,7 @@ If the Linear MCP is not authenticated, say so and continue working — Ronald c
 | G0 — Foundation | RON-352 … RON-358, RON-378 | Done (incl. site live on Cloudflare) |
 | G1 — Install trust | RON-359 … RON-363, RON-379 | Todo (mostly Urgent) |
 | G2 — Pro commerce | RON-364 … RON-368 | Todo (mostly Urgent) |
-| G3 — Product polish | RON-369 … RON-373 | Todo |
+| G3 — Product polish | RON-369 … RON-373, RON-380–382 | Todo (380/381 Done; 382 Backlog) |
 | G4 — Growth | RON-374 … RON-377 | Todo / Backlog (RON-375 rebrand Done) |
 
 Dependencies already in Linear: RON-374 (soft launch) blocked by RON-363 (clean-machine smoke); RON-376 (Homebrew cask) blocked by RON-361 (notarization); RON-363 and RON-372 blocked by RON-379 (publish clutterdock repo + releases — repo is currently private with no releases).

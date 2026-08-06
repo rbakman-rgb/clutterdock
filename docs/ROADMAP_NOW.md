@@ -73,7 +73,7 @@
 | iCloud/OneDrive sync Pro | **RON-377** |
 | Sparkle full auto-update | not ticketed yet |
 | Hotkey recorder | not ticketed yet |
-| Windows UX parity with Mac 1.4.x | create **RON-380** when ready |
+| Windows UX parity with Mac 1.4.x | **RON-382** (Backlog) |
 
 ---
 
@@ -97,14 +97,12 @@
 
 ### Create new issues (team RON, project ClutterDock V1)
 
-1. **G3-06 Mac launcher polish 1.4.x** → mark **Done**  
-   - Evidence: commits `9d2d107`…`f40d374` — dock-aware panel, no blue focus ring, Space/Tab, drag reorder, empty states. Version **1.4.3**.
+> **Applied 2026-08-05 (late) via Linear MCP** — all three created, plus the four progress
+> comments above and the two Done confirmations:
 
-2. **G3-07 Windows friend-test portable build** → **In Progress** or Done  
-   - Evidence: `windows/dist/ClutterDock-1.1.1-x64.exe` (~71MB portable). SmartScreen expected.
-
-3. **G3-08 Windows launcher UX parity with Mac 1.4** → **Backlog**  
-   - Port chrome/keyboard polish to Electron tray UI.
+1. **RON-380** G3-06 Mac launcher polish 1.4.x → **Done** (commits `9d2d107`…`f40d374`, v1.4.3)
+2. **RON-381** G3-07 Windows friend-test portable build → **Done** (`ClutterDock-1.1.1-x64.exe`)
+3. **RON-382** G3-08 Windows launcher UX parity with Mac 1.4 → **Backlog**
 
 ### Priority stack for next 3 sessions
 
