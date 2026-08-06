@@ -35,7 +35,7 @@ you work, and reference IDs like `RON-363` in commits and branches.
 | Win portable friend-test exe | **RON-381 Done** — `ClutterDock-1.1.1-x64.exe` local, unsigned |
 | Premium site narrative, Coming soon, no tip jar | Live site |
 
-**Next critical path:** RON-379 (GitHub Release) → RON-370 (install FAQ) → RON-369 (screenshots) → RON-359+ (Apple trust) → G2 commerce → soft launch.
+**Next critical path:** RON-359+ (Apple trust / notarize) → G2 commerce → RON-369 (real screenshots) → soft launch posts. **Done 2026-08-06:** RON-379 release v1.4.3, RON-370 install FAQ, RON-372 download links (site).
 
 ## Milestones
 
@@ -55,8 +55,8 @@ you work, and reference IDs like `RON-363` in commits and branches.
 | RON-360 | G1-02 Developer ID Application cert + signed Mac build | Todo · Urgent | After RON-359 |
 | RON-361 | G1-03 Notarize Mac release zip | Todo · Urgent | After RON-360 |
 | RON-362 | G1-04 Windows code signing or document SmartScreen | Todo · High | **Partial:** friend-test unsigned; document SmartScreen |
-| RON-363 | G1-05 Clean-machine install smoke from Releases (Mac + Win) | Todo · Urgent | **Blocked by RON-379** |
-| RON-379 | G1-06 Publish clutterdock repo + release assets | Todo · Urgent | **NEXT:** tag + GitHub Release (unsigned beta OK) |
+| RON-363 | G1-05 Clean-machine install smoke from Releases (Mac + Win) | Todo · Urgent | Unblocked — smoke from v1.4.3 Releases |
+| RON-379 | G1-06 Publish clutterdock repo + release assets | **Done** | Public repo + v1.4.3 Mac zip + Win exe 2026-08-06 |
 
 ## G2 — Pro commerce
 
@@ -73,9 +73,9 @@ you work, and reference IDs like `RON-363` in commits and branches.
 | ID | Issue | State |
 |----|-------|-------|
 | RON-369 | G3-01 Homepage screenshots / launcher GIF | Todo · High — use **real** Mac 1.4.3 UI only |
-| RON-370 | G3-02 Install FAQ Gatekeeper + SmartScreen | Todo · High — **do soon** (unblocks friend installs) |
+| RON-370 | G3-02 Install FAQ Gatekeeper + SmartScreen | **Done** | clutterdock.com/install |
 | RON-371 | G3-03 Support contact / GitHub Issues link on site | Todo · Medium |
-| RON-372 | G3-04 Direct asset download links on site | Todo · Low — blocked by RON-379; site is Coming soon for now |
+| RON-372 | G3-04 Direct asset download links on site | **Done** | Home + pricing download CTAs → Releases |
 | RON-373 | G3-05 Terms of use for Pro license | Todo · Low |
 | RON-380 | G3-06 Mac launcher polish 1.4.x | **Done** — 1.4.1–1.4.3, commits `9d2d107`…`f40d374` |
 | RON-381 | G3-07 Windows friend-test portable build | **Done** — `ClutterDock-1.1.1-x64.exe` portable, unsigned |
