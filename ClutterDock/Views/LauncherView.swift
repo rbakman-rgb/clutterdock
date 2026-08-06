@@ -13,8 +13,8 @@ struct LauncherView: View {
 
     @State private var isTargeted = false
     @State private var dropTargetFolderID: UUID?
-    @State private var newFolderName = ""
-    @State private var showingNewFolder = false
+    @State private var showingStackEditor = false
+    @State private var stackEditorMode: StackEditorSheet.Mode = .create
     @State private var showingAddURL = false
     @State private var urlDraft = ""
     @State private var searchText = ""
@@ -81,15 +81,26 @@ struct LauncherView: View {
                         .allowsHitTesting(false)
                 }
             }
-            .alert("New Folder", isPresented: $showingNewFolder) {
-            TextField("Folder name", text: $newFolderName)
-            Button("Cancel", role: .cancel) { newFolderName = "" }
-            Button("Create") {
-                if !store.addFolder(named: newFolderName) {
-                    promptUpgrade(FeatureGate.folderLimitMessage(current: store.normalFolderCount))
+            .sheet(isPresented: $showingStackEditor) {
+            StackEditorSheet(
+                mode: stackEditorMode,
+                onCancel: { showingStackEditor = false },
+                onSave: { name, symbol in
+                    switch stackEditorMode {
+                    case .create:
+                        if !store.addFolder(named: name, symbolName: symbol) {
+                            promptUpgrade(FeatureGate.folderLimitMessage(current: store.normalFolderCount))
+                        } else {
+                            flashDropStatus("Created \(name)")
+                        }
+                    case .edit(let folder):
+                        store.renameFolder(id: folder.id, to: name)
+                        store.setFolderSymbol(id: folder.id, symbolName: symbol)
+                        flashDropStatus("Updated \(name)")
+                    }
+                    showingStackEditor = false
                 }
-                newFolderName = ""
-            }
+            )
         }
         .alert("Add URL", isPresented: $showingAddURL) {
             TextField("https://…", text: $urlDraft)
@@ -375,11 +386,15 @@ struct LauncherView: View {
                             )
                             .contextMenu {
                                 if !folder.isSmart {
+                                    Button("Customize…") {
+                                        stackEditorMode = .edit(folder)
+                                        showingStackEditor = true
+                                    }
                                     Button("Rename…") { renameFolder(folder) }
                                 }
                                 if store.folders.filter({ !$0.isSmart }).count > 1 || folder.isSmart {
                                     if !folder.isSmart || store.folders.count > 1 {
-                                        Button("Remove Tab", role: .destructive) {
+                                        Button("Remove Stack", role: .destructive) {
                                             store.deleteFolder(id: folder.id)
                                         }
                                     }
@@ -398,7 +413,17 @@ struct LauncherView: View {
             }
 
             Menu {
-                Button("New Folder…") { showingNewFolder = true }
+                Button("New Stack…") {
+                    stackEditorMode = .create
+                    showingStackEditor = true
+                }
+                if let folder = currentFolder, !folder.isSmart {
+                    Button("Customize “\(folder.name)”…") {
+                        stackEditorMode = .edit(folder)
+                        showingStackEditor = true
+                    }
+                }
+                Divider()
                 Button("Add Apps / Files…") { addFiles() }
                 Button("Add URL…") { showingAddURL = true }
                 Divider()
@@ -415,7 +440,7 @@ struct LauncherView: View {
             }
             .menuStyle(.borderlessButton)
             .frame(width: 28)
-            .help("Add")
+            .help("New stack, add items, view")
         }
         .padding(.horizontal, 14)
         .padding(.top, store.workspaces.count > 1 ? 6 : 10)
@@ -603,7 +628,7 @@ struct LauncherView: View {
         switch folder?.smartKind {
         case .recents: return "Items you open from ClutterDock appear here automatically"
         case .running: return "Regular apps you open will list here while they’re running"
-        default: return "Drag items from Finder, or use + to add apps, files, folders, or URLs"
+        default: return "Drag items from Finder, or use + for a new stack (Coding, Work…) and apps"
         }
     }
 
@@ -1027,7 +1052,8 @@ struct LauncherView: View {
 
     private func renameFolder(_ folder: AppFolder) {
         let alert = NSAlert()
-        alert.messageText = "Rename Folder"
+        alert.messageText = "Rename Stack"
+        alert.informativeText = "e.g. Coding, Design, Work — each stack is its own dock of apps and files."
         alert.addButton(withTitle: "Rename")
         alert.addButton(withTitle: "Cancel")
         let field = NSTextField(string: folder.name)

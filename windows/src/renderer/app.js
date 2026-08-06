@@ -75,6 +75,35 @@ function render() {
   $('searchAll').classList.toggle('on', searchGlobal);
 }
 
+const STACK_EMOJI = {
+  grid: '▦',
+  folder: '📁',
+  coding: '💻',
+  design: '🎨',
+  work: '💼',
+  personal: '🏠',
+  media: '🖼',
+  games: '🎮',
+  client: '👥',
+  admin: '✉️',
+  clock: '🕐',
+  star: '⭐',
+};
+
+const STACK_PRESETS = [
+  { name: 'Coding', symbol: 'coding' },
+  { name: 'Design', symbol: 'design' },
+  { name: 'Work', symbol: 'work' },
+  { name: 'Personal', symbol: 'personal' },
+  { name: 'Media', symbol: 'media' },
+  { name: 'Games', symbol: 'games' },
+];
+
+function stackLabel(f) {
+  const emoji = STACK_EMOJI[f.symbol] || STACK_EMOJI.folder;
+  return `${emoji} ${f.name}`;
+}
+
 function renderTabs() {
   const tabs = $('tabs');
   const folders = snapshot.state.folders || [];
@@ -82,7 +111,7 @@ function renderTabs() {
   for (const f of folders) {
     const b = document.createElement('button');
     b.className = 'tab' + (f.id === snapshot.state.selectedFolderID ? ' active' : '');
-    b.textContent = f.name;
+    b.textContent = stackLabel(f);
     b.title =
       f.smartKind && f.smartKind !== 'none'
         ? `${f.name} (smart — drop on normal stacks only)`
@@ -124,16 +153,31 @@ function renderTabs() {
   const actions = document.createElement('div');
   actions.className = 'tab-actions';
   actions.innerHTML = `
-    <button class="icon-btn" id="addFolderBtn" title="New folder">📁+</button>
+    <button class="icon-btn" id="addFolderBtn" title="New stack">📁+</button>
     <button class="icon-btn" id="addItemsBtn" title="Add items">＋</button>
   `;
   tabs.appendChild(actions);
   $('addFolderBtn').onclick = async () => {
-    const name = prompt('Folder name', 'New Folder');
-    if (!name) return;
-    const snap = await clutterDock.addFolder(name);
+    const presetList = STACK_PRESETS.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
+    const pick = prompt(
+      `New stack — enter a name, or 1–${STACK_PRESETS.length} for a preset:\n${presetList}`,
+      'Coding'
+    );
+    if (!pick) return;
+    let name = pick.trim();
+    let symbol = 'folder';
+    const n = parseInt(name, 10);
+    if (n >= 1 && n <= STACK_PRESETS.length) {
+      name = STACK_PRESETS[n - 1].name;
+      symbol = STACK_PRESETS[n - 1].symbol;
+    } else {
+      const lower = name.toLowerCase();
+      const match = STACK_PRESETS.find((p) => p.name.toLowerCase() === lower);
+      if (match) symbol = match.symbol;
+    }
+    const snap = await clutterDock.addFolder(name, symbol);
     if (snap && snap.ok === false && snap.hitLimit) {
-      alert((snap.message || 'Folder limit reached.') + '\n\nSettings → Pro · test key SDPRO-TEST-UNLOCK-2026');
+      alert((snap.message || 'Stack limit reached.') + '\n\nSettings → Pro · test key SDPRO-TEST-UNLOCK-2026');
       return;
     }
     await refresh(snap.state ? snap : snap.snapshot || (await clutterDock.getSnapshot()));
@@ -285,9 +329,9 @@ function renderOnboarding() {
     <div class="card">
       <h2>✨ Welcome to ClutterDock</h2>
       <ol>
-        <li>Add apps, files, folders, or URLs into folders</li>
-        <li>Click the tray icon or press <b>Ctrl+Shift+D</b></li>
-        <li>Use tabs for Work / Personal / Recents</li>
+        <li>Create stacks (Coding, Work…) with a name &amp; symbol</li>
+        <li>Drop apps, files, or URLs into each stack</li>
+        <li>Tray icon or <b>Ctrl+Shift+D</b> · right‑click a tab to customize</li>
         <li>Free forever — tips optional via Buy Me a Coffee</li>
       </ol>
       <div class="row">
@@ -341,8 +385,9 @@ function showFolderMenu(x, y, folder) {
   ctx.innerHTML = `
     <button data-a="grid">Grid view</button>
     <button data-a="list">List view</button>
-    ${folder.smartKind === 'none' ? '<button data-a="rename">Rename…</button>' : ''}
-    ${folder.smartKind === 'none' ? '<button class="danger" data-a="delete">Delete folder</button>' : ''}
+    ${folder.smartKind === 'none' ? '<button data-a="rename">Rename stack…</button>' : ''}
+    ${folder.smartKind === 'none' ? '<button data-a="symbol">Change symbol…</button>' : ''}
+    ${folder.smartKind === 'none' ? '<button class="danger" data-a="delete">Delete stack</button>' : ''}
   `;
   ctx.onclick = async (e) => {
     const a = e.target.getAttribute('data-a');
@@ -351,8 +396,22 @@ function showFolderMenu(x, y, folder) {
     if (a === 'grid') await refresh(await clutterDock.setFolderView(folder.id, 'grid'));
     if (a === 'list') await refresh(await clutterDock.setFolderView(folder.id, 'list'));
     if (a === 'rename') {
-      const name = prompt('Rename folder', folder.name);
+      const name = prompt('Rename stack (e.g. Coding, Work)', folder.name);
       if (name) await refresh(await clutterDock.renameFolder(folder.id, name));
+    }
+    if (a === 'symbol') {
+      const keys = Object.keys(STACK_EMOJI);
+      const list = keys.map((k, i) => `${i + 1}. ${STACK_EMOJI[k]} ${k}`).join('\n');
+      const pick = prompt(`Symbol for “${folder.name}”:\n${list}`, folder.symbol || 'folder');
+      if (!pick) return;
+      let symbol = pick.trim().toLowerCase();
+      const n = parseInt(symbol, 10);
+      if (n >= 1 && n <= keys.length) symbol = keys[n - 1];
+      if (!STACK_EMOJI[symbol]) {
+        alert('Unknown symbol');
+        return;
+      }
+      await refresh(await clutterDock.setFolderSymbol(folder.id, symbol));
     }
     if (a === 'delete') await refresh(await clutterDock.deleteFolder(folder.id));
   };

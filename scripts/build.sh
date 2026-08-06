@@ -37,6 +37,8 @@ SOURCES=(
   "$SRC/Services/UpdateService.swift"
   "$SRC/Helpers/PanelController.swift"
   "$SRC/Helpers/DropImport.swift"
+  "$SRC/Models/StackSymbols.swift"
+  "$SRC/Views/StackEditorSheet.swift"
   "$SRC/Views/LauncherView.swift"
   "$SRC/Views/SettingsView.swift"
   "$SRC/Views/OnboardingView.swift"

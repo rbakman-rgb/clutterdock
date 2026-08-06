@@ -195,8 +195,8 @@ function wireIpc() {
     return store.getSnapshot();
   });
 
-  ipcMain.handle('add-folder', (_e, name) => {
-    const result = store.addFolder(name);
+  ipcMain.handle('add-folder', (_e, name, symbol) => {
+    const result = store.addFolder(name, symbol);
     if (result && result.ok === false) {
       return { ...result, snapshot: store.getSnapshot() };
     }
@@ -205,6 +205,11 @@ function wireIpc() {
 
   ipcMain.handle('rename-folder', (_e, id, name) => {
     store.renameFolder(id, name);
+    return store.getSnapshot();
+  });
+
+  ipcMain.handle('set-folder-symbol', (_e, id, symbol) => {
+    store.setFolderSymbol(id, symbol);
     return store.getSnapshot();
   });
 

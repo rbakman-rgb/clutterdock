@@ -201,16 +201,16 @@ class Store {
     }
   }
 
-  addFolder(name) {
+  addFolder(name, symbol) {
     const count = this.normalFolderCount();
     if (!this.gate.canAddFolder(count)) {
       return { ok: false, hitLimit: true, message: this.gate.folderLimitMessage(count) };
     }
     const folder = {
       id: randomUUID(),
-      name: (name || 'Folder').trim() || 'Folder',
+      name: (name || 'Stack').trim() || 'Stack',
       items: [],
-      symbol: 'folder',
+      symbol: symbol || 'folder',
       sortMode: 'manual',
       viewMode: 'grid',
       smartKind: 'none',
@@ -227,6 +227,13 @@ class Store {
     const n = (name || '').trim();
     if (!n) return;
     f.name = n;
+    this.persist();
+  }
+
+  setFolderSymbol(id, symbol) {
+    const f = this.state.folders.find((x) => x.id === id);
+    if (!f || f.smartKind !== 'none') return;
+    f.symbol = symbol || 'folder';
     this.persist();
   }
 

@@ -192,8 +192,8 @@ final class FolderStore: ObservableObject {
         }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let folder = AppFolder(
-            name: trimmed.isEmpty ? "Folder" : trimmed,
-            symbolName: symbolName,
+            name: trimmed.isEmpty ? "Stack" : trimmed,
+            symbolName: symbolName ?? "folder.fill",
             smartKind: smartKind
         )
         folders.append(folder)

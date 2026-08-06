@@ -25,11 +25,11 @@ struct OnboardingCard: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                tipRow("1", "Drop apps, files, or folders here — or click +")
-                tipRow("2", "Click an icon to open · Esc closes the panel")
-                tipRow("3", "⌘⇧D opens ClutterDock from anywhere")
-                tipRow("4", "⌘G searches all folders · ⌘1–9 switches tabs")
-                tipRow("5", "⌥← / ⌥→ reorders the selected item")
+                tipRow("1", "Create stacks for each context — Coding, Design, Work — each with a name & symbol")
+                tipRow("2", "Drop apps, files, or links into the open stack (or use +)")
+                tipRow("3", "Click an icon to open · Esc closes · ⌘⇧D opens from anywhere")
+                tipRow("4", "⌘1–9 switches stacks · right‑click a tab to Customize")
+                tipRow("5", "⌥← / ⌥→ reorders items · drag onto another tab to move")
             }
             .font(.callout)
 

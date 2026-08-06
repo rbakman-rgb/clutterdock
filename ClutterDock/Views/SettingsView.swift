@@ -14,7 +14,7 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            foldersTab.tabItem { Label("Folders", systemImage: "folder") }
+            foldersTab.tabItem { Label("Stacks", systemImage: "square.grid.2x2") }
             workspacesTab.tabItem { Label("Workspaces", systemImage: "rectangle.3.group") }
             generalTab.tabItem { Label("General", systemImage: "gearshape") }
             proTab.tabItem { Label("Pro", systemImage: "star.fill") }
@@ -51,7 +51,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItemGroup {
                     Button {
-                        if store.addFolder(named: "New Folder") {
+                        if store.addFolder(named: "New Stack", symbolName: "folder.fill") {
                             selectedFolderID = store.folders.last(where: { !$0.isSmart })?.id
                         } else {
                             presentAlert("ClutterDock Pro", FeatureGate.folderLimitMessage(current: store.normalFolderCount))
@@ -68,7 +68,7 @@ struct SettingsView: View {
             if let folder = currentFolder {
                 folderDetail(folder)
             } else {
-                emptyState("Select a Folder", "folder", "Choose a folder to manage items.")
+                emptyState("Select a Stack", "square.grid.2x2", "Choose a stack to name, pick a symbol, and manage items.")
             }
         }
         .onAppear { selectedFolderID = store.selectedFolderID ?? store.folders.first?.id }
@@ -86,7 +86,10 @@ struct SettingsView: View {
     private func folderDetail(_ folder: AppFolder) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
-                Section("Folder") {
+                Section("Stack") {
+                    Text("Stacks are your mini-docks — e.g. Coding, Client A, Personal.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     TextField("Name", text: Binding(
                         get: { folder.name },
                         set: { store.renameFolder(id: folder.id, to: $0) }
@@ -94,12 +97,12 @@ struct SettingsView: View {
                     .disabled(folder.isSmart)
 
                     if !folder.isSmart {
-                        Picker("Icon", selection: Binding(
+                        Picker("Symbol", selection: Binding(
                             get: { folder.symbolName ?? "folder.fill" },
                             set: { store.setFolderSymbol(id: folder.id, symbolName: $0) }
                         )) {
-                            ForEach(Self.folderSymbols, id: \.self) { s in
-                                Image(systemName: s).tag(s)
+                            ForEach(StackSymbols.all, id: \.self) { s in
+                                Label(s, systemImage: s).tag(s)
                             }
                         }
 
@@ -244,12 +247,6 @@ struct SettingsView: View {
         }
         return true
     }
-
-    private static let folderSymbols = [
-        "folder.fill", "square.grid.2x2.fill", "briefcase.fill", "paintbrush.fill",
-        "hammer.fill", "gamecontroller.fill", "music.note", "photo.fill",
-        "envelope.fill", "star.fill", "heart.fill", "clock", "link"
-    ]
 
     // MARK: - Workspaces
 

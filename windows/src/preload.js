@@ -8,8 +8,9 @@ contextBridge.exposeInMainWorld('clutterDock', {
     return () => ipcRenderer.removeListener('snapshot', handler);
   },
   selectFolder: (id) => ipcRenderer.invoke('select-folder', id),
-  addFolder: (name) => ipcRenderer.invoke('add-folder', name),
+  addFolder: (name, symbol) => ipcRenderer.invoke('add-folder', name, symbol),
   renameFolder: (id, name) => ipcRenderer.invoke('rename-folder', id, name),
+  setFolderSymbol: (id, symbol) => ipcRenderer.invoke('set-folder-symbol', id, symbol),
   deleteFolder: (id) => ipcRenderer.invoke('delete-folder', id),
   setFolderView: (id, mode) => ipcRenderer.invoke('set-folder-view', id, mode),
   setFolderSort: (id, mode) => ipcRenderer.invoke('set-folder-sort', id, mode),

@@ -44,20 +44,20 @@ enum FeatureGate {
     }
 
     static func folderLimitMessage(current: Int) -> String {
-        "Free includes \(freeMaxNormalFolders) folders (\(current)/\(freeMaxNormalFolders)). Upgrade to Pro for unlimited."
+        "Free includes \(freeMaxNormalFolders) stacks (\(current)/\(freeMaxNormalFolders)). Upgrade to Pro for unlimited."
     }
 
     static func itemLimitMessage(current: Int) -> String {
-        "Free includes \(freeMaxItemsPerFolder) items per folder (\(current)/\(freeMaxItemsPerFolder)). Upgrade to Pro for unlimited."
+        "Free includes \(freeMaxItemsPerFolder) items per stack (\(current)/\(freeMaxItemsPerFolder)). Upgrade to Pro for unlimited."
     }
 
     static let proUpgradeSummary = """
     ClutterDock Pro unlocks:
-    • Unlimited folders & items
+    • Unlimited stacks & items
     • Workspaces
-    • Search all folders
-    • Per-folder hotkeys
-    • Custom folder images & themes
+    • Search all stacks
+    • Per-stack hotkeys
+    • Custom stack images & themes
     • .clutterdock pack export
 
     One-time purchase · Mac + Windows · Free core stays free forever.
