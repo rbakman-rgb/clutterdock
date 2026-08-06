@@ -25,11 +25,11 @@ If the Linear MCP is not authenticated, say so and continue working — Ronald c
 
 | Milestone | Issues | State |
 |-----------|--------|-------|
-| G0 — Foundation | RON-352 … RON-358 | Done |
-| G1 — Install trust | RON-359 … RON-363 | Todo (mostly Urgent) |
+| G0 — Foundation | RON-352 … RON-358, RON-378 | Done (incl. site live on Cloudflare) |
+| G1 — Install trust | RON-359 … RON-363, RON-379 | Todo (mostly Urgent) |
 | G2 — Pro commerce | RON-364 … RON-368 | Todo (mostly Urgent) |
 | G3 — Product polish | RON-369 … RON-373 | Todo |
-| G4 — Growth | RON-374 … RON-377 | Todo / Backlog |
+| G4 — Growth | RON-374 … RON-377 | Todo / Backlog (RON-375 rebrand Done) |
 
-Dependencies already in Linear: RON-374 (soft launch) blocked by RON-363 (clean-machine smoke); RON-376 (Homebrew cask) blocked by RON-361 (notarization).
+Dependencies already in Linear: RON-374 (soft launch) blocked by RON-363 (clean-machine smoke); RON-376 (Homebrew cask) blocked by RON-361 (notarization); RON-363 and RON-372 blocked by RON-379 (publish clutterdock repo + releases — repo is currently private with no releases).
 Full title-by-title table with project/milestone IDs: `docs/LINEAR_LIVE.md` (also `docs/LINEAR.md`).
