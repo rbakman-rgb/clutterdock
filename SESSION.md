@@ -1,9 +1,10 @@
 # ClutterDock — Session save
 
-**Saved:** 2026-08-05  
-**Status:** **Rebranded to ClutterDock** — Mac 1.4.0 / Windows 1.1.1 Free+Pro. Public launch path continues.  
+**Saved:** 2026-08-05 (evening)  
+**Status:** **Public launch path mid-flight** — Mac **1.4.3** polished · Win portable friend-test · site live · Coming soon · next = GitHub Releases + trust + commerce.  
 **URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ (**live** — Cloudflare Workers; clutterdock.app + www 301 → clutterdock.com)  
-**Backlog:** [Linear — project still slug `slavedock-v1-public-launch`](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…377 · live IDs in [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md) · sync protocol in `AGENTS.md`)
+**Roadmap:** [docs/ROADMAP_NOW.md](docs/ROADMAP_NOW.md) · Linear map [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md)  
+**Backlog:** [Linear — project slug `slavedock-v1-public-launch`](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…379 · protocol in `AGENTS.md`)
 
 ---
 
@@ -102,12 +103,14 @@ open /Applications/ClutterDock.app
 
 ---
 
-## Good next sessions (pick one)
+## Good next sessions (priority order)
 
-1. **Payment** — create store product, wire website Unlock Pro, deliver keys  
-2. **Notarize** — Apple Developer ID + notarize Mac zip  
-3. **UX harden** — reorder drag reliability, Services enablement guide  
-4. **More power** — per-app hotkeys, schedule/contexts, badge counts  
+1. **RON-379** — Tag + GitHub Release (Mac zip + Win portable, “unsigned beta”)  
+2. **RON-370** — Site install FAQ (Gatekeeper + SmartScreen)  
+3. **RON-369** — Real Mac 1.4.3 screenshots (no fake mockups)  
+4. **RON-359+** — Apple Developer enroll → sign → notarize  
+5. **G2** — Merchant + Pro checkout when ready to sell  
+6. **Soft launch** after clean-machine smoke (RON-363)  
 
 ---
 
