@@ -657,6 +657,11 @@ button {
   }
 }
 
+.download-card.recommended {
+  border-color: rgba(91, 184, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(91, 184, 255, 0.12), var(--shadow);
+}
+
 .download-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
