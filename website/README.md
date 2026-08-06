@@ -18,7 +18,7 @@ python3 -m http.server 5173
 | `pricing.html` | Plans, comparison, FAQ, download |
 | `privacy.html` | Privacy policy |
 | `css/styles.css` | Shared dark theme |
-| `assets/` | App icons |
+| `assets/` | App icons + `hero-before-after.jpg` concept art |
 | `CNAME` | `clutterdock.com` for custom domain |
 | `robots.txt` / `sitemap.xml` | SEO |
 

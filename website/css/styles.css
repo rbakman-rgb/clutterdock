@@ -764,6 +764,97 @@ button {
   box-shadow: var(--shadow);
 }
 
+/* Before → After concept hero */
+.hero-story {
+  margin: 0 auto 0.5rem;
+  max-width: 920px;
+  padding: 0;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.hero-story img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.hero-story-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem 1rem;
+  margin: 0;
+  padding: 0.85rem 1rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid var(--border);
+}
+
+.hero-story-caption .tag-before {
+  color: #ff9a9a;
+}
+
+.hero-story-caption .tag-after {
+  color: var(--accent);
+}
+
+.hero-story-caption .tag-arrow {
+  color: var(--text-dim);
+}
+
+.story-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 800px) {
+  .story-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.story-step {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.4rem;
+}
+
+.story-step .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.story-step h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.story-step p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
 .hero-meta {
   margin: 1.25rem 0 0;
   font-size: 0.88rem;
