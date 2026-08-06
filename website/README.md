@@ -18,7 +18,7 @@ python3 -m http.server 5173
 | `pricing.html` | Plans, comparison, FAQ, download |
 | `privacy.html` | Privacy policy |
 | `css/styles.css` | Shared dark theme |
-| `assets/` | App icons + `hero-before-after.jpg` concept art |
+| `assets/` | Real app icon only (no fake UI screenshots) |
 | `CNAME` | `clutterdock.com` for custom domain |
 | `robots.txt` / `sitemap.xml` | SEO |
 
@@ -44,3 +44,8 @@ Pricing numbers and Free/Pro limits come from [`docs/PRICING.md`](../docs/PRICIN
 2. **DNS** — apex + www for clutterdock.com (and clutterdock.app) once hosting is live.
 
 Do not publish license generator secrets on this site.
+
+## Product screenshots
+
+Do **not** use generated “before/after Dock” mockups as if they were the app.
+Use real captures of the launcher/settings when ready (Linear G3-01).
