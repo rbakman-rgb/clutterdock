@@ -7,7 +7,7 @@ Constraints: no Dock replacement / private Dock APIs; free core stays usable (ne
 
 Linear is the **source of truth for the backlog**. Git is code. Keep them in sync using the Linear MCP (`mcp.linear.app`).
 
-- **Project:** ClutterDock — V1 Public Launch — https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795
+- **Project:** ClutterDock — V1 Public Launch — https://linear.app/rbakman/project/clutterdock-v1-public-launch-9720be94b795
 - **Team:** RON · **Milestones:** G0 — Foundation · G1 — Install trust · G2 — Pro commerce · G3 — Product polish · G4 — Growth
 
 Protocol:
@@ -21,15 +21,16 @@ Protocol:
 
 If the Linear MCP is not authenticated, say so and continue working — Ronald completes OAuth via `/mcp` in Grok.
 
-### Issue map (created 2026-08-05)
+### Issue map (synced 2026-08-06)
 
 | Milestone | Issues | State |
 |-----------|--------|-------|
-| G0 — Foundation | RON-352 … RON-358, RON-378 | Done (incl. site live on Cloudflare) |
-| G1 — Install trust | RON-359 … RON-363, RON-379 | Todo (mostly Urgent) |
-| G2 — Pro commerce | RON-364 … RON-368 | Todo (mostly Urgent) |
-| G3 — Product polish | RON-369 … RON-373, RON-380–382 | Todo (380/381 Done; 382 Backlog) |
-| G4 — Growth | RON-374 … RON-377 | Todo / Backlog (RON-375 rebrand Done) |
+| G0 — Foundation | RON-352 … RON-358, RON-378 | **Done** |
+| G1 — Install trust | RON-359…363 Todo · **RON-379 Done** (public repo + Releases) | Trust path open |
+| G2 — Pro commerce | RON-364…368, RON-415 | **Todo** — merchant not set up; do not start until ready to sell |
+| G3 — Product polish | RON-369,372,373 open · **370,371,380,381,410–412 Done** · 382/413/414 Backlog | Site Coming soon |
+| G4 — Growth | RON-374 Todo · **375 Done** · 376 Todo · 377 Backlog | Soft launch after smoke |
 
-Dependencies already in Linear: RON-374 (soft launch) blocked by RON-363 (clean-machine smoke); RON-376 (Homebrew cask) blocked by RON-361 (notarization); RON-363 and RON-372 blocked by RON-379 (publish clutterdock repo + releases — repo is currently private with no releases).
-Full title-by-title table with project/milestone IDs: `docs/LINEAR_LIVE.md` (also `docs/LINEAR.md`).
+Dependencies: RON-360←359 · RON-361←360 · RON-365←364 · RON-366/367←365 · RON-374←363 · RON-376←361 · RON-413←361.  
+**RON-372** = re-enable site downloads when ready (assets already on Releases).  
+Full table: `docs/LINEAR_LIVE.md`.
