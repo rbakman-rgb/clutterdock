@@ -1178,3 +1178,9 @@ button {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+
+/* Coming soon */
+.coming-soon-band h2 {
+  letter-spacing: -0.03em;
+}
