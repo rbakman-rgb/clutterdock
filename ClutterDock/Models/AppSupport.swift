@@ -9,7 +9,7 @@ enum AppSupport {
     /// Marketing site (GitHub Pages until custom domain DNS is wired).
     static let websiteURL = URL(string: "https://rbakman-rgb.github.io/clutterdock/")!
     static let pricingURL = URL(string: "https://rbakman-rgb.github.io/clutterdock/pricing.html")!
-    /// GitHub repo is still `slavedock` until renamed; product name is ClutterDock.
+    /// Canonical GitHub repo: rbakman-rgb/clutterdock
     static let releasesURL = URL(string: "https://github.com/rbakman-rgb/clutterdock/releases/latest")!
     static let githubURL = URL(string: "https://github.com/rbakman-rgb/clutterdock")!
     static let productDomainURL = URL(string: "https://clutterdock.com")!
