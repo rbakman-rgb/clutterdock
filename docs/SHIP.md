@@ -41,15 +41,28 @@ gh release create vX.Y.Z dist/ClutterDock-*-mac.zip --generate-notes
 gh repo edit rbakman-rgb/clutterdock --visibility public
 ```
 
+## Shipped 2026-08-06 (unsigned public beta)
+
+| Item | Evidence |
+|------|----------|
+| Public repo | https://github.com/rbakman-rgb/clutterdock |
+| Release **v1.4.3** | Mac universal zip + Win 1.1.1 exe + sha256 |
+| Site downloads | https://clutterdock.com/#download |
+| Install FAQ | https://clutterdock.com/install |
+
 ## Still manual / blocked without accounts
 
 | Item | Why | Owner action |
 |------|-----|----------------|
-| **Pro checkout** | Lemon Squeezy / Gumroad / Paddle product + auto key email | Create store product; point website “Unlock Pro” at checkout URL; optional webhook to generate keys |
-| **Apple notarization** | No Developer ID cert on this Mac | Enroll Apple Developer ($99), create Developer ID Application cert, update `build.sh` / notarize script |
-| **Custom domain** | Optional | DNS → GitHub Pages |
-| **Sparkle silent Mac replace** | GitHub check ships; full Sparkle later | After notarization |
-| **Linear project** | MCP needs OAuth / API key | See docs/LINEAR.md · `node scripts/linear-seed-clutterdock.mjs` |
+| **Apple notarization** (RON-359→361) | No Developer ID cert on this Mac | Enroll Apple Developer ($99), create Developer ID Application cert, sign + notarize zip, re-release |
+| **Windows signing** (RON-362) | No Authenticode cert | Buy cert / Azure Trusted Signing, or keep SmartScreen FAQ |
+| **Pro checkout** (RON-364→367) | No merchant | Lemon Squeezy / Gumroad / Paddle product + auto key email; wire Unlock Pro |
+| **Real screenshots** (RON-369) | Needs interactive UI capture | Capture launcher + settings from Mac 1.4.3; drop into `website/assets/screenshots/` |
+| **Clean-machine smoke** (RON-363) | Human QA | Fresh Mac + Win: download from Releases, install per FAQ, open launcher |
+| **Soft launch posts** (RON-374) | After smoke | Social / forums |
+| **Homebrew cask** (RON-376) | After notarization | |
+| **Sparkle auto-update** | Not ticketed | After notarization |
+| **Linear sync** | MCP OAuth | Mark RON-379/370/372 Done in Linear UI |
 
 ## License keys (seller side)
 
