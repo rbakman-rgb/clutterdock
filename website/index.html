@@ -25,8 +25,27 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ClutterDock",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "macOS 14+, Windows 10+",
+    "description": "Folders of apps, files, folders, and URLs for your Mac Dock or Windows tray. Free forever core. Pro is a one-time unlock.",
+    "url": "https://clutterdock.com/",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free forever core"
+    }
+  }
+  </script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="page-bg" aria-hidden="true"></div>
 
   <header class="nav">
@@ -35,19 +54,18 @@
         <img src="assets/icon-256.png" alt="" width="32" height="32" />
         ClutterDock
       </a>
-      <button class="nav-toggle" type="button" aria-label="Menu" data-nav-toggle>☰</button>
-      <nav class="nav-links" data-nav-links>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
+            <nav class="nav-links" data-nav-links id="site-nav">
         <a href="#why">Why</a>
         <a href="#how">How it helps</a>
         <a href="#features">Features</a>
         <a href="pricing.html">Pricing</a>
-        <a href="#coming-soon">Coming soon</a>
         <a class="nav-cta" href="#coming-soon">Coming soon</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main id="main">
     <section class="landing-hero container">
       <div class="eyebrow">Mac Dock · Windows tray · clutter → clean</div>
       <h1>Take the clutter out<br />of your Dock.</h1>
@@ -69,6 +87,9 @@
           alt="ClutterDock app icon — colorful app tiles hanging from a bar"
           width="180"
           height="180"
+          width="180"
+          decoding="async"
+          fetchpriority="high"
         />
       </div>
 
@@ -349,7 +370,7 @@
           <a class="btn btn-ghost" href="#why">Read why it exists</a>
         </div>
         <p class="note" style="margin-top: 1.25rem;">
-          Product site: clutterdock.com · clutterdock.app
+          clutterdock.com · clutterdock.app
         </p>
       </div>
     </section>

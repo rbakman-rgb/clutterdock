@@ -61,3 +61,13 @@ Do not publish license generator secrets on this site.
 
 Do **not** use generated “before/after Dock” mockups as if they were the app.
 Use real captures of the launcher/settings when ready (Linear G3-01).
+
+## Launch polish checklist
+
+- [x] Why / how / who story on home
+- [x] Coming soon (no public downloads yet)
+- [x] Accessibility: skip link, focus styles, mobile nav
+- [x] SEO: meta, OG, canonical, sitemap, schema
+- [ ] Custom domain DNS + HTTPS
+- [ ] Real product screenshots when ready
+- [ ] Enable public downloads after release

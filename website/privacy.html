@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="page-bg" aria-hidden="true"></div>
 
   <header class="nav">
@@ -29,18 +30,17 @@
         <img src="assets/icon-256.png" alt="" width="32" height="32" />
         ClutterDock
       </a>
-      <button class="nav-toggle" type="button" aria-label="Menu" data-nav-toggle>☰</button>
-            <nav class="nav-links" data-nav-links>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
+                  <nav class="nav-links" data-nav-links id="site-nav">
         <a href="index.html#why">Why</a>
         <a href="index.html#how">How it helps</a>
         <a href="pricing.html">Pricing</a>
-        <a href="index.html#coming-soon">Coming soon</a>
         <a class="nav-cta" href="index.html#coming-soon">Coming soon</a>
       </nav>
     </div>
   </header>
 
-  <main class="container section" style="max-width: 720px;">
+  <main id="main" class="container section" style="max-width: 720px;">
     <div class="eyebrow">Legal</div>
     <h1 style="letter-spacing: -0.03em; margin-top: 0.5rem;">Privacy</h1>
     <p class="lead" style="margin: 0 0 2rem; color: var(--text-muted);">
@@ -93,18 +93,17 @@
     <div class="trust-card" style="margin-bottom: 1rem;">
       <h3>Update checks</h3>
       <p>
-        Optional in-app update checks query GitHub Releases for
-        <a href="https://github.com/rbakman-rgb/clutterdock" style="color: var(--accent);">rbakman-rgb/clutterdock</a>.
-        That request is a normal HTTPS call to GitHub’s API/CDN under GitHub’s privacy policy.
+        Optional in-app update checks may query a public releases feed (for example GitHub Releases)
+        over HTTPS. That request goes to the host under their privacy policy — not to a ClutterDock account backend.
       </p>
     </div>
 
     <div class="trust-card">
       <h3>Contact</h3>
       <p>
-        Questions about this policy: open an issue on
-        <a href="https://github.com/rbakman-rgb/clutterdock" style="color: var(--accent);">GitHub</a>
-        or reach out via your purchase/support channel.
+        Questions about this policy: reach out via your purchase or support channel once ClutterDock launches,
+        or leave a tip note on
+        <a href="https://buymeacoffee.com/chidichidovsky" style="color: var(--accent);" target="_blank" rel="noopener">Buy Me a Coffee</a>.
       </p>
     </div>
   </main>
@@ -112,11 +111,7 @@
   <footer class="footer">
     <div class="footer-bottom" style="border: none;">
       <span>© <span data-year></span> ClutterDock</span>
-      <span class="footer-domains">
-        <a href="https://clutterdock.com">clutterdock.com</a>
-        ·
-        <a href="index.html" style="color: var(--text-muted);">Home</a>
-      </span>
+      <span><a href="index.html" style="color: var(--text-muted);">Home</a> · Privacy</span>
     </div>
   </footer>
   <script src="js/main.js"></script>
