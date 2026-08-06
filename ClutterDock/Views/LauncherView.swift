@@ -54,13 +54,14 @@ struct LauncherView: View {
         launcherChrome
             .frame(width: preferences.panelWidth, height: preferences.panelHeight)
             .background {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(.ultraThinMaterial)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(panelBorder)
-            // Shadow outside clip so it isn’t clipped away
-            .shadow(color: .black.opacity(0.32), radius: 28, y: 14)
+            // Soft ambient shadow only — no system blue key-window ring
+            .shadow(color: .black.opacity(0.45), radius: 32, y: 16)
+            .compositingGroup()
             .onDrop(of: [.fileURL], isTargeted: $isTargeted, perform: handleDrop)
             .alert("New Folder", isPresented: $showingNewFolder) {
             TextField("Folder name", text: $newFolderName)
@@ -219,24 +220,15 @@ struct LauncherView: View {
 
     @ViewBuilder
     private var panelBorder: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        // Hairline glass edge only — never system/accent blue unless dropping files
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
             .strokeBorder(
-                LinearGradient(
-                    colors: [
-                        Color.white.opacity(0.22),
-                        Color.white.opacity(0.06),
-                        Color.black.opacity(0.08)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                lineWidth: 1
+                isTargeted
+                    ? Color.accentColor.opacity(0.85)
+                    : Color.white.opacity(0.10),
+                lineWidth: isTargeted ? 1.5 : 0.75
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(isTargeted ? Color.accentColor : .clear, lineWidth: 2)
-                    .animation(.easeOut(duration: 0.12), value: isTargeted)
-            )
+            .animation(.easeOut(duration: 0.12), value: isTargeted)
     }
 
     private func handleLeftRight(delta: Int) -> KeyPress.Result {
@@ -286,18 +278,8 @@ struct LauncherView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 8)
-            } else if !license.isPro {
-                HStack {
-                    Spacer()
-                    Text("Free")
-                        .font(.system(size: 9, weight: .semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.primary.opacity(0.08)))
-                        .padding(.trailing, 14)
-                        .padding(.top, 6)
-                }
-            }
+            // Free badge lives in the footer so the top stays clean
+
         }
     }
 
@@ -719,18 +701,26 @@ struct LauncherView: View {
     }
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: 10) {
             let count: Int = {
                 if searchGlobal && !searchText.isEmpty { return globalHits.count }
                 return folderItems.count
             }()
             Text("\(count) items")
-                .font(.caption)
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
             if store.missingItemCount > 0 {
                 Text("· \(store.missingItemCount) missing")
-                    .font(.caption)
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.orange)
+            }
+            if !license.isPro {
+                Text("Free")
+                    .font(.system(size: 9, weight: .semibold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.primary.opacity(0.08)))
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             if let folder = currentFolder, !folder.isSmart {
@@ -740,30 +730,33 @@ struct LauncherView: View {
                     }
                 } label: {
                     Text(folder.sortMode.label)
-                        .font(.caption)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
                 .menuStyle(.borderlessButton)
             }
             if !license.isPro {
                 Button("Pro") { onOpenSettings() }
                     .buttonStyle(.borderless)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.orange.opacity(0.9))
                     .help("Upgrade to ClutterDock Pro")
             }
             Button {
                 showingHelp = true
             } label: {
                 Image(systemName: "questionmark.circle")
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
             .help("Keyboard help (⌘/)")
-            Button("Settings…") { onOpenSettings() }
+            Button("Settings") { onOpenSettings() }
                 .buttonStyle(.borderless)
-                .font(.caption)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 9)
     }
 
     private func promptUpgrade(_ message: String) {
@@ -1001,16 +994,20 @@ private struct ItemTile: View {
             .padding(.vertical, 8)
             .frame(width: tileWidth)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.16)
-                          : (hovering ? Color.primary.opacity(0.07) : .clear))
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? Color.primary.opacity(0.10)
+                            : (hovering ? Color.primary.opacity(0.06) : .clear)
+                    )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(
-                        isDropTarget ? Color.accentColor
-                        : (isSelected ? Color.accentColor.opacity(0.55) : .clear),
-                        lineWidth: isDropTarget ? 2 : 1.5
+                        isDropTarget
+                            ? Color.accentColor.opacity(0.9)
+                            : (isSelected ? Color.primary.opacity(0.18) : .clear),
+                        lineWidth: isDropTarget ? 1.5 : 1
                     )
             )
         }

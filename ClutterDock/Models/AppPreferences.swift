@@ -155,11 +155,12 @@ final class AppPreferences: ObservableObject {
         launchAtLogin = enabled
     }
 
-    var panelWidth: CGFloat { 460 }
+    var panelWidth: CGFloat { 440 }
+    /// Compact chrome + ~2 icon rows (less empty dead space under a short stack)
     var panelHeight: CGFloat {
-        let base: CGFloat = 150
-        let row: CGFloat = iconSize + 44
-        return min(560, max(360, base + row * 3))
+        let chrome: CGFloat = 168
+        let row: CGFloat = iconSize + 48
+        return min(520, max(300, chrome + row * 2))
     }
 
     var tileWidth: CGFloat { iconSize + 22 }

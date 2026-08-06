@@ -103,13 +103,12 @@ struct KeyboardCheatSheet: View {
 
 struct KeyboardHintsBar: View {
     var body: some View {
-        Text("↑↓←→ move · ⏎/space open · tab stacks · esc close · ⌘G all · ⌥←→ reorder · ⌘1–9")
+        Text("↑↓←→  ·  ⏎ open  ·  esc  ·  ⌘1–9 stacks")
             .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(.tertiary)
-            .lineLimit(2)
-            .multilineTextAlignment(.center)
+            .foregroundStyle(.quaternary)
+            .lineLimit(1)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
-            .padding(.vertical, 5)
+            .padding(.vertical, 3)
     }
 }

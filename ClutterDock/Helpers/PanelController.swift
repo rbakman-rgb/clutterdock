@@ -145,16 +145,17 @@ final class PanelController {
         let hosting = NSHostingView(rootView: content)
         let size = NSSize(width: preferences.panelWidth, height: preferences.panelHeight)
         hosting.frame = NSRect(origin: .zero, size: size)
+        // Kill AppKit focus rings that draw a blue outline around the panel
+        hosting.focusRingType = .none
 
+        // Borderless floating panel — no system key-window chrome (the blue edge)
         let panel = NSPanel(
             contentRect: hosting.frame,
-            styleMask: [.titled, .fullSizeContentView, .utilityWindow],
+            styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         panel.title = "ClutterDock"
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
@@ -164,8 +165,11 @@ final class PanelController {
         panel.isOpaque = false
         panel.hasShadow = true
         panel.contentView = hosting
+        panel.contentView?.focusRingType = .none
         panel.animationBehavior = .utilityWindow
         panel.becomesKeyOnlyIfNeeded = false
+        // Ensure no system border / textured chrome leaks through
+        panel.isRestorable = false
 
         resignObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResignKeyNotification,
