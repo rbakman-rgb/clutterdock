@@ -3,29 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ClutterDock — From dock clutter to clean stacks</title>
-  <meta name="description" content="Your Dock and tray fill up with icons you rarely open. ClutterDock groups apps, files, folders, and URLs into clean stacks — one hotkey, no Dock replacement. Free forever core." />
-  <meta name="theme-color" content="#0b0f17" />
+  <title>ClutterDock — Your Dock, finally under control</title>
+  <meta name="description" content="Stop scanning a crowded Dock. ClutterDock turns apps, files, folders, and links into calm stacks you open with one hotkey — without replacing macOS or Windows. Free forever core. Coming soon." />
+  <meta name="theme-color" content="#070a10" />
   <link rel="canonical" href="https://clutterdock.com/" />
   <link rel="icon" href="assets/icon-256.png" type="image/png" />
   <link rel="apple-touch-icon" href="assets/icon-256.png" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="ClutterDock" />
-  <meta property="og:title" content="ClutterDock — From dock clutter to clean stacks" />
-  <meta property="og:description" content="Why dock clutter slows you down — and how ClutterDock turns it into clean, launchable stacks." />
+  <meta property="og:title" content="ClutterDock — Your Dock, finally under control" />
+  <meta property="og:description" content="Launch clutter is a tax on every workday. ClutterDock gives you clean stacks of apps, files, and links — one hotkey, zero Dock replacement." />
   <meta property="og:url" content="https://clutterdock.com/" />
   <meta property="og:image" content="https://clutterdock.com/assets/icon.png" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="ClutterDock — From dock clutter to clean stacks" />
-  <meta name="twitter:description" content="Group apps, files, folders, and URLs into clean stacks. Free forever core." />
+  <meta name="twitter:title" content="ClutterDock — Your Dock, finally under control" />
+  <meta name="twitter:description" content="Clean stacks. One hotkey. Keep the system Dock. Free forever core." />
   <meta name="twitter:image" content="https://clutterdock.com/assets/icon-256.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
-
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -33,14 +32,9 @@
     "name": "ClutterDock",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "macOS 14+, Windows 10+",
-    "description": "Folders of apps, files, folders, and URLs for your Mac Dock or Windows tray. Free forever core. Pro is a one-time unlock.",
+    "description": "Clean stacks of apps, files, folders, and URLs for Mac Dock and Windows tray. Local-first. Free forever core.",
     "url": "https://clutterdock.com/",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD",
-      "description": "Free forever core"
-    }
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free forever core" }
   }
   </script>
 </head>
@@ -55,10 +49,10 @@
         ClutterDock
       </a>
       <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
-            <nav class="nav-links" data-nav-links id="site-nav">
-        <a href="#why">Why</a>
-        <a href="#how">How it helps</a>
-        <a href="#features">Features</a>
+      <nav class="nav-links" data-nav-links id="site-nav">
+        <a href="#problem">The problem</a>
+        <a href="#solution">The fix</a>
+        <a href="#different">Why us</a>
         <a href="pricing.html">Pricing</a>
         <a class="nav-cta" href="#coming-soon">Coming soon</a>
       </nav>
@@ -66,38 +60,111 @@
   </header>
 
   <main id="main">
-    <section class="landing-hero container">
-      <div class="eyebrow">Mac Dock · Windows tray · clutter → clean</div>
-      <h1>Take the clutter out<br />of your Dock.</h1>
+    <!-- HERO -->
+    <section class="landing-hero container hero-premium">
+      <div class="eyebrow">macOS · Windows · local-first</div>
+      <h1>
+        Your Dock was never built<br />
+        <span class="hero-serif">for how you work now.</span>
+      </h1>
       <p class="lead">
-        Modern work means dozens of apps, project folders, and links. The Dock and tray turn into a
-        crowded shelf of icons you hunt through every day. ClutterDock is a simple idea:
-        <strong style="color: var(--text); font-weight: 600;">put what you open into clean stacks</strong>,
-        then launch with one hotkey — without replacing the system Dock.
+        Twenty tools. Six projects. Endless tabs. The Dock becomes a crowded shelf you re-scan
+        a hundred times a day. ClutterDock turns what you open into
+        <strong>calm, named stacks</strong> — apps, files, folders, and links — launched with one hotkey.
+        Your system Dock stays. The chaos doesn’t.
       </p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="#why">Why it exists</a>
-        <a class="btn btn-secondary" href="#how">How it helps</a>
-        <a class="btn btn-ghost" href="pricing.html">Pricing</a>
+        <a class="btn btn-primary" href="#problem">See the cost of clutter</a>
+        <a class="btn btn-secondary" href="#solution">How ClutterDock works</a>
       </div>
 
       <div class="hero-product">
         <img
           src="assets/icon.png"
-          alt="ClutterDock app icon — colorful app tiles hanging from a bar"
+          alt="ClutterDock app icon"
           width="180"
           height="180"
-          width="180"
           decoding="async"
           fetchpriority="high"
         />
       </div>
 
-      <div class="concept-compare" aria-label="Concept: cluttered icons versus organized folders">
+      <div class="trust-strip" aria-label="Product promises">
+        <span>No Dock replacement</span>
+        <span class="dot" aria-hidden="true"></span>
+        <span>No account required</span>
+        <span class="dot" aria-hidden="true"></span>
+        <span>Free forever core</span>
+        <span class="dot" aria-hidden="true"></span>
+        <span>One-time Pro · no subscription</span>
+      </div>
+    </section>
+
+    <!-- COST / PROBLEM -->
+    <section class="section container" id="problem">
+      <div class="section-header">
+        <p class="section-kicker">The quiet tax</p>
+        <h2>Clutter doesn’t feel expensive — until you add it up.</h2>
+        <p>
+          Every extra icon is a tiny decision. Over a year, tiny decisions become hours of hunting,
+          mis-clicks, and “where did I put that?”
+        </p>
+      </div>
+
+      <div class="cost-grid">
+        <article class="cost-card">
+          <p class="cost-stat">Scan → miss → scan again</p>
+          <h3>A flat Dock has no context</h3>
+          <p>
+            Work tools sit next to games. Client apps sit next to personal chat.
+            Your brain has to re-sort the same row every time you switch modes.
+          </p>
+        </article>
+        <article class="cost-card">
+          <p class="cost-stat">Apps + files + links</p>
+          <h3>Real work isn’t “apps only”</h3>
+          <p>
+            You open a project folder, a brief, a dashboard URL, and three tools together.
+            The Dock only wants icons — so the rest of the job scatters across Finder, browser, and sticky notes.
+          </p>
+        </article>
+        <article class="cost-card">
+          <p class="cost-stat">Pin everything or nothing</p>
+          <h3>The two bad options</h3>
+          <p>
+            Pin twenty things and the Dock becomes noise. Pin almost nothing and you live in Spotlight and Start.
+            Neither matches how focused people actually work: a few contexts, used hard, every day.
+          </p>
+        </article>
+      </div>
+
+      <div class="callout-panel">
+        <h3>Built-in stacks only go so far</h3>
+        <p>
+          macOS can put a Finder folder on the Dock. That’s useful — and limited.
+          You don’t get mixed apps + files + URLs as a first-class stack, cross-stack search,
+          workspaces for home vs work, or the same idea on Windows tray without duct tape.
+          Full Dock replacements exist too — but they ask you to abandon the Dock you already know.
+        </p>
+        <p class="callout-punch">
+          ClutterDock is for people who want <em>order</em>, not a new operating system skin.
+        </p>
+      </div>
+    </section>
+
+    <!-- SOLUTION -->
+    <section class="section container" id="solution">
+      <div class="section-header">
+        <p class="section-kicker">The ClutterDock idea</p>
+        <h2>One hotkey. Clean stacks. Same Dock.</h2>
+        <p>Group by how you work — not by how the OS forces you to pin.</p>
+      </div>
+
+      <div class="concept-compare premium-compare" aria-label="Concept: clutter versus organized stacks">
         <div class="concept-panel concept-before">
-          <div class="concept-label concept-label-before">Before</div>
-          <p class="concept-title">Icon clutter</p>
-          <p class="concept-desc">Everything fights for space on the Dock or tray.</p>
+          <div class="concept-label concept-label-before">Without</div>
+          <p class="concept-title">Crowded Dock</p>
+          <p class="concept-desc">Everything competes. Nothing is grouped by job.</p>
           <div class="clutter-pile" aria-hidden="true">
             <span class="tile t1"></span><span class="tile t2"></span><span class="tile t3"></span>
             <span class="tile t4"></span><span class="tile t5"></span><span class="tile t6"></span>
@@ -108,181 +175,167 @@
         </div>
         <div class="concept-arrow" aria-hidden="true">→</div>
         <div class="concept-panel concept-after">
-          <div class="concept-label concept-label-after">After</div>
-          <p class="concept-title">Clean stacks</p>
-          <p class="concept-desc">Folders of apps, files &amp; URLs — one hotkey away.</p>
+          <div class="concept-label concept-label-after">With ClutterDock</div>
+          <p class="concept-title">Named stacks</p>
+          <p class="concept-desc">Work · Creative · Client · Recents — on demand.</p>
           <div class="stack-list" aria-hidden="true">
             <div class="stack-row"><span class="stack-name">Work</span><span class="stack-dots"><i></i><i></i><i></i><i></i></span></div>
             <div class="stack-row"><span class="stack-name">Creative</span><span class="stack-dots"><i></i><i></i><i></i></span></div>
-            <div class="stack-row"><span class="stack-name">Utilities</span><span class="stack-dots"><i></i><i></i><i></i><i></i><i></i></span></div>
+            <div class="stack-row"><span class="stack-name">Client A</span><span class="stack-dots"><i></i><i></i><i></i><i></i><i></i></span></div>
             <div class="stack-row"><span class="stack-name">Recents</span><span class="stack-dots"><i></i><i></i></span></div>
           </div>
         </div>
       </div>
-      <p class="concept-note">Illustration of the idea — not a screenshot of the app UI.</p>
-      <p class="hero-meta">macOS 14+ · Windows 10/11 · Free forever core · No account required · Coming soon</p>
+      <p class="concept-note">Conceptual illustration — not a product screenshot.</p>
+
+      <div class="help-grid solution-grid">
+        <article class="help-card">
+          <h3>Stack the whole job</h3>
+          <p>
+            Drop apps, project folders, documents, and URLs into the same stack.
+            Open the context — not a scavenger hunt across five surfaces.
+          </p>
+        </article>
+        <article class="help-card">
+          <h3>Launch without leaving flow</h3>
+          <p>
+            Global hotkey (⌘⇧D on Mac, Ctrl+Shift+D on Windows). Grid or list.
+            Keyboard through items. Back to work in seconds.
+          </p>
+        </article>
+        <article class="help-card">
+          <h3>Keep the Dock short</h3>
+          <p>
+            One ClutterDock presence instead of twenty “maybe later” pins.
+            Favorites can stay on the Dock; everything else lives in stacks.
+          </p>
+        </article>
+        <article class="help-card">
+          <h3>Stay local and private</h3>
+          <p>
+            No account wall. Stacks live on your machine.
+            Organize your day without shipping your app list to the cloud.
+          </p>
+        </article>
+      </div>
     </section>
 
-    <!-- WHY -->
-    <section class="section container" id="why">
+    <!-- WHY YOU NEED IT - persuasion -->
+    <section class="section container" id="need">
       <div class="section-header">
-        <h2>Why something like ClutterDock is needed</h2>
-        <p>The Dock was designed for a handful of favorites — not modern multi-tool workflows.</p>
+        <p class="section-kicker">Why people need this</p>
+        <h2>If any of these sound familiar, ClutterDock is for you.</h2>
       </div>
-
-      <div class="prose-block">
-        <p>
-          Most people don’t open software randomly. They open <em>contexts</em>: client work, creative tools,
-          admin utilities, personal apps, research tabs. The system Dock (and Windows taskbar/tray) only gives you
-          a single flat row of icons. So you either:
-        </p>
-        <ul class="prose-list">
-          <li><strong>Pin everything</strong> — and the Dock becomes a wall of tiny icons you scan every time.</li>
-          <li><strong>Pin almost nothing</strong> — and you lose time in Spotlight, Start, or Finder every switch.</li>
-          <li><strong>Scatter launchers</strong> — desktop aliases, browser bookmarks, sticky notes with paths.</li>
-        </ul>
-        <p>
-          That friction is small once and huge over a year. ClutterDock exists because
-          <strong style="color: var(--text);">launch clutter is a real productivity tax</strong>,
-          and the built-in Dock doesn’t give you folders of mixed things (apps + files + folders + URLs)
-          without hacks or replacing the Dock entirely.
-        </p>
-      </div>
-
-      <div class="feature-grid why-grid">
-        <article class="feature-card">
-          <h3>Dock space is finite</h3>
-          <p>
-            Every extra icon costs attention. When half your Dock is “maybe later” apps,
-            finding the one you need right now gets slower — especially on smaller screens.
-          </p>
+      <div class="need-list">
+        <article class="need-item">
+          <span class="need-num">01</span>
+          <div>
+            <h3>You switch roles all day</h3>
+            <p>Client work, then admin, then personal. Flat icon rows don’t match mode-switching. Stacks do.</p>
+          </div>
         </article>
-        <article class="feature-card">
-          <h3>Work isn’t only apps</h3>
-          <p>
-            You also open project folders, PDFs, spreadsheets, and site links. Those don’t belong as permanent Dock icons,
-            but they belong next to the apps you use with them.
-          </p>
+        <article class="need-item">
+          <span class="need-num">02</span>
+          <div>
+            <h3>Your “workspace” is mixed media</h3>
+            <p>Not just apps — folders, PDFs, dashboards, tickets. ClutterDock treats them as one launch surface.</p>
+          </div>
         </article>
-        <article class="feature-card">
-          <h3>Contexts change all day</h3>
-          <p>
-            Morning admin, afternoon design, evening personal. Flat Dock lists don’t match how you actually switch modes —
-            and full Dock replacements are heavy, fragile, or overkill.
-          </p>
+        <article class="need-item">
+          <span class="need-num">03</span>
+          <div>
+            <h3>You hate relearning your computer</h3>
+            <p>Dock replacements change muscle memory. ClutterDock adds power without ripping out the Dock.</p>
+          </div>
         </article>
-        <article class="feature-card">
-          <h3>Privacy &amp; simplicity matter</h3>
-          <p>
-            Many “productivity” tools want accounts and cloud sync first. ClutterDock is local-first:
-            your stacks stay on your machine. No account required to organize your day.
-          </p>
+        <article class="need-item">
+          <span class="need-num">04</span>
+          <div>
+            <h3>You want speed without a subscription</h3>
+            <p>Free forever for daily stacks. Pro is planned as a one-time unlock — not rent on your own organization.</p>
+          </div>
         </article>
       </div>
     </section>
 
-    <!-- HOW IT HELPS -->
+    <!-- DIFFERENT -->
+    <section class="section container" id="different">
+      <div class="section-header">
+        <p class="section-kicker">Positioning</p>
+        <h2>Built for a gap the market leaves open.</h2>
+        <p>Plenty of tools redecorate the Dock or fence the desktop. ClutterDock does neither.</p>
+      </div>
+      <div class="diff-table-wrap">
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col">Typical Dock replacement</th>
+              <th scope="col">Desktop icon organizers</th>
+              <th scope="col highlight-col">ClutterDock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Keeps system Dock</th>
+              <td>Usually no</td>
+              <td>N/A (desktop)</td>
+              <td class="highlight-col"><strong>Yes — by design</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Apps + files + folders + URLs</th>
+              <td>Varies</td>
+              <td>Mostly desktop icons</td>
+              <td class="highlight-col"><strong>First-class stacks</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Mac + Windows</th>
+              <td>Often one OS</td>
+              <td>Often one OS</td>
+              <td class="highlight-col"><strong>Both</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Account required</th>
+              <td>Sometimes</td>
+              <td>Sometimes</td>
+              <td class="highlight-col"><strong>Never</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Pricing model</th>
+              <td>Often paid / suite</td>
+              <td>Often paid / sub</td>
+              <td class="highlight-col"><strong>Free core · one-time Pro</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="diff-footnote">
+        Comparison is categorical, not a review of any single product. ClutterDock’s job is
+        <strong>launch context</strong> — not window previews, not desktop wallpaper organization.
+      </p>
+    </section>
+
+    <!-- HOW IT WORKS -->
     <section class="section container" id="how">
       <div class="section-header">
-        <h2>How ClutterDock helps</h2>
-        <p>Less hunting. Clearer contexts. Same Dock you already know.</p>
-      </div>
-
-      <div class="help-grid">
-        <article class="help-card">
-          <h3>1. Collapse many icons into a few stacks</h3>
-          <p>
-            Put “Work,” “Creative,” “Utilities,” or “Client A” into folders. Your Dock can stay short —
-            one ClutterDock icon (or menu bar / tray access) instead of twenty rarely used pins.
-          </p>
-        </article>
-        <article class="help-card">
-          <h3>2. Mix apps with the files and links they need</h3>
-          <p>
-            A stack isn’t just apps. Drop a project folder, a brief, and the site you open every morning
-            next to the tools you use for that work. One place per context.
-          </p>
-        </article>
-        <article class="help-card">
-          <h3>3. Launch without leaving the keyboard</h3>
-          <p>
-            Global hotkey (default ⌘⇧D on Mac, Ctrl+Shift+D on Windows). Arrow keys, quick search in a folder,
-            and optional Pro tools like search-across-folders and per-folder hotkeys for power users.
-          </p>
-        </article>
-        <article class="help-card">
-          <h3>4. Keep the system Dock intact</h3>
-          <p>
-            ClutterDock does <strong style="color: var(--text);">not</strong> replace or hack the Dock.
-            Public APIs only. That means more stability, fewer “broke after OS update” surprises,
-            and no learning a completely new desktop shell.
-          </p>
-        </article>
-        <article class="help-card">
-          <h3>5. Smart lists for momentum</h3>
-          <p>
-            Recents tracks what you opened from ClutterDock. Running shows what’s live now.
-            Less manual tidy-up when you’re already mid-flow.
-          </p>
-        </article>
-        <article class="help-card">
-          <h3>6. Optional power without a subscription</h3>
-          <p>
-            Free forever for daily stacks (with fair limits). Pro is a planned
-            <strong style="color: var(--text);">one-time</strong> unlock for unlimited folders, workspaces,
-            themes, and more — not a monthly tax on organizing your Dock.
-          </p>
-        </article>
-      </div>
-    </section>
-
-    <!-- WHO -->
-    <section class="section container" id="who">
-      <div class="section-header">
-        <h2>Who it’s for</h2>
-        <p>If your Dock or tray feels crowded, ClutterDock is aimed at you.</p>
-      </div>
-      <div class="feature-grid">
-        <article class="feature-card">
-          <h3>Knowledge workers</h3>
-          <p>Juggle office suite, chat, browser profiles, and client folders without pinning twenty icons.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Creatives &amp; makers</h3>
-          <p>Keep design, media, and utility tools in stacks so the Dock doesn’t become an app store shelf.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Developers</h3>
-          <p>Group IDEs, terminals, docs links, and project directories by stack instead of hunting the Dock.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Anyone multi-role</h3>
-          <p>Home + work + side project on one machine — separate stacks, same computer, no Dock chaos.</p>
-        </article>
-      </div>
-    </section>
-
-    <!-- HOW IT WORKS (steps) -->
-    <section class="section container" id="story">
-      <div class="section-header">
-        <h2>How it works in practice</h2>
-        <p>Three steps from chaos to calm — no Dock replacement required.</p>
+        <p class="section-kicker">In practice</p>
+        <h2>Three steps to a calmer machine.</h2>
       </div>
       <div class="story-steps">
         <article class="story-step">
           <div class="step-num">1</div>
-          <h3>Notice the clutter</h3>
-          <p>Too many icons on the Dock or tray. Hard to find the right app. Everything competes for attention.</p>
+          <h3>Name your contexts</h3>
+          <p>Work, Creative, Client, Admin — whatever matches your day. A few stacks beat twenty pins.</p>
         </article>
         <article class="story-step">
           <div class="step-num">2</div>
-          <h3>Build a few stacks</h3>
-          <p>Drop apps, files, folders, and URLs into named folders — Work, Creative, Client, whatever matches your day.</p>
+          <h3>Fill each stack</h3>
+          <p>Apps, folders, files, and URLs that belong together. The full job in one place.</p>
         </article>
         <article class="story-step">
           <div class="step-num">3</div>
-          <h3>Launch clean</h3>
-          <p>Hit your hotkey. Open the stack. Pick the item. Back to work — without re-scanning a crowded Dock.</p>
+          <h3>Hotkey and go</h3>
+          <p>Open ClutterDock, pick the stack, launch. The Dock stays clean; your speed stays high.</p>
         </article>
       </div>
     </section>
@@ -290,65 +343,69 @@
     <!-- FEATURES -->
     <section class="section container" id="features">
       <div class="section-header">
-        <h2>What you get</h2>
-        <p>Built for daily launch. Stable by design. Free core that stays useful.</p>
+        <p class="section-kicker">Capabilities</p>
+        <h2>Premium where it matters. Simple where it should be.</h2>
       </div>
       <div class="feature-grid">
         <article class="feature-card">
           <h3>Folders that behave</h3>
-          <p>Grid or list, drag to reorder, sort modes, and running indicators — without replacing the system Dock.</p>
+          <p>Grid or list, drag reorder, sort modes, running indicators — stable public APIs only.</p>
         </article>
         <article class="feature-card">
           <h3>More than apps</h3>
-          <p>Drop in files, folders, and URLs alongside apps. One place for the things you actually open.</p>
+          <p>Files, folders, and URLs live next to the tools you open them with.</p>
         </article>
         <article class="feature-card">
           <h3>Keyboard-first</h3>
-          <p>Global hotkey, arrow navigation, number shortcuts, and (with Pro) per-folder hotkeys and search-all.</p>
+          <p>Global hotkey, arrows, shortcuts. Pro adds search-all and per-folder hotkeys.</p>
         </article>
         <article class="feature-card">
-          <h3>Smart folders</h3>
-          <p>Recents from launch history and a live Running list keep momentum without manual tidy-up.</p>
+          <h3>Smart momentum</h3>
+          <p>Recents from what you launched. Running for what’s live. Less manual tidy-up.</p>
         </article>
         <article class="feature-card">
           <h3>Workspaces (Pro)</h3>
-          <p>Switch whole sets of folders for home, work, or deep-focus modes in one step.</p>
+          <p>Switch whole sets of stacks for home vs work without rebuilding the Dock.</p>
         </article>
         <article class="feature-card">
-          <h3>Cross-platform</h3>
-          <p>Native Swift on macOS 14+. Tray app on Windows 10/11. Same product idea, platform-native feel.</p>
+          <h3>Cross-platform craft</h3>
+          <p>Native Swift on macOS 14+. Tray launcher on Windows 10/11. Same idea, native feel.</p>
         </article>
       </div>
     </section>
 
-    <!-- WHY NOT ALTERNATIVES -->
-    <section class="section container" id="compare">
-      <div class="section-header">
-        <h2>What ClutterDock is not</h2>
-        <p>Clear boundaries help you know if it fits.</p>
-      </div>
-      <div class="feature-grid">
-        <article class="feature-card">
-          <h3>Not a Dock replacement</h3>
-          <p>We don’t hide or re-skin the system Dock. ClutterDock is a launcher you open when you need stacks.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Not a full Spotlight rewrite</h3>
-          <p>System search stays great for “open anything.” ClutterDock is for <em>your curated sets</em> — the things you open on purpose, often.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Not cloud-first</h3>
-          <p>No account required. Stacks live on your device. Optional cloud sync may come later as a separate choice.</p>
-        </article>
+    <!-- PRINCIPLES -->
+    <section class="section container" id="principles">
+      <div class="principles-band">
+        <div class="section-header" style="margin-bottom: 2rem;">
+          <p class="section-kicker">Principles</p>
+          <h2>How we build ClutterDock</h2>
+        </div>
+        <div class="principles-grid">
+          <div>
+            <h3>Respect the OS</h3>
+            <p>No private Dock hacks. No replacement required. Stability over spectacle.</p>
+          </div>
+          <div>
+            <h3>Respect your data</h3>
+            <p>Local-first. No account to start. Your stacks are yours.</p>
+          </div>
+          <div>
+            <h3>Respect your wallet</h3>
+            <p>Free forever for daily use. Pro is optional and one-time — not a leash.</p>
+          </div>
+        </div>
       </div>
     </section>
 
+    <!-- PRICING TEASE -->
     <section class="section container">
-      <div class="cta-band">
-        <h2>Free core. One-time Pro.</h2>
+      <div class="cta-band cta-premium">
+        <p class="section-kicker" style="justify-content: center;">Pricing philosophy</p>
+        <h2>Free where it counts.<br /><span class="hero-serif">Power without a subscription.</span></h2>
         <p>
-          Start with enough folders and items for daily use.
-          Unlock unlimited stacks, workspaces, and power tools once — not every month.
+          Enough free stacks for real daily work. Pro unlocks unlimited folders, workspaces,
+          themes, and pack export — planned as a single purchase on Mac and Windows.
         </p>
         <div class="cta-actions">
           <a class="btn btn-primary" href="pricing.html">See planned pricing</a>
@@ -357,21 +414,20 @@
       </div>
     </section>
 
+    <!-- COMING SOON -->
     <section class="section container" id="coming-soon">
       <div class="cta-band coming-soon-band">
-        <div class="eyebrow" style="margin-bottom: 0.75rem;">Public launch</div>
+        <div class="eyebrow">Public launch</div>
         <h2>Coming soon</h2>
         <p>
-          ClutterDock is in final prep for Mac and Windows.
-          Downloads will open here when we’re ready — free forever core, optional one-time Pro.
+          ClutterDock is finishing for Mac and Windows.
+          When downloads open, the free core will be ready for daily stacks — Pro optional.
         </p>
         <div class="cta-actions">
-          <a class="btn btn-secondary" href="pricing.html">See planned pricing</a>
-          <a class="btn btn-ghost" href="#why">Read why it exists</a>
+          <a class="btn btn-secondary" href="pricing.html">Planned pricing</a>
+          <a class="btn btn-ghost" href="#problem">Why it exists</a>
         </div>
-        <p class="note" style="margin-top: 1.25rem;">
-          clutterdock.com · clutterdock.app
-        </p>
+        <p class="note" style="margin-top: 1.25rem;">clutterdock.com · clutterdock.app</p>
       </div>
     </section>
   </main>
@@ -383,15 +439,15 @@
           <img src="assets/icon-256.png" alt="" width="32" height="32" />
           ClutterDock
         </a>
-        <p>From dock clutter to clean stacks — free forever core, one-time Pro unlock.</p>
+        <p>Clean stacks for a crowded Dock. Free forever core. One-time Pro.</p>
         <p class="footer-domains">clutterdock.com · clutterdock.app</p>
       </div>
       <div class="footer-links">
         <div class="footer-col">
           <h4>Product</h4>
-          <a href="#why">Why ClutterDock</a>
-          <a href="#how">How it helps</a>
-          <a href="#who">Who it’s for</a>
+          <a href="#problem">The problem</a>
+          <a href="#solution">The fix</a>
+          <a href="#different">Why us</a>
           <a href="#features">Features</a>
           <a href="pricing.html">Pricing</a>
           <a href="#coming-soon">Coming soon</a>
