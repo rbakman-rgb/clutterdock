@@ -1184,3 +1184,74 @@ button {
 .coming-soon-band h2 {
   letter-spacing: -0.03em;
 }
+
+/* Long-form product copy */
+.prose-block {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.prose-block p {
+  margin: 0 0 1rem;
+}
+
+.prose-block em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.prose-list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.2rem;
+  color: var(--text-muted);
+}
+
+.prose-list li {
+  margin-bottom: 0.55rem;
+  padding-left: 0.25rem;
+}
+
+.prose-list strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.why-grid {
+  margin-top: 0.5rem;
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 800px) {
+  .help-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.help-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.4rem 1.5rem;
+}
+
+.help-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.help-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
