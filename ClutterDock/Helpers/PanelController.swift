@@ -11,6 +11,9 @@ final class PanelController {
     private let history: LaunchHistory
     private var settingsWindow: NSWindow?
     private var prefsObserver: NSObjectProtocol?
+    /// True while the fade-out animation is running (panel still “visible”).
+    private var isHiding = false
+    private var resignObserver: NSObjectProtocol?
 
     init(
         store: FolderStore,
@@ -36,22 +39,34 @@ final class PanelController {
         if let prefsObserver {
             NotificationCenter.default.removeObserver(prefsObserver)
         }
+        if let resignObserver {
+            NotificationCenter.default.removeObserver(resignObserver)
+        }
     }
 
-    var isVisible: Bool { panel?.isVisible == true }
+    var isVisible: Bool {
+        guard let panel else { return false }
+        return panel.isVisible && !isHiding
+    }
 
     func toggle() {
+        if isHiding {
+            // User re-opened mid close — cancel hide and show again
+            show()
+            return
+        }
         if isVisible { hide() } else { show() }
     }
 
     func show() {
         let panel = ensurePanel()
+        isHiding = false
         syncPanelSize()
         position(panel)
         runningApps.refresh()
         NSApp.activate(ignoringOtherApps: true)
 
-        // Snappy appear: slight scale + fade (utility feel without feeling sluggish)
+        // Cancel any in-flight hide
         panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
@@ -63,15 +78,22 @@ final class PanelController {
     }
 
     func hide() {
-        guard let panel, panel.isVisible else { return }
+        guard let panel, panel.isVisible, !isHiding else { return }
+        isHiding = true
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.1
             ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().alphaValue = 0
-        }, completionHandler: { [weak panel] in
+        }, completionHandler: { [weak self, weak panel] in
             DispatchQueue.main.async {
+                // Only finish hide if we weren't reopened mid-animation
+                guard let self, self.isHiding else {
+                    panel?.alphaValue = 1
+                    return
+                }
                 panel?.orderOut(nil)
                 panel?.alphaValue = 1
+                self.isHiding = false
             }
         })
     }
@@ -113,7 +135,10 @@ final class PanelController {
             onDismiss: { [weak self] in self?.hide() },
             onOpenSettings: { [weak self] in
                 self?.hide()
-                self?.showSettings()
+                // Small delay so hide animation doesn't fight settings key window
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    self?.showSettings()
+                }
             }
         )
 
@@ -142,18 +167,24 @@ final class PanelController {
         panel.animationBehavior = .utilityWindow
         panel.becomesKeyOnlyIfNeeded = false
 
-        NotificationCenter.default.addObserver(
+        resignObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResignKeyNotification,
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                // Keep open for sheets, open panels, and settings
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+                guard let self else { return }
+                // Keep open for sheets, open panels, alerts, and settings
                 if NSApp.modalWindow != nil { return }
-                if self?.settingsWindow?.isKeyWindow == true { return }
-                if NSApp.keyWindow is NSPanel, NSApp.keyWindow !== self?.panel { return }
-                if self?.panel?.isKeyWindow != true {
-                    self?.hide()
+                if self.settingsWindow?.isKeyWindow == true { return }
+                if let key = NSApp.keyWindow, key !== self.panel {
+                    // Don't hide if a sheet/alert took key
+                    if key.sheetParent != nil || key.isSheet { return }
+                    // Settings window is open
+                    if key === self.settingsWindow { return }
+                }
+                if self.panel?.isKeyWindow != true {
+                    self.hide()
                 }
             }
         }

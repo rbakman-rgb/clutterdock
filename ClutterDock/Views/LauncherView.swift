@@ -56,10 +56,11 @@ struct LauncherView: View {
             .background {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(.ultraThinMaterial)
-                    .shadow(color: .black.opacity(0.28), radius: 28, y: 14)
             }
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(panelBorder)
+            // Shadow outside clip so it isn’t clipped away
+            .shadow(color: .black.opacity(0.32), radius: 28, y: 14)
             .onDrop(of: [.fileURL], isTargeted: $isTargeted, perform: handleDrop)
             .alert("New Folder", isPresented: $showingNewFolder) {
             TextField("Folder name", text: $newFolderName)
@@ -138,7 +139,8 @@ struct LauncherView: View {
     }
 
     private func handleSpaceKey() -> KeyPress.Result {
-        // Space launches when search is empty so it doesn't fight typing
+        // Don’t steal Space while typing in search
+        if searchFocused && !searchText.isEmpty { return .ignored }
         if searchText.isEmpty {
             launchSelected()
             return .handled
@@ -147,6 +149,8 @@ struct LauncherView: View {
     }
 
     private func handleTabKey(shift: Bool) -> KeyPress.Result {
+        // When actively filtering, let Tab leave the field / default behavior
+        if searchFocused && !searchText.isEmpty { return .ignored }
         let folders = store.visibleFolders
         guard !folders.isEmpty else { return .ignored }
         let delta = shift ? -1 : 1
@@ -157,6 +161,7 @@ struct LauncherView: View {
         } else {
             store.selectFolder(id: folders[0].id)
         }
+        searchFocused = false
         return .handled
     }
 
@@ -489,17 +494,12 @@ struct LauncherView: View {
                     .controlSize(.regular)
                     Button("Add URL…") { showingAddURL = true }
                         .buttonStyle(.bordered)
-                    Button {
-                        // Hint for drag-drop
-                    } label: {
-                        Text("or drag from Finder")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(true)
                 }
                 .padding(.top, 6)
+                Text("Tip: drag apps, files, or folders from Finder into this window")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
             } else if folder?.smartKind == .recents {
                 Text("Open anything from your stacks — it will show up here.")
                     .font(.caption)
@@ -571,12 +571,26 @@ struct LauncherView: View {
                         .onDrag {
                             dragSourceID = item.id
                             selectedItemID = item.id
-                            return NSItemProvider(object: item.id.uuidString as NSString)
+                            let provider = NSItemProvider()
+                            let idString = item.id.uuidString
+                            provider.registerDataRepresentation(
+                                forTypeIdentifier: UTType.plainText.identifier,
+                                visibility: .ownProcess
+                            ) { completion in
+                                completion(idString.data(using: .utf8), nil)
+                                return nil
+                            }
+                            return provider
                         }
                         .onDrop(of: [.text, .plainText, .utf8PlainText], isTargeted: nil) { providers in
-                            defer { dragSourceID = nil }
-                            guard canReorder else { return false }
-                            guard let provider = providers.first else { return false }
+                            guard canReorder else {
+                                dragSourceID = nil
+                                return false
+                            }
+                            guard let provider = providers.first else {
+                                dragSourceID = nil
+                                return false
+                            }
                             let typeID = provider.registeredTypeIdentifiers.first ?? UTType.plainText.identifier
                             provider.loadItem(forTypeIdentifier: typeID, options: nil) { data, _ in
                                 let uuidString: String?
@@ -591,7 +605,10 @@ struct LauncherView: View {
                                 }
                                 guard let uuidString,
                                       let fromID = UUID(uuidString: uuidString.trimmingCharacters(in: .whitespacesAndNewlines)),
-                                      let toIndex = items.firstIndex(where: { $0.id == item.id }) else { return }
+                                      let toIndex = items.firstIndex(where: { $0.id == item.id }) else {
+                                    DispatchQueue.main.async { dragSourceID = nil }
+                                    return
+                                }
                                 DispatchQueue.main.async {
                                     store.reorderItem(id: fromID, toIndex: toIndex, in: folder.id)
                                     selectedItemID = fromID
