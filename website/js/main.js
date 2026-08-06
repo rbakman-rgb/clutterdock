@@ -1,4 +1,7 @@
 (() => {
+  document.documentElement.classList.remove("no-js");
+  document.documentElement.classList.add("js");
+
   const yearEls = document.querySelectorAll("[data-year]");
   const year = String(new Date().getFullYear());
   yearEls.forEach((el) => {
@@ -46,4 +49,54 @@
       a.setAttribute("aria-current", "page");
     }
   });
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const nav = document.querySelector(".nav");
+  const pageBg = document.querySelector(".page-bg");
+
+  const onScroll = () => {
+    const y = window.scrollY || document.documentElement.scrollTop;
+    if (nav) nav.classList.toggle("is-scrolled", y > 12);
+    if (pageBg && !reduceMotion) {
+      // Subtle glow drift — feels fluid without fighting scroll
+      const shift = Math.min(y * 0.04, 48);
+      pageBg.style.transform = `translate3d(0, ${shift}px, 0)`;
+    }
+  };
+
+  onScroll();
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    document.querySelectorAll("[data-reveal], [data-reveal-stagger]").forEach((el) => {
+      el.classList.add("is-visible");
+    });
+    return;
+  }
+
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        revealObserver.unobserve(entry.target);
+      });
+    },
+    {
+      root: null,
+      rootMargin: "0px 0px -8% 0px",
+      threshold: 0.12,
+    }
+  );
+
+  document.querySelectorAll("[data-reveal], [data-reveal-stagger]").forEach((el) => {
+    revealObserver.observe(el);
+  });
+
+  // Failsafe: never leave content permanently hidden
+  window.setTimeout(() => {
+    document.querySelectorAll("[data-reveal]:not(.is-visible), [data-reveal-stagger]:not(.is-visible)").forEach((el) => {
+      el.classList.add("is-visible");
+    });
+  }, 4000);
 })();

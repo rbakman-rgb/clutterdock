@@ -1,6 +1,6 @@
 # ClutterDock — Where we go from here
 
-**As of:** 2026-08-05 (post rebrand, site live, Mac 1.4.3, Win portable friend-test)  
+**As of:** 2026-08-06 (public beta release path)  
 **Project:** [ClutterDock — V1 Public Launch](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795)
 
 ---
@@ -10,10 +10,10 @@
 | Area | Status |
 |------|--------|
 | **Product name / brand** | ClutterDock shipped (repo, app, site) |
-| **Marketing site** | Live at clutterdock.com (Cloudflare); Coming soon; no tip jar |
-| **Mac app** | **v1.4.3** — launcher polish, no blue focus ring, dock-aware panel |
-| **Windows app** | Electron tray; **portable .exe built** for friend test (unsigned) |
-| **Public GitHub Releases** | Still weak / incomplete vs rebrand (RON-379) |
+| **Marketing site** | Live at clutterdock.com; downloads + install FAQ |
+| **Mac app** | **v1.4.3** universal zip — launcher polish shipped |
+| **Windows app** | Electron tray; **1.1.1** portable exe on Releases |
+| **Public GitHub Releases** | **v1.4.3** unsigned beta (Mac zip + Win exe) |
 | **Code signing** | Mac ad-hoc only · Windows unsigned (SmartScreen expected) |
 | **Pro checkout** | License keys exist offline; no merchant yet |
 | **Linear MCP** | Often unauthenticated in Grok — update via UI or `LINEAR_API_KEY` |

@@ -127,8 +127,18 @@ button {
   z-index: 50;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba(11, 15, 23, 0.82);
-  border-bottom: 1px solid var(--border);
+  background: rgba(11, 15, 23, 0.72);
+  border-bottom: 1px solid transparent;
+  transition:
+    background 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.nav.is-scrolled {
+  background: rgba(11, 15, 23, 0.9);
+  border-bottom-color: var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
 }
 
 .nav-inner {
@@ -236,15 +246,67 @@ button {
   color: #eef4ff;
 }
 
-.hero-premium h1 {
-  font-size: clamp(2.55rem, 6.2vw, 3.85rem);
-  max-width: 14ch;
+/* Stacked, fully centered hero copy — no narrow max-width traps */
+.hero-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 0 0 1rem;
+  text-align: center;
+  font-size: clamp(2.4rem, 5.5vw, 3.75rem);
+  font-weight: 720;
+  letter-spacing: -0.04em;
+  line-height: 1.12;
+}
+
+.hero-title .hero-line {
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.hero-title .hero-serif {
+  margin-top: 0.12em;
+  font-size: 1.05em;
+  /* Italic optical correction: slight tracking so the slant doesn’t read left-heavy */
+  padding-left: 0.06em;
+}
+
+.hero-premium .hero-title {
+  font-size: clamp(2.55rem, 6vw, 3.85rem);
+}
+
+.hero-stack .lead {
+  max-width: 36rem;
+  margin: 0 auto 1.75rem;
+  width: 100%;
+}
+
+.hero-stack .hero-actions {
+  margin-bottom: 2.25rem;
+}
+
+.hero-stack .badge-one-time {
   margin-left: auto;
   margin-right: auto;
 }
 
-.hero-premium .lead {
-  max-width: 640px;
+.text-emphasis {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .trust-strip {
@@ -253,7 +315,9 @@ button {
   align-items: center;
   justify-content: center;
   gap: 0.55rem 0.85rem;
-  margin-top: 2rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 2rem auto 0;
   padding: 0.85rem 1.1rem;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -290,6 +354,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem 1.4rem;
+  text-align: center;
 }
 
 .cost-stat {
@@ -320,8 +385,9 @@ button {
   padding: 1.75rem 1.85rem;
   border-radius: var(--radius);
   border: 1px solid rgba(228, 196, 138, 0.22);
+  text-align: center;
   background:
-    radial-gradient(ellipse 80% 100% at 0% 0%, rgba(228, 196, 138, 0.08), transparent 55%),
+    radial-gradient(ellipse 80% 100% at 50% 0%, rgba(228, 196, 138, 0.08), transparent 55%),
     var(--bg-card);
 }
 
@@ -371,10 +437,11 @@ button {
 
 .need-item {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1.15rem;
-  align-items: start;
-  padding: 1.25rem 1.4rem;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  justify-items: center;
+  text-align: center;
+  padding: 1.35rem 1.5rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-card);
@@ -385,7 +452,7 @@ button {
   font-size: 1.35rem;
   color: var(--gold);
   line-height: 1;
-  padding-top: 0.15rem;
+  padding-top: 0;
 }
 
 .need-item h3 {
@@ -476,6 +543,7 @@ button {
   gap: 1.25rem;
   max-width: 900px;
   margin: 0 auto;
+  text-align: center;
 }
 
 @media (max-width: 800px) {
@@ -518,6 +586,7 @@ button {
 .eyebrow {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
@@ -526,27 +595,24 @@ button {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  margin-bottom: 1.25rem;
+  margin: 0 auto 1.25rem;
 }
 
-.hero h1 {
-  margin: 0 0 0.85rem;
-  font-size: clamp(2.4rem, 5vw, 3.4rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-}
-
-.hero .lead {
+.hero .lead,
+.landing-hero .lead {
   margin: 0 auto;
-  max-width: 540px;
+  max-width: 36rem;
   color: var(--text-muted);
   font-size: 1.12rem;
+  text-align: center;
+  text-wrap: pretty;
 }
 
 .badge-one-time {
   display: inline-flex;
-  margin-top: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  margin: 1.25rem auto 0;
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
   border: 1px solid var(--border-strong);
@@ -588,6 +654,11 @@ button {
   padding: 1.6rem 1.45rem 1.45rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  text-align: center;
+}
+
+.plan .feature-list li {
+  text-align: left;
 }
 
 .plan:hover {
@@ -626,6 +697,7 @@ button {
 .plan-price {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 0.35rem;
   margin: 0.6rem 0 0.25rem;
 }
@@ -849,6 +921,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.35rem;
+  text-align: center;
 }
 
 .pillar-icon {
@@ -858,7 +931,7 @@ button {
   display: grid;
   place-items: center;
   font-size: 1.1rem;
-  margin-bottom: 0.85rem;
+  margin: 0 auto 0.85rem;
   background: var(--accent-soft);
 }
 
@@ -893,6 +966,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.75rem;
+  text-align: left;
 }
 
 .trust-card.highlight {
@@ -1066,24 +1140,11 @@ button {
 
 /* Landing hero extras */
 .landing-hero {
-  padding: 5rem 0 3rem;
+  padding: clamp(3.5rem, 8vw, 6rem) 0 3rem;
   text-align: center;
-}
-
-.landing-hero h1 {
-  margin: 0 0 1rem;
-  font-size: clamp(2.5rem, 6vw, 3.6rem);
-  font-weight: 720;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
-}
-
-.landing-hero .lead {
-  margin: 0 auto 1.75rem;
-  max-width: 640px;
-  color: var(--text-muted);
-  font-size: 1.12rem;
-  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .landing-hero .lead strong {
@@ -1148,7 +1209,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem 1.35rem 1.5rem;
-  text-align: left;
+  text-align: center;
 }
 
 .concept-label {
@@ -1294,6 +1355,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.4rem;
+  text-align: center;
 }
 
 .story-step .step-num {
@@ -1302,7 +1364,7 @@ button {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  margin-bottom: 0.75rem;
+  margin: 0 auto 0.75rem;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent);
@@ -1369,6 +1431,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.4rem;
+  text-align: center;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
 
@@ -1415,33 +1478,38 @@ button {
   margin: 0 auto;
   padding: 0 1.5rem;
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
-  gap: 1.5rem;
-  justify-content: space-between;
-  align-items: flex-start;
+  gap: 1.75rem;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 .footer-brand {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.4rem;
 }
 
 .footer-brand .brand {
   margin-bottom: 0.25rem;
+  justify-content: center;
 }
 
 .footer-brand p {
   margin: 0;
   color: var(--text-dim);
   font-size: 0.85rem;
-  max-width: 280px;
+  max-width: 320px;
 }
 
 .footer-links {
   display: flex;
-  gap: 2rem;
+  gap: 2.5rem;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .footer-col h4 {
@@ -1472,8 +1540,9 @@ button {
   font-size: 0.8rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  justify-content: center;
+  text-align: center;
 }
 
 /* Mobile nav */
@@ -1551,6 +1620,87 @@ button {
   letter-spacing: -0.03em;
 }
 
+/* ——— Scroll motion / fluid reveals (only when JS enabled) ——— */
+@media (prefers-reduced-motion: no-preference) {
+  .js .reveal-hero > * {
+    opacity: 0;
+    transform: translateY(18px);
+    animation: hero-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .js .reveal-hero > *:nth-child(1) { animation-delay: 0.05s; }
+  .js .reveal-hero > *:nth-child(2) { animation-delay: 0.14s; }
+  .js .reveal-hero > *:nth-child(3) { animation-delay: 0.24s; }
+  .js .reveal-hero > *:nth-child(4) { animation-delay: 0.34s; }
+  .js .reveal-hero > *:nth-child(5) { animation-delay: 0.44s; }
+  .js .reveal-hero > *:nth-child(6) { animation-delay: 0.54s; }
+
+  @keyframes hero-in {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .js [data-reveal],
+  .js [data-reveal-stagger] > * {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .js [data-reveal].is-visible,
+  .js [data-reveal-stagger].is-visible > * {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .js [data-reveal-stagger].is-visible > *:nth-child(1) { transition-delay: 0.02s; }
+  .js [data-reveal-stagger].is-visible > *:nth-child(2) { transition-delay: 0.08s; }
+  .js [data-reveal-stagger].is-visible > *:nth-child(3) { transition-delay: 0.14s; }
+  .js [data-reveal-stagger].is-visible > *:nth-child(4) { transition-delay: 0.2s; }
+  .js [data-reveal-stagger].is-visible > *:nth-child(5) { transition-delay: 0.26s; }
+  .js [data-reveal-stagger].is-visible > *:nth-child(6) { transition-delay: 0.32s; }
+  .js [data-reveal-stagger].is-visible > *:nth-child(7) { transition-delay: 0.38s; }
+  .js [data-reveal-stagger].is-visible > *:nth-child(8) { transition-delay: 0.44s; }
+
+  .hero-product img {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .hero-product:hover img {
+    transform: translateY(-4px) scale(1.03);
+  }
+
+  .cost-card,
+  .feature-card,
+  .help-card,
+  .story-step,
+  .plan,
+  .need-item {
+    transition:
+      border-color 0.25s ease,
+      background 0.25s ease,
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.35s ease;
+  }
+
+  .cost-card:hover,
+  .feature-card:hover,
+  .help-card:hover,
+  .story-step:hover,
+  .need-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .plan:hover {
+    transform: translateY(-4px);
+  }
+}
+
 /* Long-form product copy */
 .prose-block {
   max-width: 720px;
@@ -1607,6 +1757,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.4rem 1.5rem;
+  text-align: center;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 

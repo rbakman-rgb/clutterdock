@@ -1,7 +1,7 @@
 # ClutterDock — Session save
 
-**Saved:** 2026-08-05 (evening)  
-**Status:** **Public launch path mid-flight** — Mac **1.4.3** polished · Win portable friend-test · site live · Coming soon · next = GitHub Releases + trust + commerce.  
+**Saved:** 2026-08-06  
+**Status:** **Public unsigned beta** — Mac **1.4.3** zip + Win **1.1.1** exe on GitHub Releases · site downloads live · install FAQ · next = Apple notarization + Pro merchant.  
 **URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ (**live** — Cloudflare Workers; clutterdock.app + www 301 → clutterdock.com)  
 **Roadmap:** [docs/ROADMAP_NOW.md](docs/ROADMAP_NOW.md) · Linear map [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md)  
 **Backlog:** [Linear — project slug `slavedock-v1-public-launch`](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…379 · protocol in `AGENTS.md`)

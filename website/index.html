@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=20260806b" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -54,7 +54,8 @@
         <a href="#solution">The fix</a>
         <a href="#different">Why us</a>
         <a href="pricing.html">Pricing</a>
-        <a class="nav-cta" href="#coming-soon">Coming soon</a>
+        <a href="install.html">Install</a>
+        <a class="nav-cta" href="#download">Download</a>
       </nav>
     </div>
   </header>
@@ -62,47 +63,49 @@
   <main id="main">
     <!-- HERO -->
     <section class="landing-hero container hero-premium">
-      <div class="eyebrow">macOS · Windows · local-first</div>
-      <h1>
-        Your Dock was never built<br />
-        <span class="hero-serif">for how you work now.</span>
-      </h1>
-      <p class="lead">
-        Twenty tools. Six projects. Endless tabs. The Dock becomes a crowded shelf you re-scan
-        a hundred times a day. ClutterDock turns what you open into
-        <strong>calm, named stacks</strong> — apps, files, folders, and links — launched with one hotkey.
-        Your system Dock stays. The chaos doesn’t.
-      </p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="#problem">See the cost of clutter</a>
-        <a class="btn btn-secondary" href="#solution">How ClutterDock works</a>
-      </div>
+      <div class="hero-stack reveal-hero">
+        <div class="eyebrow">macOS · Windows · local-first</div>
+        <h1 class="hero-title">
+          <span class="hero-line">Your Dock was never built</span>
+          <span class="hero-line hero-serif">for how you work now.</span>
+        </h1>
+        <p class="lead">
+          Twenty tools. Six projects. Endless tabs. The Dock becomes a crowded shelf you re-scan
+          a hundred times a day. ClutterDock turns what you open into
+          <strong>calm, named stacks</strong> — apps, files, folders, and links — launched with one hotkey.
+          Your system Dock stays. The chaos doesn’t.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#problem">See the cost of clutter</a>
+          <a class="btn btn-secondary" href="#solution">How ClutterDock works</a>
+        </div>
 
-      <div class="hero-product">
-        <img
-          src="assets/icon.png"
-          alt="ClutterDock app icon"
-          width="180"
-          height="180"
-          decoding="async"
-          fetchpriority="high"
-        />
-      </div>
+        <div class="hero-product">
+          <img
+            src="assets/icon.png"
+            alt="ClutterDock app icon"
+            width="180"
+            height="180"
+            decoding="async"
+            fetchpriority="high"
+          />
+        </div>
 
-      <div class="trust-strip" aria-label="Product promises">
-        <span>No Dock replacement</span>
-        <span class="dot" aria-hidden="true"></span>
-        <span>No account required</span>
-        <span class="dot" aria-hidden="true"></span>
-        <span>Free forever core</span>
-        <span class="dot" aria-hidden="true"></span>
-        <span>One-time Pro · no subscription</span>
+        <div class="trust-strip" aria-label="Product promises">
+          <span>No Dock replacement</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span>No account required</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span>Free forever core</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span>One-time Pro · no subscription</span>
+        </div>
       </div>
     </section>
 
     <!-- COST / PROBLEM -->
     <section class="section container" id="problem">
-      <div class="section-header">
+      <div class="section-header" data-reveal>
         <p class="section-kicker">The quiet tax</p>
         <h2>Clutter doesn’t feel expensive — until you add it up.</h2>
         <p>
@@ -111,7 +114,7 @@
         </p>
       </div>
 
-      <div class="cost-grid">
+      <div class="cost-grid" data-reveal-stagger>
         <article class="cost-card">
           <p class="cost-stat">Scan → miss → scan again</p>
           <h3>A flat Dock has no context</h3>
@@ -138,7 +141,7 @@
         </article>
       </div>
 
-      <div class="callout-panel">
+      <div class="callout-panel" data-reveal>
         <h3>Built-in stacks only go so far</h3>
         <p>
           macOS can put a Finder folder on the Dock. That’s useful — and limited.
@@ -154,13 +157,13 @@
 
     <!-- SOLUTION -->
     <section class="section container" id="solution">
-      <div class="section-header">
+      <div class="section-header" data-reveal>
         <p class="section-kicker">The ClutterDock idea</p>
         <h2>One hotkey. Clean stacks. Same Dock.</h2>
         <p>Group by how you work — not by how the OS forces you to pin.</p>
       </div>
 
-      <div class="concept-compare premium-compare" aria-label="Concept: clutter versus organized stacks">
+      <div class="concept-compare premium-compare" data-reveal aria-label="Concept: clutter versus organized stacks">
         <div class="concept-panel concept-before">
           <div class="concept-label concept-label-before">Without</div>
           <p class="concept-title">Crowded Dock</p>
@@ -188,7 +191,7 @@
       </div>
       <p class="concept-note">Conceptual illustration — not a product screenshot.</p>
 
-      <div class="help-grid solution-grid">
+      <div class="help-grid solution-grid" data-reveal-stagger>
         <article class="help-card">
           <h3>Stack the whole job</h3>
           <p>
@@ -222,11 +225,11 @@
 
     <!-- WHY YOU NEED IT - persuasion -->
     <section class="section container" id="need">
-      <div class="section-header">
+      <div class="section-header" data-reveal>
         <p class="section-kicker">Why people need this</p>
         <h2>If any of these sound familiar, ClutterDock is for you.</h2>
       </div>
-      <div class="need-list">
+      <div class="need-list" data-reveal-stagger>
         <article class="need-item">
           <span class="need-num">01</span>
           <div>
@@ -260,12 +263,12 @@
 
     <!-- DIFFERENT -->
     <section class="section container" id="different">
-      <div class="section-header">
+      <div class="section-header" data-reveal>
         <p class="section-kicker">Positioning</p>
         <h2>Built for a gap the market leaves open.</h2>
         <p>Plenty of tools redecorate the Dock or fence the desktop. ClutterDock does neither.</p>
       </div>
-      <div class="diff-table-wrap">
+      <div class="diff-table-wrap" data-reveal>
         <table class="diff-table">
           <thead>
             <tr>
@@ -317,11 +320,11 @@
 
     <!-- HOW IT WORKS -->
     <section class="section container" id="how">
-      <div class="section-header">
+      <div class="section-header" data-reveal>
         <p class="section-kicker">In practice</p>
         <h2>Three steps to a calmer machine.</h2>
       </div>
-      <div class="story-steps">
+      <div class="story-steps" data-reveal-stagger>
         <article class="story-step">
           <div class="step-num">1</div>
           <h3>Name your contexts</h3>
@@ -342,11 +345,11 @@
 
     <!-- FEATURES -->
     <section class="section container" id="features">
-      <div class="section-header">
+      <div class="section-header" data-reveal>
         <p class="section-kicker">Capabilities</p>
         <h2>Premium where it matters. Simple where it should be.</h2>
       </div>
-      <div class="feature-grid">
+      <div class="feature-grid" data-reveal-stagger>
         <article class="feature-card">
           <h3>Folders that behave</h3>
           <p>Grid or list, drag reorder, sort modes, running indicators — stable public APIs only.</p>
@@ -377,11 +380,11 @@
     <!-- PRINCIPLES -->
     <section class="section container" id="principles">
       <div class="principles-band">
-        <div class="section-header" style="margin-bottom: 2rem;">
+        <div class="section-header" data-reveal style="margin-bottom: 2rem;">
           <p class="section-kicker">Principles</p>
           <h2>How we build ClutterDock</h2>
         </div>
-        <div class="principles-grid">
+        <div class="principles-grid" data-reveal-stagger>
           <div>
             <h3>Respect the OS</h3>
             <p>No private Dock hacks. No replacement required. Stability over spectacle.</p>
@@ -400,7 +403,7 @@
 
     <!-- PRICING TEASE -->
     <section class="section container">
-      <div class="cta-band cta-premium">
+      <div class="cta-band cta-premium" data-reveal>
         <p class="section-kicker" style="justify-content: center;">Pricing philosophy</p>
         <h2>Free where it counts.<br /><span class="hero-serif">Power without a subscription.</span></h2>
         <p>
@@ -408,28 +411,50 @@
           themes, and pack export — planned as a single purchase on Mac and Windows.
         </p>
         <div class="cta-actions">
-          <a class="btn btn-primary" href="pricing.html">See planned pricing</a>
-          <a class="btn btn-secondary" href="#coming-soon">Coming soon</a>
+          <a class="btn btn-primary" href="pricing.html">Pricing</a>
+          <a class="btn btn-secondary" href="#download">Download free</a>
         </div>
       </div>
     </section>
 
-    <!-- COMING SOON -->
-    <section class="section container" id="coming-soon">
-      <div class="cta-band coming-soon-band">
-        <div class="eyebrow">Public launch</div>
-        <h2>Coming soon</h2>
+
+    <!-- DOWNLOAD -->
+    <section class="section container" id="download">
+      <div class="section-header" data-reveal>
+        <p class="section-kicker">Public beta</p>
+        <h2>Download ClutterDock</h2>
         <p>
-          ClutterDock is finishing for Mac and Windows.
-          When downloads open, the free core will be ready for daily stacks — Pro optional.
+          Free forever core. Builds are <strong>unsigned beta</strong> —
+          first launch needs an extra click on Mac (Gatekeeper) and Windows (SmartScreen).
+          See the <a href="install.html">install guide</a>.
         </p>
-        <div class="cta-actions">
-          <a class="btn btn-secondary" href="pricing.html">Planned pricing</a>
-          <a class="btn btn-ghost" href="#problem">Why it exists</a>
-        </div>
-        <p class="note" style="margin-top: 1.25rem;">clutterdock.com · clutterdock.app</p>
       </div>
+      <div class="download-grid" data-reveal-stagger>
+        <article class="download-card recommended">
+          <h3>macOS 14+</h3>
+          <p>Native Swift · universal (Apple Silicon + Intel) · v1.4.3</p>
+          <a class="btn btn-primary" href="https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.3/ClutterDock-1.4.3-mac.zip">Download Mac zip</a>
+          <p class="note" style="margin-top: 0.85rem; text-align: left;">
+            Unzip → Applications → right-click → <strong>Open</strong> the first time.
+          </p>
+        </article>
+        <article class="download-card">
+          <h3>Windows 10 / 11</h3>
+          <p>Tray launcher · portable exe · v1.1.1</p>
+          <a class="btn btn-secondary" href="https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.3/ClutterDock-1.1.1-x64.exe">Download Windows exe</a>
+          <p class="note" style="margin-top: 0.85rem; text-align: left;">
+            If SmartScreen appears: More info → <strong>Run anyway</strong>.
+          </p>
+        </article>
+      </div>
+      <p class="note" data-reveal>
+        All assets and checksums:
+        <a href="https://github.com/rbakman-rgb/clutterdock/releases/latest" rel="noopener">GitHub Releases</a>
+        · Help: <a href="install.html">Install FAQ</a>
+        · Bugs: <a href="https://github.com/rbakman-rgb/clutterdock/issues" rel="noopener">Issues</a>
+      </p>
     </section>
+
   </main>
 
   <footer class="footer">
@@ -450,12 +475,15 @@
           <a href="#different">Why us</a>
           <a href="#features">Features</a>
           <a href="pricing.html">Pricing</a>
-          <a href="#coming-soon">Coming soon</a>
+          <a href="#download">Download</a>
+          <a href="install.html">Install help</a>
         </div>
         <div class="footer-col">
           <h4>Support</h4>
           <a href="pricing.html#faq">FAQ</a>
+          <a href="install.html">Install FAQ</a>
           <a href="privacy.html">Privacy</a>
+          <a href="https://github.com/rbakman-rgb/clutterdock/issues" rel="noopener">GitHub Issues</a>
         </div>
       </div>
     </div>
@@ -465,6 +493,6 @@
     </div>
   </footer>
 
-  <script src="js/main.js"></script>
+  <script src="js/main.js?v=20260806b"></script>
 </body>
 </html>
