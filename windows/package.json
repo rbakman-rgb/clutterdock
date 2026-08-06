@@ -9,9 +9,9 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/rbakman-rgb/slavedock.git"
+    "url": "https://github.com/rbakman-rgb/clutterdock.git"
   },
-  "homepage": "https://rbakman-rgb.github.io/slavedock/",
+  "homepage": "https://rbakman-rgb.github.io/clutterdock/",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
@@ -34,7 +34,7 @@
       {
         "provider": "github",
         "owner": "rbakman-rgb",
-        "repo": "slavedock"
+        "repo": "clutterdock"
       }
     ],
     "win": {

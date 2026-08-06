@@ -15,8 +15,8 @@ This matches how your other products use Linear:
 | Cross-link GitHub + docs both ways | Description + issue bodies link repo/site/SHIP |
 | Priority P0 / P1 / P2 | Same language as Massage Key waves |
 
-**Code:** https://github.com/rbakman-rgb/slavedock  
-**Site:** https://rbakman-rgb.github.io/slavedock/  
+**Code:** https://github.com/rbakman-rgb/clutterdock  
+**Site:** https://rbakman-rgb.github.io/clutterdock/  
 **Local:** `/Users/ronald/Developer/ClutterDock`
 
 ---
@@ -63,9 +63,9 @@ ClutterDock — folders of apps, files, folders, and URLs on Mac Dock & Windows 
 
 Free forever core · Pro one-time unlock · Coffee tips optional.
 
-Repo: https://github.com/rbakman-rgb/slavedock
-Site: https://rbakman-rgb.github.io/slavedock/
-Pricing: https://rbakman-rgb.github.io/slavedock/pricing.html
+Repo: https://github.com/rbakman-rgb/clutterdock
+Site: https://rbakman-rgb.github.io/clutterdock/
+Pricing: https://rbakman-rgb.github.io/clutterdock/pricing.html
 Local: ~/Developer/ClutterDock
 
 Sources of truth:
@@ -106,7 +106,7 @@ Constraints:
 | G0-01 Native Mac launcher (Swift) Free core | P0 | **Done** | Dock, folders, hotkey, Recents |
 | G0-02 Windows Electron tray app Free core | P0 | **Done** | Tray, Ctrl+Shift+D |
 | G0-03 Free/Pro entitlements + offline license keys | P0 | **Done** | FeatureGate, Settings → Pro |
-| G0-04 Marketing site (GitHub Pages) | P0 | **Done** | rbakman-rgb.github.io/slavedock |
+| G0-04 Marketing site (GitHub Pages) | P0 | **Done** | rbakman-rgb.github.io/clutterdock |
 | G0-05 Release CI (Mac zip + Windows exe) | P0 | **Done** | Tag `v*` workflow |
 | G0-06 App update checks (Mac GH API + Win electron-updater) | P1 | **Done** | docs/UPDATES.md |
 | G0-07 GitHub public repo + v1.3.0 release assets | P0 | **Done** | |

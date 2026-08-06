@@ -40,7 +40,7 @@ function setupUpdater({ onStatus }) {
     return {
       check: async (interactive) => {
         if (interactive) {
-          shell.openExternal('https://github.com/rbakman-rgb/slavedock/releases/latest');
+          shell.openExternal('https://github.com/rbakman-rgb/clutterdock/releases/latest');
         }
         return { ok: false, error: 'Updater module missing' };
       },
@@ -53,7 +53,7 @@ function setupUpdater({ onStatus }) {
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'rbakman-rgb',
-    repo: 'slavedock',
+    repo: 'clutterdock',
   });
 
   autoUpdater.on('error', (err) => {
@@ -105,7 +105,7 @@ function setupUpdater({ onStatus }) {
             return { ok: true, downloading: true, version: remote };
           }
           if (response === 1) {
-            shell.openExternal('https://github.com/rbakman-rgb/slavedock/releases/latest');
+            shell.openExternal('https://github.com/rbakman-rgb/clutterdock/releases/latest');
           }
           return { ok: true, available: true, version: remote };
         }
@@ -149,7 +149,7 @@ function setupUpdater({ onStatus }) {
           cancelId: 1,
         });
         if (response === 0) {
-          shell.openExternal('https://github.com/rbakman-rgb/slavedock/releases/latest');
+          shell.openExternal('https://github.com/rbakman-rgb/clutterdock/releases/latest');
         }
       }
       return { ok: false, error: String(e.message || e) };

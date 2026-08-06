@@ -38,9 +38,9 @@ const PROJECT_DESC = `ClutterDock — folders of apps, files, folders, and URLs 
 
 Free forever core · Pro one-time unlock · Coffee tips optional.
 
-- Repo: https://github.com/rbakman-rgb/slavedock
-- Site: https://rbakman-rgb.github.io/slavedock/
-- Pricing: https://rbakman-rgb.github.io/slavedock/pricing.html
+- Repo: https://github.com/rbakman-rgb/clutterdock
+- Site: https://rbakman-rgb.github.io/clutterdock/
+- Pricing: https://rbakman-rgb.github.io/clutterdock/pricing.html
 - Local: ~/Developer/ClutterDock
 
 Sources of truth: Linear (backlog) · GitHub (code) · docs/SHIP.md (ship ops)
@@ -60,10 +60,10 @@ const ISSUES = [
   ['G0-01 Native Mac launcher Free core', 'Swift Dock launcher shipped. ~/Developer/ClutterDock', 'G0 — Foundation', 2, true],
   ['G0-02 Windows Electron tray Free core', 'Tray + Ctrl+Shift+D. windows/', 'G0 — Foundation', 2, true],
   ['G0-03 Free/Pro entitlements + license keys', 'FeatureGate + Settings Pro. docs/PRICING.md', 'G0 — Foundation', 2, true],
-  ['G0-04 Marketing site GitHub Pages', 'https://rbakman-rgb.github.io/slavedock/', 'G0 — Foundation', 2, true],
+  ['G0-04 Marketing site GitHub Pages', 'https://rbakman-rgb.github.io/clutterdock/', 'G0 — Foundation', 2, true],
   ['G0-05 Release CI Mac zip + Windows exe', '.github/workflows/release.yml', 'G0 — Foundation', 2, true],
   ['G0-06 App update checks Mac + Windows', 'docs/UPDATES.md', 'G0 — Foundation', 3, true],
-  ['G0-07 Public GitHub + release assets', 'github.com/rbakman-rgb/slavedock/releases', 'G0 — Foundation', 2, true],
+  ['G0-07 Public GitHub + release assets', 'github.com/rbakman-rgb/clutterdock/releases', 'G0 — Foundation', 2, true],
   ['G1-01 Enroll Apple Developer Program', '$99 — needed for notarization', 'G1 — Install trust', 1, false],
   ['G1-02 Developer ID Application cert + signed Mac build', 'Sign release zip for distribution', 'G1 — Install trust', 1, false],
   ['G1-03 Notarize Mac release zip', 'Gatekeeper-clean install for strangers', 'G1 — Install trust', 1, false],

@@ -6,7 +6,7 @@ import AppKit
 @MainActor
 enum UpdateService {
     static let githubOwner = "rbakman-rgb"
-    static let githubRepo = "slavedock"
+    static let githubRepo = "clutterdock"
     static let releasesURL = URL(string: "https://github.com/\(githubOwner)/\(githubRepo)/releases/latest")!
     static let apiLatestURL = URL(string: "https://api.github.com/repos/\(githubOwner)/\(githubRepo)/releases/latest")!
 

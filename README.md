@@ -2,7 +2,7 @@
 
 **Folders of apps, files, folders, and URLs** — on your **Mac Dock** or **Windows tray**.
 
-[Download](https://github.com/rbakman-rgb/slavedock/releases/latest) · [Website](https://rbakman-rgb.github.io/slavedock/) · [Pricing](https://rbakman-rgb.github.io/slavedock/pricing.html) · [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
+[Download](https://github.com/rbakman-rgb/clutterdock/releases/latest) · [Website](https://rbakman-rgb.github.io/clutterdock/) · [Pricing](https://rbakman-rgb.github.io/clutterdock/pricing.html) · [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
 **Free forever** for daily use. **Pro** is an optional **one-time** unlock (no subscription).
 
@@ -17,7 +17,7 @@
 
 ### macOS
 
-1. Download **`ClutterDock-*-mac.zip`** from [Releases](https://github.com/rbakman-rgb/slavedock/releases/latest)
+1. Download **`ClutterDock-*-mac.zip`** from [Releases](https://github.com/rbakman-rgb/clutterdock/releases/latest)
 2. Unzip → drag **ClutterDock.app** to **Applications**
 3. First launch: **right-click → Open** (build is ad-hoc signed until Apple Developer ID notarization)
 4. Optional: right-click Dock icon → Options → **Keep in Dock**
@@ -25,7 +25,7 @@
 
 ### Windows
 
-1. Download the installer or portable **`.exe`** from [Releases](https://github.com/rbakman-rgb/slavedock/releases/latest)
+1. Download the installer or portable **`.exe`** from [Releases](https://github.com/rbakman-rgb/clutterdock/releases/latest)
 2. Run it and find **ClutterDock** in the system tray
 3. Hotkey default: **Ctrl+Shift+D**
 
@@ -45,7 +45,7 @@
 | Core launcher, Recents, JSON backup | Yes | Yes |
 
 Activate Pro: **Settings → Pro** (same key on Mac + Windows).  
-Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://rbakman-rgb.github.io/slavedock/pricing.html)
+Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://rbakman-rgb.github.io/clutterdock/pricing.html)
 
 ---
 
@@ -97,7 +97,7 @@ macOS:    ~/Library/Application Support/ClutterDock/
 Windows:  %APPDATA%/clutterdock/ClutterDock/
 ```
 
-No account. No cloud required. [Privacy](https://rbakman-rgb.github.io/slavedock/privacy.html)
+No account. No cloud required. [Privacy](https://rbakman-rgb.github.io/clutterdock/privacy.html)
 
 ---
 

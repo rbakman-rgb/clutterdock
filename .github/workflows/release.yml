@@ -123,7 +123,7 @@ jobs:
             - **Windows (NSIS):** in-app download & restart via electron-updater
 
             ### Pro
-            Purchase / activate via the [pricing page](https://rbakman-rgb.github.io/slavedock/pricing.html) (checkout wiring may still be manual).
+            Purchase / activate via the [pricing page](https://rbakman-rgb.github.io/clutterdock/pricing.html) (checkout wiring may still be manual).
 
             Tips: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
           files: release-assets/*

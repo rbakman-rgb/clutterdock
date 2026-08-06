@@ -2,7 +2,7 @@
 
 **Saved:** 2026-08-05  
 **Status:** **Rebranded to ClutterDock** — Mac 1.4.0 / Windows 1.1.1 Free+Pro. Public launch path continues.  
-**URLs:** https://github.com/rbakman-rgb/slavedock · https://rbakman-rgb.github.io/slavedock/ · domains **clutterdock.com** · **clutterdock.app**  
+**URLs:** https://github.com/rbakman-rgb/clutterdock · https://rbakman-rgb.github.io/clutterdock/ · domains **clutterdock.com** · **clutterdock.app**  
 **Backlog:** [Linear — project still slug `slavedock-v1-public-launch`](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795) (RON-352…377 · live IDs in [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md) · sync protocol in `AGENTS.md`)
 
 ---
@@ -27,7 +27,7 @@
 
 - **Name:** **ClutterDock** (formerly SlaveDock; briefly DockFolder)
 - **Domains owned:** clutterdock.com · clutterdock.app (DNS / site wiring pending)
-- **GitHub repo:** still `rbakman-rgb/slavedock` until renamed
+- **GitHub repo:** `rbakman-rgb/clutterdock` (canonical)
 - **Price:** Free forever
 - **Tips:** [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 - **Icon:** User-provided light blue “hanging apps” image → `ClutterDock/Resources/AppIcon.icns`
@@ -132,7 +132,7 @@ scripts/build.sh
 Continue ClutterDock at ~/Developer/ClutterDock.
 Read SESSION.md and README.md first.
 Product name is ClutterDock (was SlaveDock). Domains: clutterdock.com / clutterdock.app.
-GitHub repo is still rbakman-rgb/slavedock until renamed.
+GitHub repo: rbakman-rgb/clutterdock.
 Backlog is in Linear (project slug slavedock-v1-public-launch, team RON). Use the Linear
 MCP: check In Progress/Todo before starting, and keep issues updated as you work —
 protocol and issue map are in AGENTS.md.
