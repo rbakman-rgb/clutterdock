@@ -24,3 +24,6 @@ windows/out/
 # Editor
 .vscode/
 *.code-workspace
+
+# Wrangler local cache
+.wrangler/
