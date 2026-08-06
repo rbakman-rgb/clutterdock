@@ -239,7 +239,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Buy Me a Coffee…", action: #selector(openBuyMeACoffee), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit ClutterDock", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         dockMenu = menu
     }

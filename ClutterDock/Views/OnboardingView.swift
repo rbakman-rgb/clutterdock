@@ -76,7 +76,8 @@ struct KeyboardCheatSheet: View {
                 .font(.headline)
             Group {
                 row("↑ ↓ ← →", "Move selection")
-                row("Return", "Open selected")
+                row("Return / Space", "Open selected")
+                row("Tab / ⇧Tab", "Cycle stack tabs")
                 row("Esc", "Close launcher")
                 row("⌘1 … ⌘9", "Switch folder tab")
                 row("⌘G", "Toggle search all folders")
@@ -102,13 +103,13 @@ struct KeyboardCheatSheet: View {
 
 struct KeyboardHintsBar: View {
     var body: some View {
-        Text("↑↓←→ move · ⏎ open · esc close · ⌘G all · ⌥←→ reorder · ⌘1–9 folders")
-            .font(.system(size: 10))
+        Text("↑↓←→ move · ⏎/space open · tab stacks · esc close · ⌘G all · ⌥←→ reorder · ⌘1–9")
+            .font(.system(size: 10, weight: .medium))
             .foregroundStyle(.tertiary)
             .lineLimit(2)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
     }
 }

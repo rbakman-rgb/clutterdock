@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import QuartzCore
 
 @MainActor
 final class PanelController {
@@ -49,12 +50,30 @@ final class PanelController {
         position(panel)
         runningApps.refresh()
         NSApp.activate(ignoringOtherApps: true)
+
+        // Snappy appear: slight scale + fade (utility feel without feeling sluggish)
+        panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.14
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
+        }
     }
 
     func hide() {
-        panel?.orderOut(nil)
+        guard let panel, panel.isVisible else { return }
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.1
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().alphaValue = 0
+        }, completionHandler: { [weak panel] in
+            DispatchQueue.main.async {
+                panel?.orderOut(nil)
+                panel?.alphaValue = 1
+            }
+        })
     }
 
     func showSettings() {
@@ -128,9 +147,11 @@ final class PanelController {
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                // Keep open for sheets, open panels, and settings
                 if NSApp.modalWindow != nil { return }
                 if self?.settingsWindow?.isKeyWindow == true { return }
+                if NSApp.keyWindow is NSPanel, NSApp.keyWindow !== self?.panel { return }
                 if self?.panel?.isKeyWindow != true {
                     self?.hide()
                 }
@@ -150,6 +171,7 @@ final class PanelController {
         panel.setFrame(frame, display: true)
     }
 
+    /// Prefer a stable, Dock-friendly placement: above the Dock / near the pointer.
     private func position(_ panel: NSPanel) {
         panel.layoutIfNeeded()
         let size = panel.frame.size
@@ -161,17 +183,50 @@ final class PanelController {
             panel.center()
             return
         }
+
         let visible = screen.visibleFrame
+        let full = screen.frame
+        // Infer Dock edge from the difference between frame and visibleFrame
+        let dockBottom = visible.minY - full.minY
+        let dockLeft = visible.minX - full.minX
+        let dockRight = full.maxX - visible.maxX
+        let dockTop = full.maxY - visible.maxY
+
         var x = mouse.x - size.width / 2
         var y: CGFloat
-        let dockZone = visible.minY + 100
-        if mouse.y < dockZone {
-            y = mouse.y + 24
-        } else {
-            y = mouse.y - size.height - 12
+
+        // Near bottom Dock (most common)
+        if dockBottom > 8 && mouse.y < visible.minY + 120 {
+            x = mouse.x - size.width / 2
+            y = visible.minY + 16
         }
-        x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
-        y = min(max(y, visible.minY + 8), visible.maxY - size.height - 8)
+        // Near left Dock
+        else if dockLeft > 8 && mouse.x < visible.minX + 120 {
+            x = visible.minX + 16
+            y = mouse.y - size.height / 2
+        }
+        // Near right Dock
+        else if dockRight > 8 && mouse.x > visible.maxX - 120 {
+            x = visible.maxX - size.width - 16
+            y = mouse.y - size.height / 2
+        }
+        // Near top (rare)
+        else if dockTop > 8 && mouse.y > visible.maxY - 80 {
+            x = mouse.x - size.width / 2
+            y = visible.maxY - size.height - 16
+        }
+        // Default: near cursor, prefer below unless near bottom of screen
+        else {
+            x = mouse.x - size.width / 2
+            if mouse.y - size.height - 16 < visible.minY + 8 {
+                y = mouse.y + 20
+            } else {
+                y = mouse.y - size.height - 16
+            }
+        }
+
+        x = min(max(x, visible.minX + 10), visible.maxX - size.width - 10)
+        y = min(max(y, visible.minY + 10), visible.maxY - size.height - 10)
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }

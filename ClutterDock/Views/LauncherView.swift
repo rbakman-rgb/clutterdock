@@ -53,8 +53,12 @@ struct LauncherView: View {
     var body: some View {
         launcherChrome
             .frame(width: preferences.panelWidth, height: preferences.panelHeight)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.28), radius: 28, y: 14)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(panelBorder)
             .onDrop(of: [.fileURL], isTargeted: $isTargeted, perform: handleDrop)
             .alert("New Folder", isPresented: $showingNewFolder) {
@@ -95,55 +99,83 @@ struct LauncherView: View {
             .padding(24)
             .frame(width: 420, height: 340)
         }
-        .onAppear {
-            searchGlobal = FeatureGate.canUseGlobalSearch && preferences.globalSearchDefault
-            searchText = ""
-            selectedItemID = selectableIDs.first
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { searchFocused = true }
-        }
-        .onChange(of: store.selectedFolderID) { refreshSelection() }
-        .onChange(of: searchText) { refreshSelection() }
-        .onChange(of: searchGlobal) { refreshSelection() }
-        .focusable()
-        .onKeyPress(.escape) {
-            if !preferences.hasCompletedOnboarding {
-                preferences.hasCompletedOnboarding = true
-                return .handled
-            }
-            onDismiss()
+        .modifier(LauncherLifecycleModifier(
+            onAppear: {
+                searchGlobal = FeatureGate.canUseGlobalSearch && preferences.globalSearchDefault
+                searchText = ""
+                selectedItemID = selectableIDs.first
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { searchFocused = true }
+            },
+            onFolderChange: { refreshSelection() },
+            onSearchChange: { refreshSelection() },
+            onGlobalChange: { refreshSelection() },
+            selectedFolderID: store.selectedFolderID,
+            searchText: searchText,
+            searchGlobal: searchGlobal
+        ))
+        .modifier(LauncherKeyHandler(
+            onEscape: handleEscapeKey,
+            onReturn: { launchSelected(); return .handled },
+            onSpace: handleSpaceKey,
+            onUp: { moveSelection(by: -columnsEstimate()); return .handled },
+            onDown: { moveSelection(by: columnsEstimate()); return .handled },
+            onLeft: { handleLeftRight(delta: -1) },
+            onRight: { handleLeftRight(delta: 1) },
+            onTab: handleTabKey,
+            onCommandDigit: handleCommandDigit,
+            onCommandG: handleCommandG,
+            onHelp: { showingHelp = true; return .handled }
+        ))
+    }
+
+    private func handleEscapeKey() -> KeyPress.Result {
+        if !preferences.hasCompletedOnboarding {
+            preferences.hasCompletedOnboarding = true
             return .handled
         }
-        .onKeyPress(.return) { launchSelected(); return .handled }
-        .onKeyPress(.upArrow) { moveSelection(by: -columnsEstimate()); return .handled }
-        .onKeyPress(.downArrow) { moveSelection(by: columnsEstimate()); return .handled }
-        .onKeyPress(.leftArrow) { handleLeftRight(delta: -1) }
-        .onKeyPress(.rightArrow) { handleLeftRight(delta: 1) }
-        .onKeyPress(keys: [.init("1"), .init("2"), .init("3"), .init("4"), .init("5"),
-                           .init("6"), .init("7"), .init("8"), .init("9")]) { press in
-            guard press.modifiers.contains(.command),
-                  let ch = press.characters.first,
-                  let n = Int(String(ch)), n >= 1 else { return .ignored }
-            store.selectFolder(at: n - 1)
+        onDismiss()
+        return .handled
+    }
+
+    private func handleSpaceKey() -> KeyPress.Result {
+        // Space launches when search is empty so it doesn't fight typing
+        if searchText.isEmpty {
+            launchSelected()
             return .handled
         }
-        .onKeyPress(keys: [.init("g")]) { press in
-            guard press.modifiers.contains(.command) else { return .ignored }
-            if FeatureGate.canUseGlobalSearch {
-                searchGlobal.toggle()
-            } else {
-                promptUpgrade("Search across all folders is a Pro feature.")
-            }
-            return .handled
+        return .ignored
+    }
+
+    private func handleTabKey(shift: Bool) -> KeyPress.Result {
+        let folders = store.visibleFolders
+        guard !folders.isEmpty else { return .ignored }
+        let delta = shift ? -1 : 1
+        if let id = store.selectedFolderID,
+           let idx = folders.firstIndex(where: { $0.id == id }) {
+            let next = (idx + delta + folders.count) % folders.count
+            store.selectFolder(id: folders[next].id)
+        } else {
+            store.selectFolder(id: folders[0].id)
         }
-        .onKeyPress(keys: [.init("?")]) { _ in
-            showingHelp = true
-            return .handled
+        return .handled
+    }
+
+    private func handleCommandDigit(_ press: KeyPress) -> KeyPress.Result {
+        guard press.modifiers.contains(.command),
+              let ch = press.characters.first,
+              let n = Int(String(ch)), n >= 1 else { return .ignored }
+        store.selectFolder(at: n - 1)
+        return .handled
+    }
+
+    private func handleCommandG(_ press: KeyPress) -> KeyPress.Result {
+        guard press.modifiers.contains(.command) else { return .ignored }
+        if FeatureGate.canUseGlobalSearch {
+            searchGlobal.toggle()
+        } else {
+            promptUpgrade("Search across all folders is a Pro feature.")
         }
-        .onKeyPress(keys: [.init("/")]) { press in
-            guard press.modifiers.contains(.command) else { return .ignored }
-            showingHelp = true
-            return .handled
-        }
+        return .handled
     }
 
     @ViewBuilder
@@ -182,11 +214,23 @@ struct LauncherView: View {
 
     @ViewBuilder
     private var panelBorder: some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .strokeBorder(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.22),
+                        Color.white.opacity(0.06),
+                        Color.black.opacity(0.08)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: 1
+            )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(isTargeted ? Color.accentColor : .clear, lineWidth: 2)
+                    .animation(.easeOut(duration: 0.12), value: isTargeted)
             )
     }
 
@@ -254,47 +298,76 @@ struct LauncherView: View {
 
     private var folderTabs: some View {
         HStack(spacing: 8) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(Array(store.visibleFolders.enumerated()), id: \.element.id) { index, folder in
-                        Button {
-                            store.selectFolder(id: folder.id)
-                        } label: {
-                            HStack(spacing: 4) {
-                                if let img = AppIconService.folderTabImage(folder: folder, size: 12) {
-                                    Image(nsImage: img).resizable().frame(width: 12, height: 12)
-                                } else if let symbol = folder.symbolName {
-                                    Image(systemName: symbol).font(.system(size: 10))
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(store.visibleFolders.enumerated()), id: \.element.id) { index, folder in
+                            let selected = folder.id == store.selectedFolderID
+                            Button {
+                                withAnimation(.easeOut(duration: 0.14)) {
+                                    store.selectFolder(id: folder.id)
                                 }
-                                Text(folder.name)
-                                    .font(.system(size: 12, weight: folder.id == store.selectedFolderID ? .semibold : .regular))
-                                if folder.hotkey != .none {
-                                    Text(folder.hotkey.displayName)
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.secondary)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    if let img = AppIconService.folderTabImage(folder: folder, size: 13) {
+                                        Image(nsImage: img).resizable().frame(width: 13, height: 13)
+                                    } else if let symbol = folder.symbolName {
+                                        Image(systemName: symbol).font(.system(size: 11, weight: .medium))
+                                    }
+                                    Text(folder.name)
+                                        .font(.system(size: 12, weight: selected ? .semibold : .medium))
+                                    if folder.hotkey != .none {
+                                        Text(folder.hotkey.displayName)
+                                            .font(.system(size: 9, weight: .medium))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    if !folder.isSmart {
+                                        Text("\(folder.items.count)")
+                                            .font(.system(size: 9, weight: .semibold))
+                                            .foregroundStyle(.tertiary)
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 1)
+                                            .background(Capsule().fill(Color.primary.opacity(0.06)))
+                                    }
                                 }
+                                .padding(.horizontal, 11)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(selected
+                                              ? Color.accentColor.opacity(0.22)
+                                              : Color.primary.opacity(0.05))
+                                )
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(
+                                            selected ? Color.accentColor.opacity(0.35) : Color.clear,
+                                            lineWidth: 1
+                                        )
+                                )
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(
-                                Capsule().fill(folder.id == store.selectedFolderID
-                                               ? Color.accentColor.opacity(0.22)
-                                               : Color.primary.opacity(0.06))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .help(index < 9 ? "⌘\(index + 1)" : folder.name)
-                        .contextMenu {
-                            if !folder.isSmart {
-                                Button("Rename…") { renameFolder(folder) }
-                            }
-                            if store.folders.filter({ !$0.isSmart }).count > 1 || folder.isSmart {
-                                if !folder.isSmart || store.folders.count > 1 {
-                                    Button("Remove Tab", role: .destructive) {
-                                        store.deleteFolder(id: folder.id)
+                            .buttonStyle(.plain)
+                            .id(folder.id)
+                            .help(index < 9 ? "⌘\(index + 1) · Tab to cycle" : "\(folder.name) · Tab to cycle")
+                            .contextMenu {
+                                if !folder.isSmart {
+                                    Button("Rename…") { renameFolder(folder) }
+                                }
+                                if store.folders.filter({ !$0.isSmart }).count > 1 || folder.isSmart {
+                                    if !folder.isSmart || store.folders.count > 1 {
+                                        Button("Remove Tab", role: .destructive) {
+                                            store.deleteFolder(id: folder.id)
+                                        }
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                .onChange(of: store.selectedFolderID) {
+                    if let id = store.selectedFolderID {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            proxy.scrollTo(id, anchor: .center)
                         }
                     }
                 }
@@ -312,7 +385,9 @@ struct LauncherView: View {
                     if let id = currentFolder?.id { store.setFolderView(id: id, mode: .list) }
                 }
             } label: {
-                Image(systemName: "plus")
+                Image(systemName: "plus.circle.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.secondary)
             }
             .menuStyle(.borderlessButton)
             .frame(width: 28)
@@ -324,9 +399,11 @@ struct LauncherView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField(searchGlobal ? "Search all folders" : "Search", text: $searchText)
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .imageScale(.medium)
+            TextField(searchGlobal ? "Search all stacks…" : "Search this stack…", text: $searchText)
                 .textFieldStyle(.plain)
                 .focused($searchFocused)
             Toggle(isOn: Binding(
@@ -341,21 +418,27 @@ struct LauncherView: View {
                 }
             )) {
                 Text(FeatureGate.canUseGlobalSearch ? "All" : "All ✦")
-                    .font(.caption2)
+                    .font(.caption.weight(.medium))
             }
             .toggleStyle(.button)
+            .controlSize(.small)
             .help(FeatureGate.canUseGlobalSearch ? "Search all folders (⌘G)" : "Pro: search all folders")
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .help("Clear search")
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color.primary.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.primary.opacity(0.055))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
         .padding(.horizontal, 14)
         .padding(.bottom, 8)
     }
@@ -381,35 +464,57 @@ struct LauncherView: View {
     }
 
     private func emptyState(folder: AppFolder?) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             Image(systemName: emptySymbol(folder))
-                .font(.system(size: 40, weight: .light))
+                .font(.system(size: 42, weight: .ultraLight))
                 .foregroundStyle(.secondary)
+                .symbolRenderingMode(.hierarchical)
             Text(emptyTitle(folder))
                 .font(.headline)
                 .multilineTextAlignment(.center)
             Text(emptySubtitle(folder))
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 280)
+                .frame(maxWidth: 300)
 
             if folder?.isSmart != true {
                 HStack(spacing: 10) {
-                    Button("Add apps…") { addFiles() }
-                        .buttonStyle(.borderedProminent)
+                    Button {
+                        addFiles()
+                    } label: {
+                        Label("Add apps…", systemImage: "plus.app")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
                     Button("Add URL…") { showingAddURL = true }
                         .buttonStyle(.bordered)
+                    Button {
+                        // Hint for drag-drop
+                    } label: {
+                        Text("or drag from Finder")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(true)
                 }
-                .padding(.top, 4)
+                .padding(.top, 6)
             } else if folder?.smartKind == .recents {
-                Text("Open anything from your folders — it will show up here.")
-                    .font(.caption2)
+                Text("Open anything from your stacks — it will show up here.")
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                .foregroundStyle(isTargeted ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.08))
+                .padding(16)
+                .opacity(folder?.isSmart == true ? 0 : 1)
+        )
     }
 
     private func emptySymbol(_ folder: AppFolder?) -> String {
@@ -770,6 +875,68 @@ struct LauncherView: View {
     }
 }
 
+// MARK: - Key / lifecycle helpers (split for compiler performance)
+
+private struct LauncherLifecycleModifier: ViewModifier {
+    var onAppear: () -> Void
+    var onFolderChange: () -> Void
+    var onSearchChange: () -> Void
+    var onGlobalChange: () -> Void
+    var selectedFolderID: UUID?
+    var searchText: String
+    var searchGlobal: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear(perform: onAppear)
+            .onChange(of: selectedFolderID) { onFolderChange() }
+            .onChange(of: searchText) { onSearchChange() }
+            .onChange(of: searchGlobal) { onGlobalChange() }
+    }
+}
+
+private struct LauncherKeyHandler: ViewModifier {
+    var onEscape: () -> KeyPress.Result
+    var onReturn: () -> KeyPress.Result
+    var onSpace: () -> KeyPress.Result
+    var onUp: () -> KeyPress.Result
+    var onDown: () -> KeyPress.Result
+    var onLeft: () -> KeyPress.Result
+    var onRight: () -> KeyPress.Result
+    var onTab: (Bool) -> KeyPress.Result
+    var onCommandDigit: (KeyPress) -> KeyPress.Result
+    var onCommandG: (KeyPress) -> KeyPress.Result
+    var onHelp: () -> KeyPress.Result
+
+    func body(content: Content) -> some View {
+        content
+            .focusable()
+            .onKeyPress(.escape, action: onEscape)
+            .onKeyPress(.return, action: onReturn)
+            .onKeyPress(.space, action: onSpace)
+            .onKeyPress(.upArrow, action: onUp)
+            .onKeyPress(.downArrow, action: onDown)
+            .onKeyPress(.leftArrow, action: onLeft)
+            .onKeyPress(.rightArrow, action: onRight)
+            .onKeyPress(.tab) {
+                onTab(NSEvent.modifierFlags.contains(.shift))
+            }
+            .onKeyPress(characters: CharacterSet(charactersIn: "123456789")) { press in
+                onCommandDigit(press)
+            }
+            .onKeyPress(characters: CharacterSet(charactersIn: "gG")) { press in
+                onCommandG(press)
+            }
+            .onKeyPress(characters: CharacterSet(charactersIn: "?")) { _ in
+                onHelp()
+            }
+            .onKeyPress(characters: CharacterSet(charactersIn: "/")) { press in
+                guard press.modifiers.contains(.command) else { return .ignored }
+                return onHelp()
+            }
+    }
+}
+
 // MARK: - Tile
 
 private struct ItemTile: View {
@@ -788,44 +955,51 @@ private struct ItemTile: View {
 
     var body: some View {
         Button(action: onLaunch) {
-            VStack(spacing: 6) {
+            VStack(spacing: 7) {
                 ZStack(alignment: .bottom) {
                     Image(nsImage: AppIconService.icon(for: item, size: iconSize))
                         .resizable()
                         .interpolation(.high)
                         .frame(width: iconSize, height: iconSize)
-                        .shadow(color: .black.opacity(0.12), radius: 3, y: 2)
+                        .shadow(color: .black.opacity(hovering || isSelected ? 0.22 : 0.12), radius: hovering ? 6 : 3, y: 2)
+                        .scaleEffect(hovering ? 1.04 : 1.0)
                         .opacity(item.exists || item.kind == .url ? 1 : 0.4)
+                        .animation(.easeOut(duration: 0.12), value: hovering)
                     if isRunning {
-                        Circle().fill(Color.primary.opacity(0.85)).frame(width: 6, height: 6).offset(y: 4)
+                        Capsule()
+                            .fill(Color.accentColor)
+                            .frame(width: 10, height: 3)
+                            .offset(y: 5)
+                            .shadow(color: Color.accentColor.opacity(0.5), radius: 2, y: 0)
                     }
                 }
                 Text(item.name)
-                    .font(.system(size: 11))
+                    .font(.system(size: 11, weight: isSelected ? .medium : .regular))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .frame(width: tileWidth - 8)
                     .foregroundStyle(item.exists || item.kind == .url ? .primary : .secondary)
             }
-            .padding(6)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
             .frame(width: tileWidth)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.18)
-                          : (hovering ? Color.primary.opacity(0.08) : .clear))
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.16)
+                          : (hovering ? Color.primary.opacity(0.07) : .clear))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(
                         isDropTarget ? Color.accentColor
-                        : (isSelected ? Color.accentColor.opacity(0.5) : .clear),
-                        lineWidth: isDropTarget ? 2 : 1
+                        : (isSelected ? Color.accentColor.opacity(0.55) : .clear),
+                        lineWidth: isDropTarget ? 2 : 1.5
                     )
             )
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(canReorder ? "\(item.path)\nDrag to reorder · ⌥← ⌥→" : item.path)
+        .help(canReorder ? "\(item.name)\n\(item.path)\nDrag to reorder · ⌥← ⌥→ · Space/Return to open" : "\(item.name)\n\(item.path)")
         .contextMenu {
             Button("Open") { onLaunch() }
             Button("Show in Finder") { LaunchService.reveal(item) }
