@@ -32,7 +32,6 @@ enum FeatureGate {
     static var canUseWorkspaces: Bool { isPro }
     static var canUseFolderHotkeys: Bool { isPro }
     static var canUseCustomFolderImages: Bool { isPro }
-    static var canUseThemes: Bool { isPro }
     static var canExportPack: Bool { isPro }
 
     static func canAddNormalFolder(currentNormalCount: Int) -> Bool {
@@ -57,7 +56,7 @@ enum FeatureGate {
     • Workspaces
     • Search all stacks
     • Per-stack hotkeys
-    • Custom stack images & themes
+    • Custom stack images
     • .clutterdock pack export
 
     One-time purchase · Mac + Windows · Free core stays free forever.

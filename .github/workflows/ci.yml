@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  mac:
+    name: Build macOS
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile app
+        run: |
+          chmod +x scripts/build.sh
+          ./scripts/build.sh
+        env:
+          # CI compile check only — never a shipped artifact, so the dev secret is fine.
+          CLUTTERDOCK_LICENSE_SECRET: ci-compile-check-secret
+
+  windows:
+    name: Windows checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Syntax + license tests
+        working-directory: windows
+        run: |
+          for f in src/*.js src/renderer/*.js scripts/*.js; do node --check "$f"; done
+          npm test
+
+  site:
+    name: Website link check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check local references resolve
+        working-directory: website
+        run: |
+          rc=0
+          # Every local href/src in the HTML must exist on disk
+          for page in *.html; do
+            for raw in $(grep -oE '(href|src)="[^"]+"' "$page"); do
+              ref="${raw#*=\"}"
+              ref="${ref%\"}"
+              case "$ref" in
+                http*|mailto:*|\#*|//*) continue ;;
+              esac
+              path="${ref%%#*}"
+              path="${path%%\?*}"
+              path="${path#/}"
+              [ -z "$path" ] && continue
+              # Extensionless internal links are served by Cloudflare as <name>.html
+              if [ ! -e "$path" ] && [ ! -e "$path.html" ]; then
+                echo "MISSING: $page -> $ref"
+                rc=1
+              fi
+            done
+          done
+          exit $rc

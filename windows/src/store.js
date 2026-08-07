@@ -6,6 +6,7 @@ const {
   validate: validateLicense,
   mask: maskLicense,
   createFeatureGate,
+  PRO_HISTORY,
 } = require('./license');
 
 const CURRENT_VERSION = 1;
@@ -392,20 +393,23 @@ class Store {
 
     let source = null;
     let item = null;
+    let sourceIndex = -1;
     for (const f of this.state.folders) {
       if (f.smartKind !== 'none') continue;
       const idx = f.items.findIndex((i) => i.id === itemID);
       if (idx >= 0) {
         source = f;
         item = f.items[idx];
+        sourceIndex = idx;
         f.items.splice(idx, 1);
         break;
       }
     }
     if (!source || !item) return { ok: false, hitLimit: false };
     if (source.id === dest.id) {
-      // put back if same folder
-      source.items.push(item);
+      // Dropping onto its own folder is a no-op: restore the original position
+      // (pushing to the end silently reordered without persisting).
+      source.items.splice(sourceIndex, 0, item);
       return { ok: true, hitLimit: false };
     }
     const key = `${item.kind}|${item.path}`;
@@ -462,32 +466,8 @@ class Store {
         openCount: 1,
       });
     }
-    this.history.entries = entries.slice(0, 40);
+    this.history.entries = entries.slice(0, PRO_HISTORY);
     this.persistHistory();
-  }
-
-  recentItems() {
-    const lim = this.gate.historyLimit;
-    return this.history.entries.slice(0, lim).map((e) => ({
-      id: e.id,
-      kind: e.kind,
-      path: e.path,
-      name: e.name,
-    }));
-  }
-
-  displayItems(folder) {
-    if (!folder) return [];
-    if (folder.smartKind === 'recents') return this.recentItems();
-    let items = [...(folder.items || [])];
-    if (folder.sortMode === 'nameAZ') {
-      items.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (folder.sortMode === 'nameZA') {
-      items.sort((a, b) => b.name.localeCompare(a.name));
-    } else if (folder.sortMode === 'kind') {
-      items.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
-    }
-    return items;
   }
 
   searchAll(query) {

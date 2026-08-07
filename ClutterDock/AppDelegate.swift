@@ -18,7 +18,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var prefsObserver: NSObjectProtocol?
     private var hotkeyObserver: NSObjectProtocol?
     private var dockMenu: NSMenu?
-    private var servicesWatcher: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         panelController = PanelController(
@@ -166,11 +165,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let list = pboard.propertyList(forType: NSPasteboard.PasteboardType("NSFilenamesPboardType")) as? [String] {
             paths.append(contentsOf: list)
         }
-        // Also try modern fileURL type strings
-        if let strs = pboard.propertyList(forType: .string) as? String {
-            // ignore
-            _ = strs
-        }
         if let items = pboard.pasteboardItems {
             for item in items {
                 if let path = item.string(forType: .fileURL),
@@ -281,14 +275,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func checkForUpdates() {
         UpdateService.checkAndPrompt(interactive: true)
-    }
-
-    @objc private func openBuyMeACoffee() {
-        if let url = AppSupport.buyMeACoffeeURL {
-            NSWorkspace.shared.open(url)
-        } else {
-            NSWorkspace.shared.open(AppSupport.buyMeACoffeeSignupURL)
-        }
     }
 
     @objc private func openFolderFromDock(_ sender: NSMenuItem) {

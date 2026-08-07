@@ -15,11 +15,6 @@ enum AppIconService {
         return resized
     }
 
-    /// Legacy path-based API
-    static func icon(for path: String, size: CGFloat = 64) -> NSImage {
-        icon(for: DockItem(kind: DockItem.kind(forPath: path), path: path), size: size)
-    }
-
     static func folderTabImage(folder: AppFolder, size: CGFloat = 16) -> NSImage? {
         if let path = folder.customImagePath,
            FileManager.default.fileExists(atPath: path),

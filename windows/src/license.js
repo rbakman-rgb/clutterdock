@@ -89,7 +89,6 @@ function createFeatureGate(isPro) {
 }
 
 module.exports = {
-  PRODUCT_SECRET,
   TEST_KEY,
   validate,
   generateKey,
@@ -97,4 +96,5 @@ module.exports = {
   createFeatureGate,
   FREE_MAX_FOLDERS,
   FREE_MAX_ITEMS,
+  PRO_HISTORY,
 };

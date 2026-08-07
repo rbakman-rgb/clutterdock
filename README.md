@@ -2,7 +2,7 @@
 
 **Folders of apps, files, folders, and URLs** — on your **Mac Dock** or **Windows tray**.
 
-[Download](https://github.com/rbakman-rgb/clutterdock/releases/latest) · [Website](https://clutterdock.com/) · [Pricing](https://clutterdock.com/pricing.html) · [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
+[Download](https://github.com/rbakman-rgb/clutterdock/releases/latest) · [Website](https://clutterdock.com/) · [Pricing](https://clutterdock.com/pricing) · [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
 **Free forever** for daily use. **Pro** is an optional **one-time** unlock (no subscription).
 
@@ -38,14 +38,14 @@
 | Folders | Up to **5** | Unlimited |
 | Items per folder | Up to **20** | Unlimited |
 | Search all folders | — | Yes |
-| Workspaces | — | Yes |
-| Per-folder hotkeys | — | Yes |
-| Custom images / themes | — | Yes |
+| Workspaces | — | Yes (Mac) |
+| Per-folder hotkeys | — | Yes (Mac) |
+| Custom folder images | — | Yes (Mac) |
 | `.clutterdock` pack export | — | Yes |
 | Core launcher, Recents, JSON backup | Yes | Yes |
 
 Activate Pro: **Settings → Pro** (same key on Mac + Windows).  
-Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://clutterdock.com/pricing.html)
+Details: [docs/PRICING.md](docs/PRICING.md) · [pricing page](https://clutterdock.com/pricing)
 
 ---
 

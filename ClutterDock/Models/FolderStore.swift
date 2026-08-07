@@ -126,8 +126,6 @@ final class FolderStore: ObservableObject {
         return value
     }
 
-    var missingAppCount: Int { missingItemCount }
-
     /// Resolve items for display (smart folders filled dynamically).
     func displayItems(
         for folder: AppFolder,
@@ -183,12 +181,6 @@ final class FolderStore: ObservableObject {
         }
         persist()
         NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
-    }
-
-    func setWorkspaceFolders(id: UUID, folderIDs: [UUID]) {
-        guard let idx = workspaces.firstIndex(where: { $0.id == id }) else { return }
-        workspaces[idx].folderIDs = folderIDs
-        persist()
     }
 
     func toggleFolderInWorkspace(workspaceID: UUID, folderID: UUID) {
@@ -330,7 +322,7 @@ final class FolderStore: ObservableObject {
               let idx = folders.firstIndex(where: { $0.id == targetID }),
               !folders[idx].isSmart else { return AddItemsResult(added: 0, hitLimit: false) }
 
-        var existing = Set(folders[idx].items.map { "\($0.kind.rawValue)|\($0.path)" })
+        var existing = Set(folders[idx].items.map { $0.dedupeKey })
         var added = 0
         var hitLimit = false
         for item in newItems {
@@ -338,7 +330,7 @@ final class FolderStore: ObservableObject {
                 hitLimit = true
                 break
             }
-            let key = "\(item.kind.rawValue)|\(item.path)"
+            let key = item.dedupeKey
             guard !existing.contains(key) else { continue }
             if item.kind != .url && !item.exists { continue }
             existing.insert(key)
@@ -356,11 +348,6 @@ final class FolderStore: ObservableObject {
     }
 
     @discardableResult
-    func addApps(paths: [String], to folderID: UUID? = nil) -> AddItemsResult {
-        addPaths(paths, to: folderID)
-    }
-
-    @discardableResult
     func addURL(_ string: String, to folderID: UUID? = nil) -> AddItemsResult {
         guard let item = DockItem.fromURLString(string) else {
             return AddItemsResult(added: 0, hitLimit: false)
@@ -372,10 +359,6 @@ final class FolderStore: ObservableObject {
         folders.filter { !$0.isSmart }.count
     }
 
-    func removeApp(id: UUID, from folderID: UUID? = nil) {
-        removeItem(id: id, from: folderID)
-    }
-
     func removeItem(id: UUID, from folderID: UUID? = nil) {
         let targetID = folderID ?? selectedFolderID
         guard let targetID,
@@ -383,10 +366,6 @@ final class FolderStore: ObservableObject {
               !folders[idx].isSmart else { return }
         folders[idx].items.removeAll { $0.id == id }
         persist()
-    }
-
-    func moveApp(from source: IndexSet, to destination: Int, in folderID: UUID? = nil) {
-        moveItem(from: source, to: destination, in: folderID)
     }
 
     func moveItem(from source: IndexSet, to destination: Int, in folderID: UUID? = nil) {
@@ -437,8 +416,8 @@ final class FolderStore: ObservableObject {
         if !FeatureGate.canAddItem(currentCount: folders[destIdx].items.count) {
             return false
         }
-        let key = "\(item.kind.rawValue)|\(item.path)"
-        if folders[destIdx].items.contains(where: { "\($0.kind.rawValue)|\($0.path)" == key }) {
+        let key = item.dedupeKey
+        if folders[destIdx].items.contains(where: { $0.dedupeKey == key }) {
             // Already present in destination — just remove from source
             folders[sourceIdx].items.remove(at: itemIndex)
             persist()
@@ -496,7 +475,7 @@ final class FolderStore: ObservableObject {
             var seen = Set<String>()
             var unique: [DockItem] = []
             for item in folders[i].items {
-                let key = "\(item.kind.rawValue)|\(item.path)"
+                let key = item.dedupeKey
                 if seen.contains(key) {
                     removed += 1
                 } else {
@@ -672,7 +651,7 @@ final class FolderStore: ObservableObject {
             var f = folder
             var seen = Set<String>()
             f.items = folder.items.compactMap { item in
-                let key = "\(item.kind.rawValue)|\(item.path)"
+                let key = item.dedupeKey
                 guard !seen.contains(key) else { return nil }
                 if item.kind != .url {
                     guard item.path.hasSuffix(".app") || item.kind != .app else { return nil }

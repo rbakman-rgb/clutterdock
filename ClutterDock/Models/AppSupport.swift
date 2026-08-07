@@ -5,23 +5,13 @@ enum AppSupport {
     /// Buy Me a Coffee page slug → buymeacoffee.com/<slug>
     static let buyMeACoffeeUsername = "chidichidovsky"
 
-    /// Product domains (owned): clutterdock.com · clutterdock.app
-    static let websiteURL = URL(string: "https://clutterdock.com/")!
-    static let pricingURL = URL(string: "https://clutterdock.com/pricing.html")!
-    /// Canonical GitHub repo: rbakman-rgb/clutterdock
-    static let releasesURL = URL(string: "https://github.com/rbakman-rgb/clutterdock/releases/latest")!
-    static let githubURL = URL(string: "https://github.com/rbakman-rgb/clutterdock")!
-    static let productDomainURL = URL(string: "https://clutterdock.com")!
-    static let productAppDomainURL = URL(string: "https://clutterdock.app")!
+    /// Product domain (owned): clutterdock.com (clutterdock.app redirects there)
+    static let pricingURL = URL(string: "https://clutterdock.com/pricing")!
 
     static var buyMeACoffeeURL: URL? {
         let slug = buyMeACoffeeUsername.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !slug.isEmpty, slug != "YOUR_USERNAME" else { return nil }
         return URL(string: "https://www.buymeacoffee.com/\(slug)")
-    }
-
-    static var isDonateConfigured: Bool {
-        buyMeACoffeeURL != nil
     }
 
     static let buyMeACoffeeSignupURL = URL(string: "https://www.buymeacoffee.com/signup")!

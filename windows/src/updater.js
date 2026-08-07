@@ -1,6 +1,8 @@
 const { dialog, shell, app } = require('electron');
 const path = require('path');
 
+const RELEASES_URL = 'https://github.com/rbakman-rgb/clutterdock/releases/latest';
+
 function currentVersion() {
   try {
     return require(path.join(__dirname, '..', 'package.json')).version;
@@ -10,9 +12,12 @@ function currentVersion() {
 }
 
 function parse(v) {
+  // Prerelease suffixes (1.2.0-beta.1) must not count as extra version parts,
+  // or prereleases would compare as newer than the stable they precede.
   return String(v || '0')
     .replace(/^v/i, '')
-    .split(/[.-]/)
+    .split('-')[0]
+    .split('.')
     .map((p) => parseInt(String(p).replace(/\D/g, ''), 10) || 0);
 }
 
@@ -40,7 +45,7 @@ function setupUpdater({ onStatus }) {
     return {
       check: async (interactive) => {
         if (interactive) {
-          shell.openExternal('https://github.com/rbakman-rgb/clutterdock/releases/latest');
+          shell.openExternal(RELEASES_URL);
         }
         return { ok: false, error: 'Updater module missing' };
       },
@@ -49,6 +54,7 @@ function setupUpdater({ onStatus }) {
 
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = false;
 
   autoUpdater.setFeedURL({
     provider: 'github',
@@ -86,7 +92,10 @@ function setupUpdater({ onStatus }) {
     try {
       const result = await autoUpdater.checkForUpdates();
       const remote = result?.updateInfo?.version;
-      const available = remote && isNewer(remote, local);
+      const available =
+        typeof result?.isUpdateAvailable === 'boolean'
+          ? result.isUpdateAvailable
+          : Boolean(remote && isNewer(remote, local));
 
       if (available) {
         if (interactive) {
@@ -105,24 +114,14 @@ function setupUpdater({ onStatus }) {
             return { ok: true, downloading: true, version: remote };
           }
           if (response === 1) {
-            shell.openExternal('https://github.com/rbakman-rgb/clutterdock/releases/latest');
+            shell.openExternal(RELEASES_URL);
           }
           return { ok: true, available: true, version: remote };
         }
 
-        const { response } = await dialog.showMessageBox({
-          type: 'info',
-          title: 'Update available',
-          message: `ClutterDock ${remote} is available.`,
-          detail: `You have ${local}.`,
-          buttons: ['Download now', 'Later'],
-          defaultId: 0,
-          cancelId: 1,
-        });
-        if (response === 0) {
-          await autoUpdater.downloadUpdate();
-          return { ok: true, downloading: true, version: remote };
-        }
+        // Background check: never interrupt the user with a modal — just record
+        // the status; Settings → Check for Updates shows the interactive flow.
+        onStatus?.(`Update ${remote} available — Settings → Check for Updates`);
         return { ok: true, available: true, version: remote };
       }
 
@@ -149,7 +148,7 @@ function setupUpdater({ onStatus }) {
           cancelId: 1,
         });
         if (response === 0) {
-          shell.openExternal('https://github.com/rbakman-rgb/clutterdock/releases/latest');
+          shell.openExternal(RELEASES_URL);
         }
       }
       return { ok: false, error: String(e.message || e) };

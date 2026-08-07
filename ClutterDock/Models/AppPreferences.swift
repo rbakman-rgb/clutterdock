@@ -85,14 +85,6 @@ final class AppPreferences: ObservableObject {
         didSet { defaults.set(showKeyboardHints, forKey: Keys.showKeyboardHints) }
     }
 
-    /// Pro theme accent: system, blue, purple, teal, orange
-    @Published var themeAccent: String {
-        didSet {
-            defaults.set(themeAccent, forKey: Keys.themeAccent)
-            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.themeAccent)
-        }
-    }
-
     @Published var checkForUpdatesAutomatically: Bool {
         didSet { defaults.set(checkForUpdatesAutomatically, forKey: Keys.checkForUpdatesAutomatically) }
     }
@@ -111,11 +103,8 @@ final class AppPreferences: ObservableObject {
         static let globalSearchDefault = "globalSearchDefault"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let showKeyboardHints = "showKeyboardHints"
-        static let themeAccent = "themeAccent"
         static let checkForUpdatesAutomatically = "checkForUpdatesAutomatically"
     }
-
-    static let themeOptions = ["system", "blue", "purple", "teal", "orange"]
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -140,8 +129,6 @@ final class AppPreferences: ObservableObject {
         globalSearchDefault = defaults.object(forKey: Keys.globalSearchDefault) as? Bool ?? false
         hasCompletedOnboarding = defaults.bool(forKey: Keys.hasCompletedOnboarding)
         showKeyboardHints = defaults.object(forKey: Keys.showKeyboardHints) as? Bool ?? true
-        let theme = defaults.string(forKey: Keys.themeAccent) ?? "system"
-        themeAccent = Self.themeOptions.contains(theme) ? theme : "system"
         checkForUpdatesAutomatically = defaults.object(forKey: Keys.checkForUpdatesAutomatically) as? Bool ?? true
     }
 

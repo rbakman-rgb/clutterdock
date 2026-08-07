@@ -98,6 +98,11 @@ struct DockItem: Identifiable, Codable, Equatable, Hashable {
         "\(name) \(path)".lowercased()
     }
 
+    /// Identity used for duplicate detection within a folder.
+    var dedupeKey: String {
+        "\(kind.rawValue)|\(path)"
+    }
+
     static func normalizePath(_ path: String) -> String {
         var p = path
         if p.hasSuffix("/") { p = String(p.dropLast()) }
@@ -159,6 +164,3 @@ struct DockItem: Identifiable, Codable, Equatable, Hashable {
         return DockItem(kind: .url, path: url.absoluteString, name: url.host ?? url.absoluteString)
     }
 }
-
-// Backward-compatible alias used during migration naming
-typealias AppItem = DockItem

@@ -112,12 +112,6 @@ struct AppFolder: Identifiable, Codable, Equatable, Hashable {
     var customImagePath: String?
     var smartKind: SmartFolderKind
 
-    /// Legacy accessor
-    var apps: [DockItem] {
-        get { items }
-        set { items = newValue }
-    }
-
     init(
         id: UUID = UUID(),
         name: String,
@@ -163,8 +157,6 @@ struct AppFolder: Identifiable, Codable, Equatable, Hashable {
         try c.encode(id, forKey: .id)
         try c.encode(name, forKey: .name)
         try c.encode(items, forKey: .items)
-        // Keep apps key for older tools that only read apps
-        try c.encode(items, forKey: .apps)
         try c.encodeIfPresent(symbolName, forKey: .symbolName)
         try c.encode(sortMode, forKey: .sortMode)
         try c.encode(viewMode, forKey: .viewMode)

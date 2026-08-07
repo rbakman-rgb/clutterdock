@@ -28,7 +28,7 @@ async function load() {
 
 async function savePrefs(partial) {
   snapshot = await clutterDock.updatePrefs(partial);
-  $('status').textContent = 'Saved.';
+  $('status').textContent = snapshot._hotkeyError || 'Saved.';
   await load();
 }
 

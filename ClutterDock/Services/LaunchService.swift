@@ -14,12 +14,6 @@ enum LaunchService {
         }
     }
 
-    /// Legacy
-    @discardableResult
-    static func launch(appAt path: String) -> Bool {
-        launchApp(at: path)
-    }
-
     @discardableResult
     static func launchApp(at path: String) -> Bool {
         let normalized = DockItem.normalizePath(path)

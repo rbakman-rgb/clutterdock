@@ -33,7 +33,6 @@ contextBridge.exposeInMainWorld('clutterDock', {
   openItem: (item) => ipcRenderer.invoke('open-item', item),
   revealItem: (item) => ipcRenderer.invoke('reveal-item', item),
   searchAll: (query) => ipcRenderer.invoke('search-all', query),
-  displayItems: (folderID) => ipcRenderer.invoke('display-items', folderID),
   updatePrefs: (partial) => ipcRenderer.invoke('update-prefs', partial),
   exportPack: () => ipcRenderer.invoke('export-pack'),
   importPack: (merge) => ipcRenderer.invoke('import-pack', merge),

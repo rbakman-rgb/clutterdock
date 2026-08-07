@@ -48,33 +48,12 @@ if [[ -n "${CLUTTERDOCK_DEV:-}" ]]; then
   echo "→ Dev build: test unlock key ENABLED"
 fi
 
-SOURCES=(
-  "$GEN_DIR/LicenseSecret.swift"
-  "$SRC/ClutterDockApp.swift"
-  "$SRC/AppDelegate.swift"
-  "$SRC/Models/DockItem.swift"
-  "$SRC/Models/AppFolder.swift"
-  "$SRC/Models/FolderStore.swift"
-  "$SRC/Models/AppPreferences.swift"
-  "$SRC/Models/AppSupport.swift"
-  "$SRC/Models/LaunchHistory.swift"
-  "$SRC/Models/FeatureGate.swift"
-  "$SRC/Models/LicenseManager.swift"
-  "$SRC/Services/AppIconService.swift"
-  "$SRC/Services/LaunchService.swift"
-  "$SRC/Services/RunningAppsService.swift"
-  "$SRC/Services/HotKeyService.swift"
-  "$SRC/Services/LoginItemService.swift"
-  "$SRC/Services/URLSchemeHandler.swift"
-  "$SRC/Services/UpdateService.swift"
-  "$SRC/Helpers/PanelController.swift"
-  "$SRC/Helpers/DropImport.swift"
-  "$SRC/Models/StackSymbols.swift"
-  "$SRC/Views/StackEditorSheet.swift"
-  "$SRC/Views/LauncherView.swift"
-  "$SRC/Views/SettingsView.swift"
-  "$SRC/Views/OnboardingView.swift"
-)
+# Every .swift file under ClutterDock/ compiles — a hardcoded manifest silently
+# dropped newly added files from release builds.
+SOURCES=("$GEN_DIR/LicenseSecret.swift")
+while IFS= read -r f; do
+  SOURCES+=("$f")
+done < <(find "$SRC" -name '*.swift' | sort)
 
 compile_arch() {
   local arch="$1"
@@ -135,7 +114,10 @@ fi
 echo -n "APPL????" > "$APP/Contents/PkgInfo"
 
 # Ad-hoc sign so the app is runnable (Developer ID notarization is a separate step).
-codesign --force --deep --sign - "$APP" 2>/dev/null || true
+# A failed/invalid signature must fail the build — an unsignable .app looks like a
+# Gatekeeper problem to users and is miserable to diagnose from a green CI run.
+codesign --force --deep --sign - "$APP"
+codesign --verify --deep "$APP"
 
 /System/Library/CoreServices/pbs -flush 2>/dev/null || true
 

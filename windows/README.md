@@ -4,7 +4,7 @@ Free tray launcher that mirrors the Mac **ClutterDock** idea: group apps, files,
 
 **Free forever.** Tips optional: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
-## Features (v1.1 Free / Pro)
+## Features (Free / Pro)
 
 - System **tray** icon (click to open launcher)
 - Global hotkey default: **Ctrl+Shift+D**
@@ -46,7 +46,7 @@ npm run dist
 
 Outputs under `windows/dist/`:
 
-- `ClutterDock-1.0.0-x64.exe` — NSIS installer  
+- `ClutterDock-<version>-x64.exe` — NSIS installer  
 - Portable build as well (`dist:portable` or full `dist`)
 
 From macOS, `electron-builder --win` may need extra tooling; prefer building on Windows/Parallels.

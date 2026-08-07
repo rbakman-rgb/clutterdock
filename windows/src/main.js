@@ -167,8 +167,10 @@ function createSettings() {
   settingsWin.on('closed', () => {
     settingsWin = null;
   });
-  settingsWin.webContents.on('did-finish-load', () => {
-    settingsWin.webContents.send('snapshot', store.getSnapshot());
+  const win = settingsWin;
+  win.webContents.on('did-finish-load', () => {
+    // Use the captured reference — settingsWin is nulled if closed before load finishes
+    if (!win.isDestroyed()) win.webContents.send('snapshot', store.getSnapshot());
   });
 }
 
@@ -177,8 +179,15 @@ function createTray() {
   if (!fs.existsSync(iconPath)) iconPath = asset('icon.png');
   let image = nativeImage.createFromPath(iconPath);
   if (image.isEmpty()) {
-    // 16x16 blue fallback
-    image = nativeImage.createEmpty();
+    // Solid 16x16 fallback — an empty tray image would make the app unreachable
+    const px = Buffer.alloc(16 * 16 * 4);
+    for (let i = 0; i < px.length; i += 4) {
+      px[i] = 246; // B
+      px[i + 1] = 130; // G
+      px[i + 2] = 59; // R
+      px[i + 3] = 255; // A
+    }
+    image = nativeImage.createFromBuffer(px, { width: 16, height: 16 });
   }
   if (isMac) image = image.resize({ width: 18, height: 18 });
   else image = image.resize({ width: 16, height: 16 });
@@ -206,14 +215,18 @@ function createTray() {
   });
 }
 
+const DEFAULT_HOTKEY = 'CommandOrControl+Shift+D';
+
 function registerHotkey() {
   globalShortcut.unregisterAll();
-  const accel = store.prefs.hotkey || 'CommandOrControl+Shift+D';
+  const accel = store.prefs.hotkey || DEFAULT_HOTKEY;
   try {
     const ok = globalShortcut.register(accel, () => togglePanel());
     if (!ok) console.warn('Hotkey registration failed:', accel);
+    return ok;
   } catch (e) {
     console.warn('Hotkey error', e);
+    return false;
   }
 }
 
@@ -354,18 +367,22 @@ function wireIpc() {
     store.gate.canUseGlobalSearch ? store.searchAll(query) : []
   );
 
-  ipcMain.handle('display-items', (_e, folderID) => {
-    const folder = store.state.folders.find((f) => f.id === folderID) || store.selectedFolder();
-    return store.displayItems(folder);
-  });
-
   ipcMain.handle('update-prefs', (_e, partial) => {
     store.updatePrefs(partial || {});
-    if (partial && partial.hotkey !== undefined) registerHotkey();
+    let hotkeyError = null;
+    if (partial && partial.hotkey !== undefined) {
+      // A typo'd accelerator would silently leave the app with no hotkey at all
+      if (!registerHotkey()) {
+        hotkeyError = `Couldn't register "${store.prefs.hotkey}" — restored ${DEFAULT_HOTKEY}.`;
+        store.updatePrefs({ hotkey: DEFAULT_HOTKEY });
+        registerHotkey();
+      }
+    }
     if (partial && partial.launchAtLogin !== undefined) {
       app.setLoginItemSettings({ openAtLogin: !!partial.launchAtLogin });
     }
-    return store.getSnapshot();
+    const snap = store.getSnapshot();
+    return hotkeyError ? { ...snap, _hotkeyError: hotkeyError } : snap;
   });
 
   ipcMain.handle('activate-license', (_e, key) => {
@@ -441,12 +458,6 @@ function wireIpc() {
 
   ipcMain.handle('open-data-dir', () => shell.openPath(store.getSnapshot().dataDir));
 
-  ipcMain.handle('get-item-icon', async (_e, itemPath) => {
-    // Electron doesn't extract Windows icons easily cross-platform.
-    // Renderer uses emoji/type glyphs; on Windows native icons can be added later.
-    return null;
-  });
-
   ipcMain.handle('check-for-updates', async (_e, interactive) => {
     if (!updater) {
       return { ok: false, error: 'Updater not ready' };
@@ -465,7 +476,7 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    showPanel();
+    if (store) showPanel(); // a second launch can race app startup
   });
 
   app.whenReady().then(() => {

@@ -8,18 +8,23 @@ struct SettingsView: View {
     @ObservedObject var history: LaunchHistory
     @ObservedObject private var license = LicenseManager.shared
 
+    private enum Tab: Hashable {
+        case stacks, workspaces, general, pro, backup, about
+    }
+
     @State private var selectedFolderID: UUID?
     @State private var statusMessage: String?
     @State private var licenseDraft = ""
+    @State private var selectedTab: Tab = .stacks
 
     var body: some View {
-        TabView {
-            foldersTab.tabItem { Label("Stacks", systemImage: "square.grid.2x2") }
-            workspacesTab.tabItem { Label("Workspaces", systemImage: "rectangle.3.group") }
-            generalTab.tabItem { Label("General", systemImage: "gearshape") }
-            proTab.tabItem { Label("Pro", systemImage: "star.fill") }
-            backupTab.tabItem { Label("Backup", systemImage: "externaldrive") }
-            aboutTab.tabItem { Label("About", systemImage: "info.circle") }
+        TabView(selection: $selectedTab) {
+            foldersTab.tabItem { Label("Stacks", systemImage: "square.grid.2x2") }.tag(Tab.stacks)
+            workspacesTab.tabItem { Label("Workspaces", systemImage: "rectangle.3.group") }.tag(Tab.workspaces)
+            generalTab.tabItem { Label("General", systemImage: "gearshape") }.tag(Tab.general)
+            proTab.tabItem { Label("Pro", systemImage: "star.fill") }.tag(Tab.pro)
+            backupTab.tabItem { Label("Backup", systemImage: "externaldrive") }.tag(Tab.backup)
+            aboutTab.tabItem { Label("About", systemImage: "info.circle") }.tag(Tab.about)
         }
         .padding(.top, 8)
         .frame(minWidth: 640, minHeight: 480)
@@ -263,7 +268,7 @@ struct SettingsView: View {
                     Text(FeatureGate.proUpgradeSummary)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button("Go to Pro…") { /* user switches tab */ }
+                    Button("Go to Pro…") { selectedTab = .pro }
                         .buttonStyle(.borderedProminent)
                 }
                 .padding()
@@ -336,7 +341,7 @@ struct SettingsView: View {
                 GroupBox("What’s included") {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Free: launcher, up to \(FeatureGate.freeMaxNormalFolders) folders, \(FeatureGate.freeMaxItemsPerFolder) items each, Recents, search in folder, hotkey, JSON backup")
-                        Text("Pro: unlimited · workspaces · search all · folder hotkeys · custom images · themes · .clutterdock packs")
+                        Text("Pro: unlimited · workspaces · search all · folder hotkeys · custom images · .clutterdock packs")
                             .fontWeight(.medium)
                     }
                     .font(.callout)
@@ -424,17 +429,6 @@ struct SettingsView: View {
                     Text(FeatureGate.canUseGlobalSearch ? "Default search to “All folders”" : "Default search to “All folders” (Pro)")
                 }
 
-                if FeatureGate.canUseThemes {
-                    Picker("Theme accent", selection: $preferences.themeAccent) {
-                        ForEach(AppPreferences.themeOptions, id: \.self) { t in
-                            Text(t.capitalized).tag(t)
-                        }
-                    }
-                } else {
-                    Text("Themes are included in Pro.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
             Section("Access") {
                 Toggle("Show menu bar icon", isOn: $preferences.showMenuBarIcon)
