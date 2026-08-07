@@ -25,6 +25,7 @@ struct LauncherView: View {
     @State private var dropStatus: String?
     @ObservedObject private var license = LicenseManager.shared
     @FocusState private var searchFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     private var columns: [GridItem] {
         [GridItem(.adaptive(minimum: preferences.tileWidth, maximum: preferences.tileWidth + 12), spacing: 10)]
@@ -62,7 +63,7 @@ struct LauncherView: View {
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(panelBorder)
             // Soft ambient shadow only — no system blue key-window ring
-            .shadow(color: .black.opacity(0.45), radius: 32, y: 16)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.45 : 0.22), radius: 32, y: 16)
             .compositingGroup()
             .onDrop(
                 of: DropImport.allAcceptedTypes,
@@ -155,7 +156,7 @@ struct LauncherView: View {
             onTab: handleTabKey,
             onCommandDigit: handleCommandDigit,
             onCommandG: handleCommandG,
-            onHelp: { showingHelp = true; return .handled }
+            onHelp: { showHelpFromKeyboard() }
         ))
     }
 
@@ -169,13 +170,20 @@ struct LauncherView: View {
     }
 
     private func handleSpaceKey() -> KeyPress.Result {
-        // Don’t steal Space while typing in search
-        if searchFocused && !searchText.isEmpty { return .ignored }
+        // Never steal Space from the search field (Return launches while typing)
+        if searchFocused { return .ignored }
         if searchText.isEmpty {
             launchSelected()
             return .handled
         }
         return .ignored
+    }
+
+    private func showHelpFromKeyboard() -> KeyPress.Result {
+        // A bare "?" while typing in the search field is input, not a shortcut
+        if searchFocused { return .ignored }
+        showingHelp = true
+        return .handled
     }
 
     private func handleTabKey(shift: Bool) -> KeyPress.Result {
@@ -254,7 +262,7 @@ struct LauncherView: View {
             .strokeBorder(
                 isTargeted
                     ? Color.accentColor.opacity(0.85)
-                    : Color.white.opacity(0.10),
+                    : Color(nsColor: .separatorColor), // visible in light AND dark mode
                 lineWidth: isTargeted ? 1.5 : 0.75
             )
             .animation(.easeOut(duration: 0.12), value: isTargeted)
@@ -269,6 +277,8 @@ struct LauncherView: View {
             _ = store.nudgeItem(id: id, by: delta, in: folder.id)
             return .handled
         }
+        // While there's text in the search field, ←/→ must move the caret
+        if searchFocused && !searchText.isEmpty { return .ignored }
         moveSelection(by: delta)
         return .handled
     }
@@ -441,6 +451,7 @@ struct LauncherView: View {
             .menuStyle(.borderlessButton)
             .frame(width: 28)
             .help("New stack, add items, view")
+            .accessibilityLabel("Add stack or items")
         }
         .padding(.horizontal, 14)
         .padding(.top, store.workspaces.count > 1 ? 6 : 10)
@@ -472,12 +483,14 @@ struct LauncherView: View {
             .toggleStyle(.button)
             .controlSize(.small)
             .help(FeatureGate.canUseGlobalSearch ? "Search all folders (⌘G)" : "Pro: search all folders")
+            .accessibilityLabel(FeatureGate.canUseGlobalSearch ? "Search all folders" : "Search all folders (Pro feature)")
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .help("Clear search")
+                .accessibilityLabel("Clear search")
             }
         }
         .padding(.horizontal, 12)
@@ -858,6 +871,7 @@ struct LauncherView: View {
             }
             .buttonStyle(.borderless)
             .help("Keyboard help (⌘/)")
+            .accessibilityLabel("Keyboard help")
             Button("Settings") { onOpenSettings() }
                 .buttonStyle(.borderless)
                 .font(.system(size: 11, weight: .medium))
@@ -914,7 +928,10 @@ struct LauncherView: View {
     }
 
     private func columnsEstimate() -> Int {
-        max(1, Int(preferences.panelWidth / (preferences.tileWidth + 10)))
+        // Grid rows: panel width minus the 14pt padding on each side, tiles separated
+        // by 10pt spacing → n·w + (n-1)·10 ≤ available  ⇔  n ≤ (available+10)/(w+10)
+        let available = preferences.panelWidth - 28
+        return max(1, Int((available + 10) / (preferences.tileWidth + 10)))
     }
 
     private func moveSelection(by delta: Int) {
@@ -1153,6 +1170,14 @@ private struct ItemTile: View {
     var onMoveRight: () -> Void = {}
     @State private var hovering = false
 
+    // Running/missing are otherwise conveyed only visually (capsule, dimmed icon)
+    private var accessibilityDescription: String {
+        var parts = [item.name, item.kind.label]
+        if isRunning { parts.append("running") }
+        if !item.exists && item.kind != .url { parts.append("missing") }
+        return parts.joined(separator: ", ")
+    }
+
     var body: some View {
         Button(action: onLaunch) {
             VStack(spacing: 7) {
@@ -1204,6 +1229,7 @@ private struct ItemTile: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(canReorder ? "\(item.name)\n\(item.path)\nDrag to reorder · ⌥← ⌥→ · Space/Return to open" : "\(item.name)\n\(item.path)")
+        .accessibilityLabel(accessibilityDescription)
         .contextMenu {
             Button("Open") { onLaunch() }
             Button("Show in Finder") { LaunchService.reveal(item) }

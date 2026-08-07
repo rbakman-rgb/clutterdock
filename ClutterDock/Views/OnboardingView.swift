@@ -22,6 +22,7 @@ struct OnboardingCard: View {
                 }
                 .buttonStyle(.plain)
                 .help("Dismiss tips")
+                .accessibilityLabel("Dismiss welcome tips")
             }
 
             VStack(alignment: .leading, spacing: 8) {

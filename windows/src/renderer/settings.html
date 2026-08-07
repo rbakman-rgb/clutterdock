@@ -14,25 +14,25 @@
     <div class="section">
       <h3>General</h3>
       <div class="field">
-        <label>Close launcher after opening an item
+        <label for="closeAfter">Close launcher after opening an item
           <span class="sub">Like the Mac app</span>
         </label>
         <input type="checkbox" id="closeAfter" />
       </div>
       <div class="field">
-        <label>Show keyboard hints
+        <label for="hints">Show keyboard hints
           <span class="sub">Footer tips in the launcher</span>
         </label>
         <input type="checkbox" id="hints" />
       </div>
       <div class="field">
-        <label>Open at login
+        <label for="login">Open at login
           <span class="sub">Start ClutterDock with Windows</span>
         </label>
         <input type="checkbox" id="login" />
       </div>
       <div class="field">
-        <label>Global hotkey
+        <label for="hotkey">Global hotkey
           <span class="sub">Electron accelerator string</span>
         </label>
         <input type="text" id="hotkey" placeholder="CommandOrControl+Shift+D" />
@@ -42,7 +42,7 @@
         <button class="btn secondary" id="resetTips">Show tips again</button>
       </div>
       <div class="field">
-        <label>Check for updates automatically
+        <label for="autoUpdate">Check for updates automatically
           <span class="sub">Uses GitHub Releases (NSIS install recommended)</span>
         </label>
         <input type="checkbox" id="autoUpdate" />
@@ -59,13 +59,12 @@
       <h3>Pro</h3>
       <p class="lead" id="proStatus" style="margin-bottom:10px">Free</p>
       <div class="field">
-        <label>License key
+        <label for="licenseKey">License key
           <span class="sub">Same key works on Mac + Windows</span>
         </label>
         <input type="text" id="licenseKey" placeholder="SDPRO-XXXX-XXXX-XXXX" style="min-width:220px" />
       </div>
       <div class="field">
-        <label></label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn primary" id="activatePro">Activate Pro</button>
           <button class="btn secondary" id="deactivatePro">Deactivate</button>
@@ -89,7 +88,7 @@
           <button class="btn secondary" id="importMerge">Import merge…</button>
         </div>
       </div>
-      <div class="status" id="status"></div>
+      <div class="status" id="status" aria-live="polite"></div>
     </div>
 
     <div class="section">
@@ -102,7 +101,7 @@
         <button class="btn coffee" id="coffee">☕ Buy me a coffee</button>
         <button class="btn secondary" id="dataDir">Open data folder</button>
       </div>
-      <p class="status" id="version">Version 1.0.0</p>
+      <p class="status" id="version">Version —</p>
     </div>
   </div>
   <script src="settings.js"></script>

@@ -273,9 +273,10 @@ final class FolderStore: ObservableObject {
 
     func deleteFolder(id: UUID) {
         guard let folder = folders.first(where: { $0.id == id }) else { return }
-        // Don't delete last non-smart folder if it's the only real one
+        // Keep at least one normal stack — smart folders can't accept drops, so
+        // deleting the last real one would leave nowhere to add items.
         let normalCount = folders.filter { !$0.isSmart }.count
-        if !folder.isSmart && normalCount <= 1 && folders.count <= 1 { return }
+        if !folder.isSmart && normalCount <= 1 { return }
 
         folders.removeAll { $0.id == id }
         for i in workspaces.indices {

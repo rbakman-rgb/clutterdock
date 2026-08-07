@@ -4,6 +4,7 @@ const {
   Tray,
   Menu,
   nativeImage,
+  nativeTheme,
   globalShortcut,
   ipcMain,
   dialog,
@@ -75,7 +76,7 @@ function createPanel() {
     skipTaskbar: true,
     alwaysOnTop: true,
     transparent: false,
-    backgroundColor: '#f4f6fb',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#10141d' : '#f4f6fb',
     hasShadow: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -437,6 +438,8 @@ function wireIpc() {
   ipcMain.handle('show-panel', () => showPanel());
 
   ipcMain.handle('open-external', (_e, url) => safeOpenExternal(url));
+
+  ipcMain.handle('open-data-dir', () => shell.openPath(store.getSnapshot().dataDir));
 
   ipcMain.handle('get-item-icon', async (_e, itemPath) => {
     // Electron doesn't extract Windows icons easily cross-platform.

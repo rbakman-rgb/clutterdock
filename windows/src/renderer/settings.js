@@ -17,7 +17,7 @@ async function load() {
     $('autoUpdate').checked = snapshot.prefs.checkForUpdatesAutomatically !== false;
   }
   const tier = snapshot.license?.isPro ? 'Pro' : 'Free';
-  const ver = (await clutterDock.getUpdateStatus?.())?.version || '1.1.1';
+  const ver = (await clutterDock.getUpdateStatus?.())?.version || '—';
   $('version').textContent = `Version ${ver} · ${tier} · ${snapshot.dataDir}`;
   if ($('updateHint')) $('updateHint').textContent = `Installed ${ver}`;
   $('proStatus').textContent = snapshot.license?.isPro
@@ -95,11 +95,7 @@ $('importReplace').onclick = () => runImport(false);
 $('importMerge').onclick = () => runImport(true);
 
 $('coffee').onclick = () => clutterDock.openExternal('https://buymeacoffee.com/chidichidovsky');
-$('dataDir').onclick = async () => {
-  if (snapshot?.dataDir) {
-    await clutterDock.openExternal('file://' + snapshot.dataDir.replace(/\\/g, '/'));
-  }
-};
+$('dataDir').onclick = () => clutterDock.openDataDir();
 
 clutterDock.onSnapshot((data) => {
   snapshot = data;

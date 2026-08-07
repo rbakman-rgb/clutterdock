@@ -117,6 +117,8 @@ function renderTabs() {
   for (const f of folders) {
     const b = document.createElement('button');
     b.className = 'tab' + (f.id === snapshot.state.selectedFolderID ? ' active' : '');
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', f.id === snapshot.state.selectedFolderID ? 'true' : 'false');
     b.textContent = stackLabel(f);
     b.title =
       f.smartKind && f.smartKind !== 'none'
@@ -161,8 +163,8 @@ function renderTabs() {
   const actions = document.createElement('div');
   actions.className = 'tab-actions';
   actions.innerHTML = `
-    <button class="icon-btn" id="addFolderBtn" title="New stack">📁+</button>
-    <button class="icon-btn" id="addItemsBtn" title="Add items">＋</button>
+    <button class="icon-btn" id="addFolderBtn" title="New stack" aria-label="New stack">📁+</button>
+    <button class="icon-btn" id="addItemsBtn" title="Add items" aria-label="Add items">＋</button>
   `;
   tabs.appendChild(actions);
   $('addFolderBtn').onclick = async () => {
@@ -182,12 +184,9 @@ function renderTabs() {
     }
     await refresh(snap);
   };
-  // tier badge
   const badge = document.createElement('span');
-  badge.style.cssText =
-    'font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(15,23,42,.08);margin-left:4px';
+  badge.className = 'tier-badge' + (snapshot.gate?.isPro ? ' pro' : '');
   badge.textContent = snapshot.gate?.isPro ? 'Pro' : 'Free';
-  if (snapshot.gate?.isPro) badge.style.background = 'rgba(251,146,60,.35)';
   tabs.appendChild(badge);
 }
 
@@ -274,12 +273,21 @@ function renderContent() {
 }
 
 function wireItem(el, item, folder) {
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
+  el.setAttribute('aria-label', `${item.name}, ${item.kind}`);
   el.onclick = async () => {
     selectedId = item.id;
     renderContent();
     const res = await clutterDock.openItem(item);
     if (!res?.ok && res?.error) alert(res.error);
     else await refresh();
+  };
+  el.onkeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      el.onclick();
+    }
   };
   el.oncontextmenu = (e) => {
     e.preventDefault();
@@ -489,11 +497,18 @@ function symbolDialog(folderName, current) {
   });
 }
 
+// Keep the fixed-position context menu inside the panel bounds
+function placeCtx(ctx, x, y) {
+  ctx.style.visibility = 'hidden';
+  ctx.hidden = false;
+  const { offsetWidth: w, offsetHeight: h } = ctx;
+  ctx.style.left = Math.max(4, Math.min(x, window.innerWidth - w - 4)) + 'px';
+  ctx.style.top = Math.max(4, Math.min(y, window.innerHeight - h - 4)) + 'px';
+  ctx.style.visibility = '';
+}
+
 function showItemMenu(x, y, item, folder) {
   const ctx = $('ctx');
-  ctx.hidden = false;
-  ctx.style.left = x + 'px';
-  ctx.style.top = y + 'px';
   const canReorder = folder && folder.smartKind === 'none';
   ctx.innerHTML = `
     <button data-a="open">Open</button>
@@ -501,6 +516,7 @@ function showItemMenu(x, y, item, folder) {
     ${canReorder ? '<button data-a="left">Move left</button><button data-a="right">Move right</button>' : ''}
     ${canReorder ? '<button class="danger" data-a="remove">Remove</button>' : ''}
   `;
+  placeCtx(ctx, x, y);
   ctx.onclick = async (e) => {
     const a = e.target.getAttribute('data-a');
     if (!a) return;
@@ -515,9 +531,6 @@ function showItemMenu(x, y, item, folder) {
 
 function showFolderMenu(x, y, folder) {
   const ctx = $('ctx');
-  ctx.hidden = false;
-  ctx.style.left = x + 'px';
-  ctx.style.top = y + 'px';
   ctx.innerHTML = `
     <button data-a="grid">Grid view</button>
     <button data-a="list">List view</button>
@@ -525,6 +538,7 @@ function showFolderMenu(x, y, folder) {
     ${folder.smartKind === 'none' ? '<button data-a="symbol">Change symbol…</button>' : ''}
     ${folder.smartKind === 'none' ? '<button class="danger" data-a="delete">Delete stack</button>' : ''}
   `;
+  placeCtx(ctx, x, y);
   ctx.onclick = async (e) => {
     const a = e.target.getAttribute('data-a');
     if (!a) return;
@@ -618,17 +632,34 @@ async function toggleGlobalSearch() {
 }
 $('searchAll').onclick = toggleGlobalSearch;
 $('settingsBtn').onclick = () => clutterDock.openSettings();
-$('helpBtn').onclick = () => {
-  alert(
-    'ClutterDock keyboard\n\n' +
-      'Ctrl+Shift+D — Open/close\n' +
-      'Esc — Close\n' +
-      'Enter — Open selected\n' +
-      'Arrows — Move selection\n' +
-      'Ctrl+G — Toggle search all\n' +
-      'Alt+←/→ — Reorder item'
-  );
-};
+
+const HELP_KEYS = [
+  ['Ctrl+Shift+D', 'Open / close'],
+  ['Esc', 'Close'],
+  ['Enter', 'Open selected'],
+  ['Arrows', 'Move selection'],
+  ['Ctrl+G', 'Toggle search all'],
+  ['Alt+← / Alt+→', 'Reorder item'],
+];
+
+function helpDialog() {
+  return openModal((modal) => {
+    const rows = HELP_KEYS.map(
+      ([keys, what]) => `<tr><td class="help-keys">${escapeHtml(keys)}</td><td>${escapeHtml(what)}</td></tr>`
+    ).join('');
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>Keyboard shortcuts</h2>
+        <table class="help-table">${rows}</table>
+        <div class="row">
+          <button class="btn primary" id="dlgOk">Done</button>
+        </div>
+      </div>`;
+    $('dlgOk').onclick = () => closeModal(null);
+    $('dlgOk').focus();
+  });
+}
+$('helpBtn').onclick = helpDialog;
 
 document.addEventListener('click', (e) => {
   if (!$('ctx').contains(e.target)) $('ctx').hidden = true;

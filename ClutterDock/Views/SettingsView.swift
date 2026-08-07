@@ -57,11 +57,13 @@ struct SettingsView: View {
                             presentAlert("ClutterDock Pro", FeatureGate.folderLimitMessage(current: store.normalFolderCount))
                         }
                     } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("New stack")
                     Button {
                         if let id = selectedFolderID { store.deleteFolder(id: id) }
                         selectedFolderID = store.selectedFolderID
                     } label: { Image(systemName: "minus") }
                     .disabled(selectedFolderID == nil)
+                    .accessibilityLabel("Delete selected stack")
                 }
             }
         } detail: {
