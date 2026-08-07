@@ -68,28 +68,51 @@ function defaultPrefs() {
   };
 }
 
-function loadJSON(file, fallback) {
+/**
+ * Load a JSON file. If the file exists but is unreadable, preserve it as
+ * <file>.corrupt.bak (never silently destroy user data) and report via onCorrupt.
+ */
+function loadJSON(file, fallback, onCorrupt) {
+  if (!fs.existsSync(file)) return fallback;
   try {
-    if (fs.existsSync(file)) {
-      return { ...fallback, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
-    }
+    return { ...fallback, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
   } catch (e) {
     console.error('ClutterDock load error', file, e);
+    const backup = file + '.corrupt.bak';
+    try {
+      fs.copyFileSync(file, backup);
+      if (onCorrupt) onCorrupt(backup);
+    } catch (copyErr) {
+      console.error('ClutterDock backup error', backup, copyErr);
+    }
+    return fallback;
   }
-  return fallback;
 }
 
+/** Atomic write: a crash mid-write must never truncate the existing file. */
 function saveJSON(file, data) {
+  const tmp = file + '.tmp';
   try {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tmp, file);
   } catch (e) {
     console.error('ClutterDock save error', file, e);
+    try {
+      fs.rmSync(tmp, { force: true });
+    } catch (_) {
+      /* ignore */
+    }
   }
 }
 
 class Store {
   constructor() {
-    this.state = loadJSON(configPath(), defaultState());
+    this.dataWarning = null;
+    this.state = loadJSON(configPath(), defaultState(), (backup) => {
+      this.dataWarning =
+        'Your stacks file was unreadable, so ClutterDock started fresh. ' +
+        'The original was preserved at:\n' + backup;
+    });
     if (!this.state.folders?.length) {
       this.state = defaultState();
     }
@@ -165,6 +188,7 @@ class Store {
       },
       history: this.history.entries.slice(0, gate.historyLimit),
       dataDir: dataDir(),
+      dataWarning: this.dataWarning,
       license: {
         isPro: this.isPro,
         display: this.isPro ? maskLicense(this.prefs.licenseKey) : '',
@@ -475,37 +499,48 @@ class Store {
   }
 
   importPack(json, merge) {
-    const data = typeof json === 'string' ? JSON.parse(json) : json;
-    if (!data.folders?.length) throw new Error('Empty pack');
+    let data;
+    try {
+      data = typeof json === 'string' ? JSON.parse(json) : json;
+    } catch (e) {
+      throw new Error('Not a valid pack file');
+    }
+    // A pack is untrusted input: normalize every folder/item, regenerate all ids,
+    // and drop anything that isn't a plain launchable entry.
+    const folders = sanitizePackFolders(data?.folders);
+    if (!folders.length) throw new Error('The pack contains no importable folders');
     if (merge) {
-      for (const folder of data.folders) {
-        if (folder.smartKind && folder.smartKind !== 'none') continue;
+      for (const folder of folders) {
         const existing = this.state.folders.find(
           (f) => f.name === folder.name && f.smartKind === 'none'
         );
         if (existing) {
           this.addPaths(
-            (folder.items || []).filter((i) => i.kind !== 'url').map((i) => i.path),
+            folder.items.filter((i) => i.kind !== 'url').map((i) => i.path),
             existing.id
           );
-          for (const i of folder.items || []) {
+          for (const i of folder.items) {
             if (i.kind === 'url') this.addURL(i.path, existing.id);
           }
         } else {
-          this.state.folders.push({
-            ...folder,
-            id: randomUUID(),
-            items: (folder.items || []).map((i) => ({ ...i, id: randomUUID() })),
-          });
+          this.state.folders.push(folder);
         }
       }
     } else {
+      // Keep a restorable copy of the data being replaced.
+      try {
+        if (fs.existsSync(configPath())) {
+          fs.copyFileSync(configPath(), configPath() + '.pre-import.bak');
+        }
+      } catch (e) {
+        console.error('ClutterDock pre-import backup failed', e);
+      }
       this.state = {
         version: CURRENT_VERSION,
-        folders: data.folders,
-        selectedFolderID: data.selectedFolderID || data.folders[0]?.id,
-        workspaces: data.workspaces || this.state.workspaces,
-        activeWorkspaceID: data.activeWorkspaceID || null,
+        folders,
+        selectedFolderID: folders[0]?.id ?? null,
+        workspaces: this.state.workspaces,
+        activeWorkspaceID: null,
       };
       this._ensureSmartFolders();
     }
@@ -516,6 +551,50 @@ class Store {
     this.prefs = { ...this.prefs, ...partial };
     this.persistPrefs();
   }
+}
+
+const PACK_KINDS = new Set(['app', 'file', 'folder', 'url']);
+const PACK_SORT_MODES = new Set(['manual', 'nameAZ', 'nameZA', 'kind']);
+
+/** Normalize untrusted pack folders: valid kinds only, http(s) URLs only, fresh ids. */
+function sanitizePackFolders(rawFolders) {
+  if (!Array.isArray(rawFolders)) return [];
+  const folders = [];
+  for (const raw of rawFolders) {
+    if (!raw || typeof raw !== 'object') continue;
+    if (raw.smartKind && raw.smartKind !== 'none') continue; // smart folders are rebuilt locally
+    const items = [];
+    for (const item of Array.isArray(raw.items) ? raw.items : []) {
+      if (!item || typeof item !== 'object') continue;
+      const kind = String(item.kind || '');
+      const p = typeof item.path === 'string' ? item.path.trim() : '';
+      if (!PACK_KINDS.has(kind) || !p) continue;
+      if (kind === 'url') {
+        try {
+          const u = new URL(p);
+          if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
+        } catch {
+          continue;
+        }
+      }
+      items.push({
+        id: randomUUID(),
+        kind,
+        path: p,
+        name: (typeof item.name === 'string' && item.name.trim()) || displayName(p, kind),
+      });
+    }
+    folders.push({
+      id: randomUUID(),
+      name: ((typeof raw.name === 'string' && raw.name.trim()) || 'Stack').slice(0, 80),
+      items,
+      symbol: typeof raw.symbol === 'string' ? raw.symbol : 'folder',
+      sortMode: PACK_SORT_MODES.has(raw.sortMode) ? raw.sortMode : 'manual',
+      viewMode: raw.viewMode === 'list' ? 'list' : 'grid',
+      smartKind: 'none',
+    });
+  }
+  return folders;
 }
 
 function detectKind(p) {

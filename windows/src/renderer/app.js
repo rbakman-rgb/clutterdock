@@ -64,8 +64,14 @@ async function refresh(next) {
   render();
 }
 
+let dataWarningShown = false;
+
 function render() {
   if (!snapshot) return;
+  if (snapshot.dataWarning && !dataWarningShown) {
+    dataWarningShown = true;
+    alert(snapshot.dataWarning);
+  }
   renderTabs();
   renderContent();
   renderHints();

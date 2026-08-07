@@ -31,7 +31,8 @@ enum AppSupport {
     /// `~/Library/Application Support/ClutterDock`, migrating older product folders once.
     static var applicationSupportDirectory: URL {
         let fm = FileManager.default
-        let root = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let root = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
         let dest = root.appendingPathComponent("ClutterDock", isDirectory: true)
         if !fm.fileExists(atPath: dest.path) {
             for legacy in ["SlaveDock", "DockFolder"] {

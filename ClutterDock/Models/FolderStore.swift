@@ -15,6 +15,10 @@ final class FolderStore: ObservableObject {
     private var saveTask: Task<Void, Never>?
     private let supportDir: URL
 
+    /// Set when folders.json existed but couldn't be decoded: the unreadable file was
+    /// copied here before defaults were written, so the user's data is never destroyed.
+    let dataRecoveryBackupURL: URL?
+
     init() {
         supportDir = AppSupport.applicationSupportDirectory
         fileURL = supportDir.appendingPathComponent("folders.json")
@@ -25,6 +29,7 @@ final class FolderStore: ObservableObject {
         var loadedWorkspaces: [Workspace] = []
         var loadedActiveWS: UUID?
         var shouldPersist = false
+        var recoveryBackup: URL?
 
         if let data = try? Data(contentsOf: fileURL),
            let decoded = try? Self.decodeState(from: data) {
@@ -36,6 +41,13 @@ final class FolderStore: ObservableObject {
                 shouldPersist = true
             }
         } else {
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                let backup = supportDir.appendingPathComponent("folders.json.corrupt.bak")
+                try? FileManager.default.removeItem(at: backup)
+                if (try? FileManager.default.copyItem(at: fileURL, to: backup)) != nil {
+                    recoveryBackup = backup
+                }
+            }
             loadedFolders = [
                 AppFolder(name: "Apps", symbolName: "square.grid.2x2"),
                 AppFolder(name: "Recents", symbolName: "clock", smartKind: .recents),
@@ -62,6 +74,7 @@ final class FolderStore: ObservableObject {
         selectedFolderID = loadedSelected
         workspaces = loadedWorkspaces
         activeWorkspaceID = loadedActiveWS
+        dataRecoveryBackupURL = recoveryBackup
 
         ensureSmartFolders()
         if shouldPersist {
@@ -613,6 +626,11 @@ final class FolderStore: ObservableObject {
     private func persistNow() {
         saveTask?.cancel()
         writeToDisk()
+    }
+
+    /// Write any debounced changes immediately (call before app termination).
+    func flushPendingSave() {
+        persistNow()
     }
 
     private func writeToDisk() {

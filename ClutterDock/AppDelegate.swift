@@ -9,7 +9,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let runningApps = RunningAppsService()
     let history = LaunchHistory()
 
-    private var panelController: PanelController!
+    // Optional because application(_:open:) can arrive before applicationDidFinishLaunching
+    // on cold launch via URL scheme or file drop — those URLs are queued until setup completes.
+    private var panelController: PanelController?
+    private var pendingOpenURLs: [URL] = []
     private var statusItem: NSStatusItem?
     private let hotKeyService = HotKeyService()
     private var prefsObserver: NSObjectProtocol?
@@ -72,11 +75,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        if let backup = store.dataRecoveryBackupURL {
+            let alert = NSAlert()
+            alert.messageText = "ClutterDock couldn’t read its saved stacks"
+            alert.informativeText = "The data file was unreadable, so ClutterDock started fresh. The original file was preserved at:\n\(backup.path)"
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Show Backup")
+            alert.addButton(withTitle: "Continue")
+            if alert.runModal() == .alertFirstButtonReturn {
+                NSWorkspace.shared.activateFileViewerSelecting([backup])
+            }
+        }
+
+        if !pendingOpenURLs.isEmpty {
+            let urls = pendingOpenURLs
+            pendingOpenURLs = []
+            handleOpen(urls: urls)
+        }
+
         if preferences.openEmptyOnLaunch {
             let userFolders = store.folders.filter { !$0.isSmart }
             if userFolders.allSatisfy(\.items.isEmpty) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
-                    self?.panelController.show()
+                    self?.panelController?.show()
                 }
             }
         }
@@ -90,12 +111,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        store.flushPendingSave()
         hotKeyService.unregister()
         if let prefsObserver { NotificationCenter.default.removeObserver(prefsObserver) }
         if let hotkeyObserver { NotificationCenter.default.removeObserver(hotkeyObserver) }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
+        guard panelController != nil else {
+            pendingOpenURLs.append(contentsOf: urls)
+            return
+        }
+        handleOpen(urls: urls)
+    }
+
+    private func handleOpen(urls: [URL]) {
+        guard let panelController else { return }
         for url in urls {
             if url.isFileURL {
                 // Dropped files onto app / open with
@@ -113,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        panelController.toggle()
+        panelController?.toggle()
         return false
     }
 
@@ -152,7 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         paths = Array(Set(paths))
         guard !paths.isEmpty else { return }
         _ = store.addPaths(paths)
-        panelController.show()
+        panelController?.show()
     }
 
     // MARK: - Menu bar / hotkeys
@@ -187,7 +218,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return (folder.hotkey, { [weak self] in
                     Task { @MainActor in
                         self?.store.selectFolder(id: id)
-                        self?.panelController.show()
+                        self?.panelController?.show()
                     }
                 })
             }
@@ -197,7 +228,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             mainEnabled: preferences.hotkeyEnabled,
             mainPreset: preferences.hotkeyPreset,
             mainHandler: { [weak self] in
-                Task { @MainActor in self?.panelController.toggle() }
+                Task { @MainActor in self?.panelController?.toggle() }
             },
             folderBindings: folderBindings
         )
@@ -245,8 +276,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Actions
 
-    @objc private func showLauncher() { panelController.show() }
-    @objc private func showSettings() { panelController.showSettings() }
+    @objc private func showLauncher() { panelController?.show() }
+    @objc private func showSettings() { panelController?.showSettings() }
 
     @objc private func checkForUpdates() {
         UpdateService.checkAndPrompt(interactive: true)
@@ -265,7 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
            let id = UUID(uuidString: idString) {
             store.selectFolder(id: id)
         }
-        panelController.show()
+        panelController?.show()
     }
 
     @objc private func selectWorkspace(_ sender: NSMenuItem) {
@@ -273,12 +304,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
            let id = UUID(uuidString: idString) {
             store.selectWorkspace(id: id)
         }
-        panelController.show()
+        panelController?.show()
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else {
-            panelController.toggle()
+            panelController?.toggle()
             return
         }
         if event.type == .rightMouseUp {
@@ -291,7 +322,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             statusItem?.button?.performClick(nil)
             DispatchQueue.main.async { [weak self] in self?.statusItem?.menu = nil }
         } else {
-            panelController.toggle()
+            panelController?.toggle()
         }
     }
 }

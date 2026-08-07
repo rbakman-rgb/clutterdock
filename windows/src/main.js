@@ -365,10 +365,31 @@ function wireIpc() {
       properties: ['openFile'],
       filters: [{ name: 'ClutterDock pack', extensions: ['clutterdock', 'slavedock', 'json'] }],
     });
-    if (result.canceled || !result.filePaths[0]) return store.getSnapshot();
-    const raw = fs.readFileSync(result.filePaths[0], 'utf8');
-    store.importPack(raw, !!merge);
-    return store.getSnapshot();
+    if (result.canceled || !result.filePaths[0]) {
+      return { ok: false, canceled: true, snapshot: store.getSnapshot() };
+    }
+    if (!merge) {
+      const confirm = await dialog.showMessageBox({
+        type: 'warning',
+        buttons: ['Replace All Stacks', 'Cancel'],
+        defaultId: 1,
+        cancelId: 1,
+        message: 'Replace all stacks with this pack?',
+        detail:
+          'Every current stack will be replaced by the pack contents. ' +
+          'A backup of your current data is saved as folders.json.pre-import.bak in the data folder.',
+      });
+      if (confirm.response !== 0) {
+        return { ok: false, canceled: true, snapshot: store.getSnapshot() };
+      }
+    }
+    try {
+      const raw = fs.readFileSync(result.filePaths[0], 'utf8');
+      store.importPack(raw, !!merge);
+      return { ok: true, snapshot: store.getSnapshot() };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e), snapshot: store.getSnapshot() };
+    }
   });
 
   ipcMain.handle('open-settings', () => {

@@ -77,16 +77,18 @@ $('exportBtn').onclick = async () => {
   if (res.ok) $('status').textContent = `Exported: ${res.path}`;
   else $('status').textContent = res.error || 'Export cancelled.';
 };
-$('importReplace').onclick = async () => {
-  snapshot = await clutterDock.importPack(false);
-  $('status').textContent = 'Imported (replace).';
-  await load();
-};
-$('importMerge').onclick = async () => {
-  snapshot = await clutterDock.importPack(true);
-  $('status').textContent = 'Imported (merge).';
-  await load();
-};
+async function runImport(merge) {
+  const res = await clutterDock.importPack(merge);
+  if (res?.ok) {
+    snapshot = res.snapshot;
+    $('status').textContent = merge ? 'Imported (merge).' : 'Imported (replace).';
+    await load();
+  } else {
+    $('status').textContent = res?.error || 'Import cancelled.';
+  }
+}
+$('importReplace').onclick = () => runImport(false);
+$('importMerge').onclick = () => runImport(true);
 
 $('coffee').onclick = () => clutterDock.openExternal('https://buymeacoffee.com/chidichidovsky');
 $('dataDir').onclick = async () => {
