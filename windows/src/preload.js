@@ -42,6 +42,20 @@ contextBridge.exposeInMainWorld('clutterDock', {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   openDataDir: () => ipcRenderer.invoke('open-data-dir'),
   getItemIcon: (itemID) => ipcRenderer.invoke('get-item-icon', itemID),
+  selectWorkspace: (id) => ipcRenderer.invoke('select-workspace', id),
+  addWorkspace: (name) => ipcRenderer.invoke('add-workspace', name),
+  renameWorkspace: (id, name) => ipcRenderer.invoke('rename-workspace', id, name),
+  deleteWorkspace: (id) => ipcRenderer.invoke('delete-workspace', id),
+  toggleWorkspaceFolder: (workspaceID, folderID) =>
+    ipcRenderer.invoke('toggle-workspace-folder', workspaceID, folderID),
+  pickFolderImage: (folderID) => ipcRenderer.invoke('pick-folder-image', folderID),
+  clearFolderImage: (folderID) => ipcRenderer.invoke('clear-folder-image', folderID),
+  getFolderImage: (folderID) => ipcRenderer.invoke('get-folder-image', folderID),
+  onRunningPaths: (cb) => {
+    const handler = (_e, paths) => cb(paths);
+    ipcRenderer.on('running-paths', handler);
+    return () => ipcRenderer.removeListener('running-paths', handler);
+  },
   activateLicense: (key) => ipcRenderer.invoke('activate-license', key),
   deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
   checkForUpdates: (interactive) => ipcRenderer.invoke('check-for-updates', interactive),

@@ -123,7 +123,107 @@ class Store {
     this.history = loadJSON(historyPath(), { entries: [] });
     if (!Array.isArray(this.history.entries)) this.history.entries = [];
     this.prefs = { ...defaultPrefs(), ...loadJSON(prefsPath(), {}) };
+    if (!Array.isArray(this.state.workspaces) || !this.state.workspaces.length) {
+      this.state.workspaces = [{ id: randomUUID(), name: 'All', folderIDs: [] }];
+    }
     this._ensureSmartFolders();
+  }
+
+  // MARK: Workspaces (Pro) — mirrors the Mac model: a workspace is a subset of
+  // folders; the "All" workspace (empty folderIDs) shows everything.
+
+  activeWorkspace() {
+    const list = this.state.workspaces || [];
+    return list.find((w) => w.id === this.state.activeWorkspaceID) || list[0] || null;
+  }
+
+  visibleFolders() {
+    const ws = this.activeWorkspace();
+    if (!ws || !Array.isArray(ws.folderIDs) || !ws.folderIDs.length) {
+      return this.state.folders;
+    }
+    const map = new Map(this.state.folders.map((f) => [f.id, f]));
+    return ws.folderIDs.map((id) => map.get(id)).filter(Boolean);
+  }
+
+  addWorkspace(name) {
+    const ws = {
+      id: randomUUID(),
+      name: (String(name || '').trim() || 'Workspace').slice(0, 60),
+      folderIDs: [],
+    };
+    this.state.workspaces.push(ws);
+    this.state.activeWorkspaceID = ws.id;
+    this.persist();
+    return ws;
+  }
+
+  renameWorkspace(id, name) {
+    const ws = this.state.workspaces.find((w) => w.id === id);
+    const n = String(name || '').trim();
+    if (!ws || !n) return;
+    ws.name = n.slice(0, 60);
+    this.persist();
+  }
+
+  deleteWorkspace(id) {
+    if (this.state.workspaces.length <= 1) return;
+    this.state.workspaces = this.state.workspaces.filter((w) => w.id !== id);
+    if (this.state.activeWorkspaceID === id) {
+      this.state.activeWorkspaceID = this.state.workspaces[0]?.id ?? null;
+    }
+    this.persist();
+  }
+
+  selectWorkspace(id) {
+    if (!this.state.workspaces.some((w) => w.id === id)) return;
+    this.state.activeWorkspaceID = id;
+    const visible = this.visibleFolders();
+    if (!visible.some((f) => f.id === this.state.selectedFolderID)) {
+      this.state.selectedFolderID = visible[0]?.id ?? null;
+    }
+    this.persist();
+  }
+
+  toggleWorkspaceFolder(workspaceID, folderID) {
+    const ws = this.state.workspaces.find((w) => w.id === workspaceID);
+    if (!ws) return;
+    if (!Array.isArray(ws.folderIDs)) ws.folderIDs = [];
+    const idx = ws.folderIDs.indexOf(folderID);
+    if (idx >= 0) ws.folderIDs.splice(idx, 1);
+    else ws.folderIDs.push(folderID);
+    this.persist();
+  }
+
+  // MARK: Custom folder images (Pro)
+
+  setFolderImage(id, sourcePath) {
+    const f = this.state.folders.find((x) => x.id === id);
+    if (!f || f.smartKind !== 'none') return false;
+    const dir = path.join(dataDir(), 'FolderImages');
+    fs.mkdirSync(dir, { recursive: true });
+    const dest = path.join(dir, `${f.id}${path.extname(sourcePath) || '.png'}`);
+    try {
+      fs.copyFileSync(sourcePath, dest);
+    } catch (e) {
+      console.error('ClutterDock folder image copy failed', e);
+      return false;
+    }
+    f.customImage = dest;
+    this.persist();
+    return true;
+  }
+
+  clearFolderImage(id) {
+    const f = this.state.folders.find((x) => x.id === id);
+    if (!f || !f.customImage) return;
+    try {
+      fs.rmSync(f.customImage, { force: true });
+    } catch (_) {
+      /* ignore */
+    }
+    delete f.customImage;
+    this.persist();
   }
 
   get isPro() {
@@ -194,6 +294,7 @@ class Store {
         licenseKeyDisplay: this.isPro ? maskLicense(this.prefs.licenseKey) : '',
       },
       history: this.history.entries.slice(0, gate.historyLimit),
+      visibleFolderIDs: this.visibleFolders().map((f) => f.id),
       dataDir: dataDir(),
       dataWarning: this.dataWarning,
       license: {
@@ -283,6 +384,13 @@ class Store {
     if (!f) return;
     const normals = this.state.folders.filter((x) => x.smartKind === 'none');
     if (f.smartKind === 'none' && normals.length <= 1) return;
+    if (f.customImage) {
+      try {
+        fs.rmSync(f.customImage, { force: true });
+      } catch (_) {
+        /* ignore */
+      }
+    }
     this.state.folders = this.state.folders.filter((x) => x.id !== id);
     if (this.state.selectedFolderID === id) {
       this.state.selectedFolderID = this.state.folders[0]?.id ?? null;

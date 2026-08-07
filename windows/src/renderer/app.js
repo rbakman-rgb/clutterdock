@@ -15,10 +15,24 @@ const ICON = {
   url: '🔗',
 };
 
+function visibleFolders() {
+  if (!snapshot) return [];
+  const all = snapshot.state.folders || [];
+  const ids = snapshot.visibleFolderIDs;
+  if (!Array.isArray(ids)) return all;
+  const map = new Map(all.map((f) => [f.id, f]));
+  const list = ids.map((id) => map.get(id)).filter(Boolean);
+  return list.length ? list : all;
+}
+
 function selectedFolder() {
   if (!snapshot) return null;
-  const { folders, selectedFolderID } = snapshot.state;
-  return folders.find((f) => f.id === selectedFolderID) || folders[0];
+  const folders = visibleFolders();
+  return (
+    folders.find((f) => f.id === snapshot.state.selectedFolderID) ||
+    folders[0] ||
+    snapshot.state.folders[0]
+  );
 }
 
 function itemsForView() {
@@ -105,6 +119,7 @@ function render() {
     dataWarningShown = true;
     alert(snapshot.dataWarning);
   }
+  renderWorkspaceBar();
   renderTabs();
   renderContent();
   renderHints();
@@ -143,9 +158,40 @@ function stackLabel(f) {
   return `${emoji} ${f.name}`;
 }
 
+// Workspaces (Pro): chip bar shown only when the user has more than one
+function renderWorkspaceBar() {
+  const bar = $('wsbar');
+  const workspaces = snapshot.state.workspaces || [];
+  const show = snapshot.gate?.canUseWorkspaces && workspaces.length > 1;
+  bar.hidden = !show;
+  bar.innerHTML = '';
+  if (!show) return;
+  const activeID = snapshot.state.activeWorkspaceID || workspaces[0]?.id;
+  for (const ws of workspaces) {
+    const chip = document.createElement('button');
+    chip.className = 'ws-chip' + (ws.id === activeID ? ' active' : '');
+    chip.textContent = ws.name;
+    chip.onclick = () => call(clutterDock.selectWorkspace(ws.id));
+    bar.appendChild(chip);
+  }
+}
+
+// Running-app indicators (Windows): lowercase exe paths pushed from main
+let runningPathSet = new Set();
+if (clutterDock.onRunningPaths) {
+  clutterDock.onRunningPaths((paths) => {
+    runningPathSet = new Set(paths || []);
+    renderContent();
+  });
+}
+
+function isRunning(item) {
+  return item.kind === 'app' && runningPathSet.has(String(item.path || '').toLowerCase());
+}
+
 function renderTabs() {
   const tabs = $('tabs');
-  const folders = snapshot.state.folders || [];
+  const folders = visibleFolders();
   tabs.innerHTML = '';
   for (const f of folders) {
     const b = document.createElement('button');
@@ -153,6 +199,13 @@ function renderTabs() {
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', f.id === snapshot.state.selectedFolderID ? 'true' : 'false');
     b.textContent = stackLabel(f);
+    if (f.customImage) {
+      clutterDock.getFolderImage(f.id).then((url) => {
+        if (url && b.isConnected) {
+          b.innerHTML = `<img class="tab-img" src="${url}" alt="" draggable="false" /> ${escapeHtml(f.name)}`;
+        }
+      });
+    }
     b.title =
       f.smartKind && f.smartKind !== 'none'
         ? `${f.name} (smart — drop on normal stacks only)`
@@ -247,7 +300,7 @@ function renderContent() {
       row.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
         <div class="meta">
-          <div class="name">${escapeHtml(item.name)}</div>
+          <div class="name">${escapeHtml(item.name)}${isRunning(item) ? ' <span class="run-dot" aria-hidden="true"></span>' : ''}</div>
           <div class="sub">${escapeHtml(item._folderName || item.kind + ' · ' + item.path)}</div>
         </div>`;
       wireItem(row, item, folder);
@@ -263,6 +316,7 @@ function renderContent() {
       tile.draggable = folder?.smartKind === 'none';
       tile.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
+        ${isRunning(item) ? '<span class="run-dot" aria-hidden="true"></span>' : ''}
         <div class="tile-name">${escapeHtml(item.name)}</div>`;
       wireItem(tile, item, folder);
       hydrateIcon(tile.querySelector('.tile-icon'), item);
@@ -295,7 +349,7 @@ function renderContent() {
 function wireItem(el, item, folder) {
   el.setAttribute('role', 'button');
   el.setAttribute('tabindex', '0');
-  el.setAttribute('aria-label', `${item.name}, ${item.kind}`);
+  el.setAttribute('aria-label', `${item.name}, ${item.kind}${isRunning(item) ? ', running' : ''}`);
   el.onclick = async () => {
     selectedId = item.id;
     renderContent();
@@ -334,7 +388,8 @@ function renderHints() {
     return;
   }
   hints.textContent =
-    '↑↓←→ move · Enter open · Esc close · Ctrl+Shift+D toggle · Ctrl+G all folders';
+    '↑↓←→ move · Enter open · Esc close · Ctrl+Shift+D toggle · Ctrl+G all folders' +
+    (snapshot.gate?.isPro ? ' · Ctrl+Shift+1–9 stacks' : '');
 }
 
 function renderOnboarding() {
@@ -577,6 +632,8 @@ function showFolderMenu(x, y, folder) {
     <button data-a="list">List view</button>
     ${folder.smartKind === 'none' ? '<button data-a="rename">Rename stack…</button>' : ''}
     ${folder.smartKind === 'none' ? '<button data-a="symbol">Change symbol…</button>' : ''}
+    ${folder.smartKind === 'none' ? '<button data-a="image">Custom image…</button>' : ''}
+    ${folder.smartKind === 'none' && folder.customImage ? '<button data-a="clearimage">Remove image</button>' : ''}
     ${folder.smartKind === 'none' ? '<button class="danger" data-a="delete">Delete stack</button>' : ''}
   `;
   placeCtx(ctx, x, y);
@@ -599,6 +656,8 @@ function showFolderMenu(x, y, folder) {
       const symbol = await symbolDialog(folder.name, folder.symbol);
       if (symbol) await call(clutterDock.setFolderSymbol(folder.id, symbol));
     }
+    if (a === 'image') await call(clutterDock.pickFolderImage(folder.id));
+    if (a === 'clearimage') await call(clutterDock.clearFolderImage(folder.id));
     if (a === 'delete') await call(clutterDock.deleteFolder(folder.id));
   };
 }

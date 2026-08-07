@@ -24,6 +24,66 @@ async function load() {
     ? `You’re on Pro (${snapshot.license.display || 'active'})`
     : 'ClutterDock Free — upgrade anytime';
   $('exportBtn').textContent = snapshot.gate?.canExportPack ? 'Export pack…' : 'Export pack… (Pro)';
+  renderWorkspaces();
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function wsCall(promise) {
+  const res = await promise;
+  snapshot = res.snapshot || res;
+  if (res && res.ok === false && res.error) $('status').textContent = res.error;
+  renderWorkspaces();
+}
+
+function renderWorkspaces() {
+  const list = $('wsList');
+  if (!list) return;
+  const isPro = !!snapshot?.gate?.canUseWorkspaces;
+  $('wsAdd').disabled = !isPro;
+  if (!isPro) {
+    list.innerHTML = '<p class="status">Workspaces are included in ClutterDock Pro.</p>';
+    return;
+  }
+  const workspaces = snapshot.state.workspaces || [];
+  const folders = (snapshot.state.folders || []).filter((f) => f.smartKind === 'none');
+  const activeID = snapshot.state.activeWorkspaceID || workspaces[0]?.id;
+  list.innerHTML = '';
+  for (const ws of workspaces) {
+    const row = document.createElement('div');
+    row.className = 'ws-row';
+    const ids = new Set(ws.folderIDs || []);
+    row.innerHTML = `
+      <div class="ws-row-head">
+        <input type="text" class="ws-name" value="${escapeHtml(ws.name)}" aria-label="Workspace name" />
+        <button class="btn secondary ws-activate">${ws.id === activeID ? 'Active' : 'Activate'}</button>
+        ${workspaces.length > 1 ? '<button class="btn secondary ws-delete">Delete</button>' : ''}
+      </div>
+      <div class="ws-folders">
+        ${folders
+          .map(
+            (f) => `<label class="ws-folder"><input type="checkbox" data-fid="${f.id}" ${
+              ids.has(f.id) ? 'checked' : ''
+            } /> ${escapeHtml(f.name)}</label>`
+          )
+          .join('')}
+      </div>`;
+    const nameInput = row.querySelector('.ws-name');
+    nameInput.onchange = () => wsCall(clutterDock.renameWorkspace(ws.id, nameInput.value));
+    row.querySelector('.ws-activate').onclick = () => wsCall(clutterDock.selectWorkspace(ws.id));
+    const del = row.querySelector('.ws-delete');
+    if (del) del.onclick = () => wsCall(clutterDock.deleteWorkspace(ws.id));
+    row.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.onchange = () => wsCall(clutterDock.toggleWorkspaceFolder(ws.id, cb.dataset.fid));
+    });
+    list.appendChild(row);
+  }
 }
 
 async function savePrefs(partial) {
@@ -95,6 +155,8 @@ async function runImport(merge) {
 }
 $('importReplace').onclick = () => runImport(false);
 $('importMerge').onclick = () => runImport(true);
+
+$('wsAdd').onclick = () => wsCall(clutterDock.addWorkspace(`Workspace ${(snapshot?.state?.workspaces?.length || 0) + 1}`));
 
 $('coffee').onclick = () => clutterDock.openExternal('https://buymeacoffee.com/chidichidovsky');
 $('dataDir').onclick = () => clutterDock.openDataDir();

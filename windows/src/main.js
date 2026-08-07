@@ -145,10 +145,12 @@ function showPanel() {
   win.show();
   win.focus();
   win.webContents.send('snapshot', store.getSnapshot());
+  startRunningPoll();
 }
 
 function hidePanel() {
   if (panel && !panel.isDestroyed()) panel.hide();
+  stopRunningPoll();
 }
 
 function togglePanel() {
@@ -232,14 +234,67 @@ const DEFAULT_HOTKEY = 'CommandOrControl+Shift+D';
 function registerHotkey() {
   globalShortcut.unregisterAll();
   const accel = store.prefs.hotkey || DEFAULT_HOTKEY;
+  let ok = false;
   try {
-    const ok = globalShortcut.register(accel, () => togglePanel());
+    ok = globalShortcut.register(accel, () => togglePanel());
     if (!ok) console.warn('Hotkey registration failed:', accel);
-    return ok;
   } catch (e) {
     console.warn('Hotkey error', e);
-    return false;
   }
+  // Pro: Ctrl+Shift+1..9 jumps straight to the Nth visible stack (Mac parity)
+  if (store.isPro) {
+    for (let n = 1; n <= 9; n++) {
+      try {
+        globalShortcut.register(`CommandOrControl+Shift+${n}`, () => {
+          const target = store.visibleFolders()[n - 1];
+          if (target) {
+            store.selectFolder(target.id);
+            showPanel();
+          }
+        });
+      } catch (_) {
+        /* ignore individual failures */
+      }
+    }
+  }
+  return ok;
+}
+
+// Running-app indicators: poll GUI process paths only while the panel is visible
+// (PowerShell spawn is too heavy to run continuously). Windows-only.
+let runningPoll = null;
+
+function refreshRunningPaths() {
+  if (!isWin) return;
+  const { execFile } = require('child_process');
+  execFile(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-Command',
+      'Get-Process | Where-Object {$_.MainWindowTitle -ne ""} | Select-Object -ExpandProperty Path -Unique',
+    ],
+    { timeout: 5000, windowsHide: true },
+    (err, stdout) => {
+      if (err || !panel || panel.isDestroyed()) return;
+      const paths = String(stdout || '')
+        .split(/\r?\n/)
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      panel.webContents.send('running-paths', paths);
+    }
+  );
+}
+
+function startRunningPoll() {
+  if (!isWin || runningPoll) return;
+  refreshRunningPaths();
+  runningPoll = setInterval(refreshRunningPaths, 10000);
+}
+
+function stopRunningPoll() {
+  clearInterval(runningPoll);
+  runningPoll = null;
 }
 
 // Every mutation IPC returns the same envelope: { ok, snapshot, error?, limitMessage? }.
@@ -413,11 +468,13 @@ function wireIpc() {
   ipcMain.handle('activate-license', (_e, key) => {
     const result = store.activateLicense(key);
     if (!result.ok) return failSnap(result.error);
+    registerHotkey(); // Pro folder hotkeys become available
     return okSnap({ display: result.display });
   });
 
   ipcMain.handle('deactivate-license', () => {
     store.deactivateLicense();
+    registerHotkey();
     return okSnap();
   });
 
@@ -483,6 +540,87 @@ function wireIpc() {
   ipcMain.handle('open-external', (_e, url) => safeOpenExternal(url));
 
   ipcMain.handle('open-data-dir', () => shell.openPath(store.getSnapshot().dataDir));
+
+  // Workspaces (Pro)
+  const requirePro = (fn) => (e, ...args) => {
+    if (!store.gate.canUseWorkspaces) {
+      return failSnap('Workspaces are a ClutterDock Pro feature.', {
+        limitMessage: 'Workspaces are a ClutterDock Pro feature.',
+      });
+    }
+    return fn(e, ...args);
+  };
+
+  ipcMain.handle('select-workspace', requirePro((_e, id) => {
+    store.selectWorkspace(id);
+    return okSnap();
+  }));
+
+  ipcMain.handle('add-workspace', requirePro((_e, name) => {
+    store.addWorkspace(name);
+    return okSnap();
+  }));
+
+  ipcMain.handle('rename-workspace', requirePro((_e, id, name) => {
+    store.renameWorkspace(id, name);
+    return okSnap();
+  }));
+
+  ipcMain.handle('delete-workspace', requirePro((_e, id) => {
+    store.deleteWorkspace(id);
+    return okSnap();
+  }));
+
+  ipcMain.handle('toggle-workspace-folder', requirePro((_e, workspaceID, folderID) => {
+    store.toggleWorkspaceFolder(workspaceID, folderID);
+    return okSnap();
+  }));
+
+  // Custom folder images (Pro)
+  const folderImageCache = new Map();
+
+  ipcMain.handle('pick-folder-image', async (_e, folderID) => {
+    if (!store.gate.canUseCustomFolderImages) {
+      return failSnap('Custom stack images are a ClutterDock Pro feature.', {
+        limitMessage: 'Custom stack images are a ClutterDock Pro feature.',
+      });
+    }
+    const result = await dialog.showOpenDialog({
+      title: 'Choose a stack image',
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'] }],
+    });
+    if (result.canceled || !result.filePaths[0]) {
+      return { ok: false, canceled: true, snapshot: store.getSnapshot() };
+    }
+    if (!store.setFolderImage(folderID, result.filePaths[0])) {
+      return failSnap("Couldn't use that image.");
+    }
+    folderImageCache.clear();
+    return okSnap();
+  });
+
+  ipcMain.handle('clear-folder-image', (_e, folderID) => {
+    store.clearFolderImage(folderID);
+    folderImageCache.clear();
+    return okSnap();
+  });
+
+  ipcMain.handle('get-folder-image', (_e, folderID) => {
+    const folder = store.state.folders.find((f) => f.id === folderID);
+    const imgPath = folder?.customImage;
+    if (!imgPath || !fs.existsSync(imgPath)) return null;
+    if (folderImageCache.has(imgPath)) return folderImageCache.get(imgPath);
+    let url = null;
+    try {
+      const img = nativeImage.createFromPath(imgPath);
+      if (!img.isEmpty()) url = img.resize({ width: 32, height: 32 }).toDataURL();
+    } catch (_) {
+      /* ignore */
+    }
+    folderImageCache.set(imgPath, url);
+    return url;
+  });
 
   // Native file icons as data URLs (renderer falls back to emoji glyphs)
   const iconCache = new Map();

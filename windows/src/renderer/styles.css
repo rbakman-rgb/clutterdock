@@ -389,6 +389,76 @@ html, body {
 }
 .status { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
+/* Workspace management rows (Settings) */
+.ws-row {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.ws-row-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ws-name {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--surface-input);
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 13px;
+  color: var(--text);
+}
+.ws-folders { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.ws-folder { font-size: 12px; color: var(--muted); display: flex; gap: 5px; align-items: center; }
+
+/* Workspaces chip bar (Pro) */
+.wsbar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 0;
+  overflow-x: auto;
+  align-items: center;
+}
+.wsbar[hidden] { display: none; }
+.ws-chip {
+  border: none;
+  background: var(--chip-bg);
+  color: var(--muted);
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ws-chip.active {
+  background: var(--accent-soft);
+  color: var(--tab-active-text);
+  font-weight: 600;
+}
+
+/* Running-app indicator */
+.tile { position: relative; }
+.run-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent);
+}
+.tile .run-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+}
+
+/* Custom stack image in a tab */
+.tab-img {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  vertical-align: -3px;
+  margin-right: 2px;
+}
+
 .tab.drop-target {
   outline: 2px solid var(--accent, #3b82f6);
   outline-offset: 2px;
