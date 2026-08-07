@@ -1,6 +1,6 @@
 # ClutterDock — Where we go from here
 
-**As of:** 2026-08-06 (public beta release path)  
+**As of:** 2026-08-07 (post full-app audit)  
 **Project:** [ClutterDock — V1 Public Launch](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795)
 
 ---
@@ -10,15 +10,35 @@
 | Area | Status |
 |------|--------|
 | **Product name / brand** | ClutterDock shipped (repo, app, site) |
-| **Marketing site** | Live at clutterdock.com; downloads + install FAQ |
-| **Mac app** | **v1.4.3** universal zip — launcher polish shipped |
-| **Windows app** | Electron tray; **1.1.1** portable exe on Releases |
-| **Public GitHub Releases** | **v1.4.3** unsigned beta (Mac zip + Win exe) |
+| **Marketing site** | Live at clutterdock.com — Coming soon, no download CTAs yet; terms + OG card shipped |
+| **Mac app** | **1.4.6** in git (1.4.5 on Releases) — audit fixes, calm updates, async icons |
+| **Windows app** | **1.2.0** in git (1.1.3 on Releases) — full Pro parity: workspaces, stack hotkeys, custom images, native icons |
+| **Public GitHub Releases** | **Stale: v1.4.5 / 1.1.3** still contain the broken license validator and unusable Windows app |
+| **Licensing** | Fixed + secret rotated out of the repo; CI secret set; **keep an offline backup of `scripts/private/license-secret.txt`** |
+| **Tests / CI** | Mac model suite + Windows store suite run on every push/PR |
 | **Code signing** | Mac ad-hoc only · Windows unsigned (SmartScreen expected) |
-| **Pro checkout** | License keys exist offline; no merchant yet |
-| **Linear MCP** | Often unauthenticated in Grok — update via UI or `LINEAR_API_KEY` |
+| **Pro checkout** | License keys work offline; no merchant yet |
 
 **Ship philosophy:** free core stays free; no Dock replacement; local-first.
+
+---
+
+## Next 10 (as of 2026-08-07)
+
+| # | Work | Linear | Why now |
+|---|------|--------|---------|
+| 1 | Smoke-test Mac 1.4.6 + Win 1.2.0 | **RON-440** | Windows parity work has never run on Windows |
+| 2 | Cut 1.4.6 / 1.2.0 releases | **RON-441** | Shipped builds still reject every real key |
+| 3 | Review terms wording | **RON-373** | Drafted + live; not lawyer-reviewed |
+| 4 | Apple Developer enrollment | **RON-359** | Gates signing → notarization → Homebrew |
+| 5 | Developer ID cert + signed build | **RON-360** | Depends 4 |
+| 6 | Notarize Mac zip | **RON-361** | Kills the right-click-to-open dance |
+| 7 | Windows signing or SmartScreen doc | **RON-362** | Same friction on the other platform |
+| 8 | Refresh screenshots incl. first Windows shots | **RON-442** | Site sells Windows features nobody can see |
+| 9 | Merchant + products + key email + wire CTA | **RON-364/365/366/367** | Nothing to buy until this exists |
+| 10 | Support diagnostics button | **RON-443** | Makes post-launch bug reports answerable |
+
+Then: re-enable downloads (**RON-372**) → soft launch (**RON-374**).
 
 ---
 
@@ -71,8 +91,12 @@
 | Work | Linear |
 |------|--------|
 | iCloud/OneDrive sync Pro | **RON-377** |
-| Sparkle full auto-update | not ticketed yet |
-| Hotkey recorder | not ticketed yet |
+| Sparkle full auto-update (after notarization) | **RON-413** |
+| Custom hotkey recorder | **RON-414** |
+| Split LauncherView.swift | **RON-424** |
+| Screen-reader verification pass (VoiceOver + NVDA) | **RON-444** |
+| Windows URL scheme parity | **RON-445** |
+| Windows Explorer context menu | **RON-446** |
 | Windows UX parity with Mac 1.4.x | **RON-382** (Backlog) |
 
 ---
