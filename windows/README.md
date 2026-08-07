@@ -13,7 +13,7 @@ Free tray launcher that mirrors the Mac **ClutterDock** idea: group apps, files,
 - Search this folder; **All** folders = Pro
 - Grid / list views, drag reorder, Alt+←/→ nudge
 - Free: 5 folders · 20 items each · JSON-friendly workflow
-- Pro: unlimited · pack export · license key (Settings → Pro)
+- Pro: unlimited · global search · workspaces · Ctrl+Shift+1–9 stack hotkeys · custom stack images · pack export
 - Open at login, welcome tips, Buy Me a Coffee
 - Runs in the background (stays in tray)
 
@@ -71,6 +71,7 @@ From macOS, `electron-builder --win` may need extra tooling; prefer building on 
 | Enter | Open selected |
 | Arrows | Move selection |
 | Ctrl+G | Toggle search all |
+| Ctrl+Shift+1–9 | Jump to stack 1–9 (Pro) |
 | Alt+← / Alt+→ | Reorder item |
 
 ## Relation to Mac app
@@ -82,7 +83,7 @@ From macOS, `electron-builder --win` may need extra tooling; prefer building on 
 | Config | Application Support JSON | AppData JSON |
 | Donate | Same Buy Me a Coffee page | Same |
 
-Feature parity will grow over time; Windows v1 covers the daily-driver core.
+Windows now covers the same Free and Pro feature set as Mac (native file icons, workspaces, per-stack hotkeys, custom stack images, running indicators).
 
 ## License
 

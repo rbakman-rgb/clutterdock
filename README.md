@@ -8,8 +8,8 @@
 
 | Platform | Stack | Version |
 |----------|--------|---------|
-| macOS 14+ | Native Swift / SwiftUI | **1.4.5** |
-| Windows 10/11 | Electron tray launcher | **1.1.3** |
+| macOS 14+ | Native Swift / SwiftUI | **1.4.6** |
+| Windows 10/11 | Electron tray launcher | **1.2.0** |
 
 ---
 
@@ -38,9 +38,9 @@
 | Folders | Up to **5** | Unlimited |
 | Items per folder | Up to **20** | Unlimited |
 | Search all folders | — | Yes |
-| Workspaces | — | Yes (Mac) |
-| Per-folder hotkeys | — | Yes (Mac) |
-| Custom folder images | — | Yes (Mac) |
+| Workspaces | — | Yes |
+| Per-folder hotkeys | — | Yes |
+| Custom folder images | — | Yes |
 | `.clutterdock` pack export | — | Yes |
 | Core launcher, Recents, JSON backup | Yes | Yes |
 

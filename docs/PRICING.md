@@ -1,6 +1,6 @@
 # ClutterDock Free & Pro
 
-**Positioning:** Free forever for daily Dock/tray folders. Pro is a **one-time unlock** for power users (unlimited stacks, global search, pack export; workspaces, per-stack hotkeys and custom stack images on Mac). Cross-platform license (Mac + Windows).
+**Positioning:** Free forever for daily Dock/tray folders. Pro is a **one-time unlock** for power users (unlimited stacks, workspaces, per-stack hotkeys, global search, custom images, pack export). Cross-platform license (Mac + Windows).
 
 Tips still welcome: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
 
@@ -28,9 +28,9 @@ Payment later: Lemon Squeezy / Gumroad / Paddle → deliver license key.
 | Normal folders | **5** | Unlimited |
 | Items per folder | **20** | Unlimited |
 | Global search (all folders) | No | Yes |
-| Workspaces | No (single “All”) | Yes (Mac only for now) |
-| Per-folder hotkeys | No | Yes (Mac only for now) |
-| Custom folder images | No | Yes (Mac only for now) |
+| Workspaces | No (single “All”) | Yes |
+| Per-folder hotkeys | No | Yes |
+| Custom folder images | No | Yes |
 | Launch history (Recents) | Last **15** | Last **40** |
 | Pack export `.clutterdock` | No | Yes |
 | JSON backup export | Yes | Yes |
