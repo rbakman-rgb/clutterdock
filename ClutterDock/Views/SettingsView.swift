@@ -2,32 +2,6 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-/// Edits a local draft and commits on Return or when the field disappears —
-/// writing through on every keystroke made names impossible to clear-and-retype
-/// (empty renames are rejected, snapping the old name back).
-private struct CommitTextField: View {
-    let title: String
-    let text: String
-    let onCommit: (String) -> Void
-
-    @State private var draft = ""
-
-    var body: some View {
-        TextField(title, text: $draft)
-            .onAppear { draft = text }
-            .onChange(of: text) { draft = text }
-            .onSubmit { commit() }
-            .onDisappear { commit() }
-    }
-
-    private func commit() {
-        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty, trimmed != text {
-            onCommit(trimmed)
-        }
-    }
-}
-
 struct SettingsView: View {
     @ObservedObject var store: FolderStore
     @ObservedObject var preferences: AppPreferences
@@ -110,6 +84,22 @@ struct SettingsView: View {
         }
     }
 
+    private func promptRename(_ folder: AppFolder) {
+        let alert = NSAlert()
+        alert.messageText = "Rename Stack"
+        alert.informativeText = "e.g. Coding, Design, Work — each stack is its own dock of apps and files."
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
+        field.stringValue = folder.name
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let trimmed = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        store.renameFolder(id: folder.id, to: trimmed)
+    }
+
     private var currentFolder: AppFolder? {
         guard let selectedFolderID else { return nil }
         return store.folders.first { $0.id == selectedFolderID }
@@ -123,10 +113,16 @@ struct SettingsView: View {
                     Text("Stacks are your mini-docks — e.g. Coding, Client A, Personal.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    CommitTextField(title: "Name", text: folder.name) {
-                        store.renameFolder(id: folder.id, to: $0)
+                    // An inline TextField here renders blank/garbled inside this
+                    // Form on macOS 26, so renaming goes through an explicit prompt.
+                    LabeledContent("Name") {
+                        HStack(spacing: 8) {
+                            Text(folder.name)
+                            if !folder.isSmart {
+                                Button("Rename…") { promptRename(folder) }
+                            }
+                        }
                     }
-                    .disabled(folder.isSmart)
 
                     if !folder.isSmart {
                         Picker("Symbol", selection: Binding(
@@ -314,9 +310,10 @@ struct SettingsView: View {
                     ForEach(store.workspaces) { ws in
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                CommitTextField(title: "Name", text: ws.name) {
-                                    store.renameWorkspace(id: ws.id, to: $0)
-                                }
+                                TextField("Name", text: Binding(
+                                    get: { ws.name },
+                                    set: { store.renameWorkspace(id: ws.id, to: $0) }
+                                ))
                                 .textFieldStyle(.roundedBorder)
                                 Button("Activate") { store.selectWorkspace(id: ws.id) }
                                 if store.workspaces.count > 1 {

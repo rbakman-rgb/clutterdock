@@ -9,6 +9,9 @@ final class PanelController {
     private let preferences: AppPreferences
     private let runningApps: RunningAppsService
     private let history: LaunchHistory
+    /// Fallback Settings window, only created when the SwiftUI Settings scene
+    /// can't be opened via a system selector. Reused so there's never a second one.
+    private var settingsWindow: NSWindow?
     // nonisolated(unsafe): read from deinit, which is not MainActor-isolated under
     // strict concurrency. Only written once from init/ensurePanel on the main actor.
     nonisolated(unsafe) private var prefsObserver: NSObjectProtocol?
@@ -99,11 +102,49 @@ final class PanelController {
         })
     }
 
-    /// One Settings surface only: the SwiftUI `Settings` scene (⌘,). A second custom
-    /// NSWindow here used to allow two Settings windows with divergent state.
+    /// Prefer the SwiftUI `Settings` scene so ⌘, and this button open the *same*
+    /// window. The selector is OS-version dependent (and absent on some releases),
+    /// so fall back to a single reused window rather than leaving Settings
+    /// unreachable — verified needed on macOS 26.
+    /// Opens our own Settings window rather than the SwiftUI `Settings` scene: on
+    /// macOS 26 that scene collapses the tab bar into a "»" overflow, hiding
+    /// Workspaces/General/Pro/Backup/About. An existing window of either kind is
+    /// reused, so ⌘, and this button never produce two divergent Settings windows.
     func showSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        if bringSettingsForward() { return }
+        openSettingsWindow()
+    }
+
+    /// Orders an existing Settings window front. Returns false if there isn't one.
+    @discardableResult
+    private func bringSettingsForward() -> Bool {
+        let window = settingsWindow ?? NSApp.windows.first {
+            $0.title.localizedCaseInsensitiveContains("settings")
+        }
+        guard let window else { return false }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        return window.isVisible
+    }
+
+    private func openSettingsWindow() {
+        let root = SettingsView(store: store, preferences: preferences, history: history)
+            .frame(minWidth: 640, minHeight: 480)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 940, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "ClutterDock Settings"
+        window.contentView = NSHostingView(rootView: root)
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.setFrameAutosaveName("ClutterDockSettings")
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow = window
     }
 
     private func ensurePanel() -> NSPanel {

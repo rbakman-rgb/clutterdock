@@ -106,9 +106,10 @@ struct KeyboardCheatSheet: View {
 
 struct KeyboardHintsBar: View {
     var body: some View {
+        // .quaternary at 10pt was effectively invisible against the panel material
         Text("↑↓←→  ·  ⏎ open  ·  drop files  ·  drag to reorder  ·  ⌘1–9")
-            .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(.quaternary)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.secondary)
             .lineLimit(1)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
