@@ -29,7 +29,10 @@
     });
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape" && links.classList.contains("open")) {
+        setOpen(false);
+        toggle.focus(); // keep keyboard users anchored instead of dropping to page top
+      }
     });
 
     document.addEventListener("click", (e) => {

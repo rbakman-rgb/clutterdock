@@ -17,6 +17,7 @@
 
 /* ClutterDock marketing site — Warp-inspired pricing layout */
 :root {
+  color-scheme: dark; /* dark-only site: keep scrollbars/form controls dark too */
   --bg: #070a10;
   --bg-elevated: #0e1420;
   --bg-card: #121a28;
@@ -25,7 +26,7 @@
   --border-strong: rgba(255, 255, 255, 0.14);
   --text: #f3f6fb;
   --text-muted: #9aa7bb;
-  --text-dim: #6a768c;
+  --text-dim: #8290a6; /* ≥4.5:1 on --bg-card for WCAG AA body text */
   --accent: #6ec0ff;
   --accent-soft: rgba(110, 192, 255, 0.14);
   --accent-strong: #4aaef5;
