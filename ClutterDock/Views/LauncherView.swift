@@ -1171,15 +1171,17 @@ private struct ItemTile: View {
     @State private var hovering = false
 
     // Running/missing are otherwise conveyed only visually (capsule, dimmed icon)
-    private var accessibilityDescription: String {
+    private func accessibilityDescription(missing: Bool) -> String {
         var parts = [item.name, item.kind.label]
         if isRunning { parts.append("running") }
-        if !item.exists && item.kind != .url { parts.append("missing") }
+        if missing { parts.append("missing") }
         return parts.joined(separator: ", ")
     }
 
     var body: some View {
-        Button(action: onLaunch) {
+        // One stat() per render — item.exists hits the filesystem
+        let missing = !item.exists && item.kind != .url
+        return Button(action: onLaunch) {
             VStack(spacing: 7) {
                 ZStack(alignment: .bottom) {
                     Image(nsImage: AppIconService.icon(for: item, size: iconSize))
@@ -1188,7 +1190,7 @@ private struct ItemTile: View {
                         .frame(width: iconSize, height: iconSize)
                         .shadow(color: .black.opacity(hovering || isSelected ? 0.22 : 0.12), radius: hovering ? 6 : 3, y: 2)
                         .scaleEffect(hovering ? 1.04 : 1.0)
-                        .opacity(item.exists || item.kind == .url ? 1 : 0.4)
+                        .opacity(missing ? 0.4 : 1)
                         .animation(.easeOut(duration: 0.12), value: hovering)
                     if isRunning {
                         Capsule()
@@ -1203,7 +1205,7 @@ private struct ItemTile: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .frame(width: tileWidth - 8)
-                    .foregroundStyle(item.exists || item.kind == .url ? .primary : .secondary)
+                    .foregroundStyle(missing ? .secondary : .primary)
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 8)
@@ -1229,7 +1231,7 @@ private struct ItemTile: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(canReorder ? "\(item.name)\n\(item.path)\nDrag to reorder · ⌥← ⌥→ · Space/Return to open" : "\(item.name)\n\(item.path)")
-        .accessibilityLabel(accessibilityDescription)
+        .accessibilityLabel(accessibilityDescription(missing: missing))
         .contextMenu {
             Button("Open") { onLaunch() }
             Button("Show in Finder") { LaunchService.reveal(item) }

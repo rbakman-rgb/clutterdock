@@ -113,8 +113,17 @@ final class FolderStore: ObservableObject {
         return idx
     }
 
+    private var missingCountCache: (value: Int, at: Date)?
+
+    /// Stats every item on disk, so the result is cached briefly — the footer reads
+    /// this on every keystroke and a per-render stat storm froze typing on slow disks.
     var missingItemCount: Int {
-        folders.reduce(0) { $0 + $1.items.filter { !$0.exists && $0.kind != .url }.count }
+        if let cache = missingCountCache, Date().timeIntervalSince(cache.at) < 5 {
+            return cache.value
+        }
+        let value = folders.reduce(0) { $0 + $1.items.filter { !$0.exists && $0.kind != .url }.count }
+        missingCountCache = (value, Date())
+        return value
     }
 
     var missingAppCount: Int { missingItemCount }
@@ -289,17 +298,17 @@ final class FolderStore: ObservableObject {
         NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
     }
 
+    // Selection changes aren't written immediately — they ride along with the next
+    // content mutation or the flush at quit, so Tab/click doesn't hit the disk.
     func selectFolder(id: UUID) {
         guard folders.contains(where: { $0.id == id }) else { return }
         selectedFolderID = id
-        persist()
     }
 
     func selectFolder(at index: Int) {
         let list = visibleFolders
         guard list.indices.contains(index) else { return }
         selectedFolderID = list[index].id
-        persist()
     }
 
     func moveFolder(from source: IndexSet, to destination: Int) {
@@ -616,6 +625,7 @@ final class FolderStore: ObservableObject {
     // MARK: - Persistence
 
     private func persist() {
+        missingCountCache = nil // folder contents changed
         saveTask?.cancel()
         saveTask = Task {
             try? await Task.sleep(nanoseconds: 150_000_000)
