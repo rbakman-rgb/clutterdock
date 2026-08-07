@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import AppKit
+import SwiftUI // Array.move(fromOffsets:toOffset:) used by the reorder helpers
 
 @MainActor
 final class FolderStore: ObservableObject {
