@@ -180,6 +180,11 @@ html, body {
   background: var(--surface);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
+.tile-icon img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}
 .tile-icon.app { background: linear-gradient(145deg, #dbeafe, #eff6ff); }
 .tile-icon.file { background: linear-gradient(145deg, #fef3c7, #fffbeb); }
 .tile-icon.folder { background: linear-gradient(145deg, #e0e7ff, #eef2ff); }

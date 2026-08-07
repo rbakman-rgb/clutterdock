@@ -36,7 +36,7 @@ function isNewer(remote, local) {
  * Windows auto-update via electron-updater + GitHub Releases.
  * Best with NSIS install; portable builds fall back to releases page.
  */
-function setupUpdater({ onStatus }) {
+function setupUpdater({ onStatus, getParentWindow }) {
   let autoUpdater;
   try {
     ({ autoUpdater } = require('electron-updater'));
@@ -56,6 +56,12 @@ function setupUpdater({ onStatus }) {
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
 
+  // Parent dialogs to a live window when one exists so they can't open behind the app
+  function showBox(opts) {
+    const parent = getParentWindow?.();
+    return parent ? dialog.showMessageBox(parent, opts) : dialog.showMessageBox(opts);
+  }
+
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'rbakman-rgb',
@@ -71,8 +77,7 @@ function setupUpdater({ onStatus }) {
   });
   autoUpdater.on('update-downloaded', (info) => {
     onStatus?.(`Downloaded ${info.version}`);
-    dialog
-      .showMessageBox({
+    showBox({
         type: 'info',
         title: 'Update ready',
         message: `ClutterDock ${info.version} was downloaded.`,
@@ -99,7 +104,7 @@ function setupUpdater({ onStatus }) {
 
       if (available) {
         if (interactive) {
-          const { response } = await dialog.showMessageBox({
+          const { response } = await showBox({
             type: 'info',
             title: 'Update available',
             message: `ClutterDock ${remote} is available.`,
@@ -126,7 +131,7 @@ function setupUpdater({ onStatus }) {
       }
 
       if (interactive) {
-        await dialog.showMessageBox({
+        await showBox({
           type: 'info',
           title: 'You’re up to date',
           message: `ClutterDock ${local} is the latest release.`,
@@ -137,7 +142,7 @@ function setupUpdater({ onStatus }) {
     } catch (e) {
       console.error(e);
       if (interactive) {
-        const { response } = await dialog.showMessageBox({
+        const { response } = await showBox({
           type: 'warning',
           title: 'Couldn’t check for updates',
           message: String(e.message || e),

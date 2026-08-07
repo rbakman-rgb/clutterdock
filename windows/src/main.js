@@ -65,8 +65,8 @@ function createPanel() {
   if (panel && !panel.isDestroyed()) return panel;
 
   panel = new BrowserWindow({
-    width: 480,
-    height: 520,
+    width: store?.prefs?.panelWidth || 480,
+    height: store?.prefs?.panelHeight || 520,
     show: false,
     frame: false,
     resizable: true,
@@ -103,6 +103,18 @@ function createPanel() {
 
   panel.on('closed', () => {
     panel = null;
+  });
+
+  // Remember the user's panel size across restarts
+  let resizeTimer = null;
+  panel.on('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (panel && !panel.isDestroyed()) {
+        const [w, h] = panel.getSize();
+        store.updatePrefs({ panelWidth: w, panelHeight: h });
+      }
+    }, 400);
   });
 
   return panel;
@@ -230,45 +242,54 @@ function registerHotkey() {
   }
 }
 
+// Every mutation IPC returns the same envelope: { ok, snapshot, error?, limitMessage? }.
+// (The renderer previously had to guess between three different shapes.)
+function okSnap(extra = {}) {
+  return { ok: true, snapshot: store.getSnapshot(), ...extra };
+}
+function failSnap(error, extra = {}) {
+  return { ok: false, error: error || 'Something went wrong', snapshot: store.getSnapshot(), ...extra };
+}
+
 function wireIpc() {
   ipcMain.handle('get-snapshot', () => store.getSnapshot());
 
   ipcMain.handle('select-folder', (_e, id) => {
     store.selectFolder(id);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('add-folder', (_e, name, symbol) => {
     const result = store.addFolder(name, symbol);
     if (result && result.ok === false) {
-      return { ...result, snapshot: store.getSnapshot() };
+      return failSnap(result.message, { limitMessage: result.message });
     }
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('rename-folder', (_e, id, name) => {
     store.renameFolder(id, name);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('set-folder-symbol', (_e, id, symbol) => {
     store.setFolderSymbol(id, symbol);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('delete-folder', (_e, id) => {
     store.deleteFolder(id);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('set-folder-view', (_e, id, mode) => {
     store.setFolderView(id, mode);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('set-folder-sort', (_e, id, mode) => {
     store.setFolderSort(id, mode);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('pick-and-add', async () => {
@@ -288,47 +309,37 @@ function wireIpc() {
       addResult = store.addPaths(result.filePaths);
     }
     showPanel();
-    const snap = store.getSnapshot();
-    if (addResult?.hitLimit) {
-      return { ...snap, _limitMessage: addResult.message };
-    }
-    return snap;
+    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
   });
 
   ipcMain.handle('add-paths', (_e, paths, folderID) => {
     const addResult = store.addPaths(paths || [], folderID);
-    const snap = store.getSnapshot();
-    if (addResult?.hitLimit) return { ...snap, _limitMessage: addResult.message };
-    return snap;
+    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
   });
 
   ipcMain.handle('relocate-item', (_e, itemID, folderID) => {
     const result = store.relocateItem(itemID, folderID);
-    const snap = store.getSnapshot();
-    if (result?.hitLimit) return { ...snap, _limitMessage: result.message };
-    return snap;
+    return okSnap(result?.hitLimit ? { limitMessage: result.message } : {});
   });
 
   ipcMain.handle('add-url', (_e, url, folderID) => {
     const addResult = store.addURL(url, folderID);
-    const snap = store.getSnapshot();
-    if (addResult?.hitLimit) return { ...snap, _limitMessage: addResult.message };
-    return snap;
+    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
   });
 
   ipcMain.handle('remove-item', (_e, itemID, folderID) => {
     store.removeItem(itemID, folderID);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('reorder-item', (_e, itemID, toIndex, folderID) => {
     store.reorderItem(itemID, toIndex, folderID);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('nudge-item', (_e, itemID, delta, folderID) => {
     store.nudgeItem(itemID, delta, folderID);
-    return store.getSnapshot();
+    return okSnap();
   });
 
   // Items are resolved by id in the store — the renderer must not be able to
@@ -367,10 +378,25 @@ function wireIpc() {
     store.gate.canUseGlobalSearch ? store.searchAll(query) : []
   );
 
+  // Only known prefs with the right types get through — the renderer must not be
+  // able to graft arbitrary keys (licenseKey included) into the prefs file.
+  const PREF_TYPES = {
+    hotkey: 'string',
+    closeAfterLaunch: 'boolean',
+    hasCompletedOnboarding: 'boolean',
+    showKeyboardHints: 'boolean',
+    launchAtLogin: 'boolean',
+    checkForUpdatesAutomatically: 'boolean',
+  };
+
   ipcMain.handle('update-prefs', (_e, partial) => {
-    store.updatePrefs(partial || {});
+    const clean = {};
+    for (const [key, type] of Object.entries(PREF_TYPES)) {
+      if (partial && typeof partial[key] === type) clean[key] = partial[key];
+    }
+    store.updatePrefs(clean);
     let hotkeyError = null;
-    if (partial && partial.hotkey !== undefined) {
+    if (clean.hotkey !== undefined) {
       // A typo'd accelerator would silently leave the app with no hotkey at all
       if (!registerHotkey()) {
         hotkeyError = `Couldn't register "${store.prefs.hotkey}" — restored ${DEFAULT_HOTKEY}.`;
@@ -378,21 +404,21 @@ function wireIpc() {
         registerHotkey();
       }
     }
-    if (partial && partial.launchAtLogin !== undefined) {
-      app.setLoginItemSettings({ openAtLogin: !!partial.launchAtLogin });
+    if (clean.launchAtLogin !== undefined) {
+      app.setLoginItemSettings({ openAtLogin: clean.launchAtLogin });
     }
-    const snap = store.getSnapshot();
-    return hotkeyError ? { ...snap, _hotkeyError: hotkeyError } : snap;
+    return okSnap(hotkeyError ? { hotkeyError } : {});
   });
 
   ipcMain.handle('activate-license', (_e, key) => {
     const result = store.activateLicense(key);
-    return { ...result, snapshot: store.getSnapshot() };
+    if (!result.ok) return failSnap(result.error);
+    return okSnap({ display: result.display });
   });
 
   ipcMain.handle('deactivate-license', () => {
     store.deactivateLicense();
-    return store.getSnapshot();
+    return okSnap();
   });
 
   ipcMain.handle('export-pack', async () => {
@@ -458,6 +484,25 @@ function wireIpc() {
 
   ipcMain.handle('open-data-dir', () => shell.openPath(store.getSnapshot().dataDir));
 
+  // Native file icons as data URLs (renderer falls back to emoji glyphs)
+  const iconCache = new Map();
+  ipcMain.handle('get-item-icon', async (_e, itemID) => {
+    const item = store.findItem(itemID);
+    if (!item || item.kind === 'url') return null;
+    if (iconCache.has(item.path)) return iconCache.get(item.path);
+    let url = null;
+    try {
+      if (fs.existsSync(item.path)) {
+        const icon = await app.getFileIcon(item.path, { size: 'large' });
+        if (icon && !icon.isEmpty()) url = icon.toDataURL();
+      }
+    } catch (_) {
+      /* fall back to emoji */
+    }
+    iconCache.set(item.path, url);
+    return url;
+  });
+
   ipcMain.handle('check-for-updates', async (_e, interactive) => {
     if (!updater) {
       return { ok: false, error: 'Updater not ready' };
@@ -499,9 +544,14 @@ if (!gotLock) {
     registerHotkey();
 
     updater = setupUpdater({
-      store,
       onStatus: (msg) => {
         updateStatus = msg || '';
+      },
+      // Dialogs parent to a live window so they can't appear behind the app
+      getParentWindow: () => {
+        if (settingsWin && !settingsWin.isDestroyed()) return settingsWin;
+        if (panel && !panel.isDestroyed() && panel.isVisible()) return panel;
+        return null;
       },
     });
 

@@ -64,6 +64,39 @@ async function refresh(next) {
   render();
 }
 
+/**
+ * Run a mutation IPC (returns { ok, snapshot, error?, limitMessage? }), refresh
+ * from its snapshot, and surface limit hits with the Pro upsell dialog.
+ */
+async function call(promise) {
+  const res = await promise;
+  const snap = res && res.snapshot ? res.snapshot : res;
+  await refresh(snap);
+  if (res && res.limitMessage) upsellDialog(res.limitMessage);
+  else if (res && res.ok === false && res.error) alert(res.error);
+  return res;
+}
+
+// ---- Native file icons (data URLs from the main process; emoji fallback) ----
+
+const iconMemo = new Map();
+
+function hydrateIcon(container, item) {
+  if (!container || item.kind === 'url') return;
+  const cached = iconMemo.get(item.path);
+  if (cached === null) return; // known to have no native icon
+  if (typeof cached === 'string') {
+    container.innerHTML = `<img src="${cached}" alt="" draggable="false" />`;
+    return;
+  }
+  clutterDock.getItemIcon(item.id).then((url) => {
+    iconMemo.set(item.path, url);
+    if (url && container.isConnected) {
+      container.innerHTML = `<img src="${url}" alt="" draggable="false" />`;
+    }
+  });
+}
+
 let dataWarningShown = false;
 
 function render() {
@@ -124,9 +157,7 @@ function renderTabs() {
       f.smartKind && f.smartKind !== 'none'
         ? `${f.name} (smart — drop on normal stacks only)`
         : `Drop apps/files here · click to open`;
-    b.onclick = async () => {
-      await refresh(await clutterDock.selectFolder(f.id));
-    };
+    b.onclick = () => call(clutterDock.selectFolder(f.id));
     b.oncontextmenu = (e) => {
       e.preventDefault();
       showFolderMenu(e.clientX, e.clientY, f);
@@ -148,14 +179,12 @@ function renderTabs() {
         .map((x) => clutterDock.pathForFile(x))
         .filter(Boolean);
       if (itemId && !files.length) {
-        await refresh(await clutterDock.relocateItem(itemId, f.id));
+        await call(clutterDock.relocateItem(itemId, f.id));
         dragId = null;
         return;
       }
       if (files.length) {
-        const snap = await clutterDock.addPaths(files, f.id);
-        if (snap?._limitMessage) alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
-        await refresh(snap);
+        await call(clutterDock.addPaths(files, f.id));
       }
     });
     tabs.appendChild(b);
@@ -170,20 +199,9 @@ function renderTabs() {
   $('addFolderBtn').onclick = async () => {
     const pick = await newStackDialog();
     if (!pick) return;
-    const snap = await clutterDock.addFolder(pick.name, pick.symbol);
-    if (snap && snap.ok === false && snap.hitLimit) {
-      alert((snap.message || 'Stack limit reached.') + '\n\nUpgrade in Settings → Pro.');
-      return;
-    }
-    await refresh(snap.state ? snap : snap.snapshot || (await clutterDock.getSnapshot()));
+    await call(clutterDock.addFolder(pick.name, pick.symbol));
   };
-  $('addItemsBtn').onclick = async () => {
-    const snap = await clutterDock.pickAndAdd();
-    if (snap?._limitMessage) {
-      alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
-    }
-    await refresh(snap);
-  };
+  $('addItemsBtn').onclick = () => call(clutterDock.pickAndAdd());
   const badge = document.createElement('span');
   badge.className = 'tier-badge' + (snapshot.gate?.isPro ? ' pro' : '');
   badge.textContent = snapshot.gate?.isPro ? 'Pro' : 'Free';
@@ -213,7 +231,7 @@ function renderContent() {
         }
       </div>`;
     $('emptyAdd')?.addEventListener('click', async () => {
-      await refresh(await clutterDock.pickAndAdd());
+      await call(clutterDock.pickAndAdd());
     });
     $('emptyUrl')?.addEventListener('click', addUrlPrompt);
     return;
@@ -233,6 +251,7 @@ function renderContent() {
           <div class="sub">${escapeHtml(item._folderName || item.kind + ' · ' + item.path)}</div>
         </div>`;
       wireItem(row, item, folder);
+      hydrateIcon(row.querySelector('.tile-icon'), item);
       list.appendChild(row);
     }
   } else {
@@ -246,6 +265,7 @@ function renderContent() {
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
         <div class="tile-name">${escapeHtml(item.name)}</div>`;
       wireItem(tile, item, folder);
+      hydrateIcon(tile.querySelector('.tile-icon'), item);
       if (folder?.smartKind === 'none') {
         tile.addEventListener('dragstart', (e) => {
           dragId = item.id;
@@ -262,7 +282,7 @@ function renderContent() {
           if (!from || from === item.id) return;
           const ids = items.map((i) => i.id);
           const toIndex = ids.indexOf(item.id);
-          await refresh(await clutterDock.reorderItem(from, toIndex, folder.id));
+          await call(clutterDock.reorderItem(from, toIndex, folder.id));
           selectedId = from;
           dragId = null;
         });
@@ -342,11 +362,11 @@ function renderOnboarding() {
       </div>
     </div>`;
   $('obGot').onclick = async () => {
-    await refresh(await clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
+    await call(clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
   };
   $('obAdd').onclick = async () => {
     await clutterDock.updatePrefs({ hasCompletedOnboarding: true });
-    await refresh(await clutterDock.pickAndAdd());
+    await call(clutterDock.pickAndAdd());
   };
   $('obSettings').onclick = async () => {
     await clutterDock.updatePrefs({ hasCompletedOnboarding: true });
@@ -482,6 +502,27 @@ function newStackDialog() {
   });
 }
 
+function upsellDialog(message) {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>ClutterDock Pro</h2>
+        <p class="dialog-sub">${escapeHtml(message)}</p>
+        <p class="dialog-sub">Pro is a one-time unlock: unlimited stacks &amp; items, global search, pack export.</p>
+        <div class="row">
+          <button class="btn primary" id="dlgOk">Open Settings → Pro</button>
+          <button class="btn secondary" id="dlgCancel">Not now</button>
+        </div>
+      </div>`;
+    $('dlgOk').onclick = () => {
+      closeModal(null);
+      clutterDock.openSettings();
+    };
+    $('dlgCancel').onclick = () => closeModal(null);
+    $('dlgOk').focus();
+  });
+}
+
 function symbolDialog(folderName, current) {
   return openModal((modal) => {
     modal.innerHTML = `
@@ -523,9 +564,9 @@ function showItemMenu(x, y, item, folder) {
     ctx.hidden = true;
     if (a === 'open') await clutterDock.openItem(item);
     if (a === 'reveal') await clutterDock.revealItem(item);
-    if (a === 'left') await refresh(await clutterDock.nudgeItem(item.id, -1, folder.id));
-    if (a === 'right') await refresh(await clutterDock.nudgeItem(item.id, 1, folder.id));
-    if (a === 'remove') await refresh(await clutterDock.removeItem(item.id, folder.id));
+    if (a === 'left') await call(clutterDock.nudgeItem(item.id, -1, folder.id));
+    if (a === 'right') await call(clutterDock.nudgeItem(item.id, 1, folder.id));
+    if (a === 'remove') await call(clutterDock.removeItem(item.id, folder.id));
   };
 }
 
@@ -543,8 +584,8 @@ function showFolderMenu(x, y, folder) {
     const a = e.target.getAttribute('data-a');
     if (!a) return;
     ctx.hidden = true;
-    if (a === 'grid') await refresh(await clutterDock.setFolderView(folder.id, 'grid'));
-    if (a === 'list') await refresh(await clutterDock.setFolderView(folder.id, 'list'));
+    if (a === 'grid') await call(clutterDock.setFolderView(folder.id, 'grid'));
+    if (a === 'list') await call(clutterDock.setFolderView(folder.id, 'list'));
     if (a === 'rename') {
       const name = await textDialog({
         title: 'Rename stack',
@@ -552,13 +593,13 @@ function showFolderMenu(x, y, folder) {
         placeholder: 'e.g. Coding, Work',
         submitLabel: 'Rename',
       });
-      if (name) await refresh(await clutterDock.renameFolder(folder.id, name));
+      if (name) await call(clutterDock.renameFolder(folder.id, name));
     }
     if (a === 'symbol') {
       const symbol = await symbolDialog(folder.name, folder.symbol);
-      if (symbol) await refresh(await clutterDock.setFolderSymbol(folder.id, symbol));
+      if (symbol) await call(clutterDock.setFolderSymbol(folder.id, symbol));
     }
-    if (a === 'delete') await refresh(await clutterDock.deleteFolder(folder.id));
+    if (a === 'delete') await call(clutterDock.deleteFolder(folder.id));
   };
 }
 
@@ -568,7 +609,7 @@ async function addUrlPrompt() {
     placeholder: 'https://example.com',
     submitLabel: 'Add',
   });
-  if (url) await refresh(await clutterDock.addURL(url));
+  if (url) await call(clutterDock.addURL(url));
 }
 
 function escapeHtml(s) {
@@ -600,21 +641,18 @@ contentEl.addEventListener('drop', async (e) => {
     .map((f) => clutterDock.pathForFile(f))
     .filter(Boolean);
   if (files.length) {
-    const snap = await clutterDock.addPaths(files);
-    if (snap?._limitMessage) alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
-    await refresh(snap);
+    await call(clutterDock.addPaths(files));
     return;
   }
-  // Browser link or pasted URL text
+  // Browser link or pasted URL text (require a scheme or a plausible bare domain —
+  // "any text with a dot" used to become a URL)
   const uri =
     e.dataTransfer.getData('text/uri-list') ||
     e.dataTransfer.getData('text/plain') ||
     '';
   const first = uri.split('\n').map((s) => s.trim()).find((s) => s && !s.startsWith('#'));
-  if (first && (first.includes('://') || first.includes('.'))) {
-    const snap = await clutterDock.addURL(first);
-    if (snap?._limitMessage) alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
-    await refresh(snap);
+  if (first && (first.includes('://') || /^[\w-]+(\.[\w-]+)*\.[A-Za-z]{2,}(\/\S*)?$/.test(first))) {
+    await call(clutterDock.addURL(first));
   }
 });
 
@@ -624,7 +662,7 @@ $('search').addEventListener('input', async (e) => {
 });
 async function toggleGlobalSearch() {
   if (!snapshot?.gate?.canUseGlobalSearch) {
-    alert('Search all folders is a Pro feature.\n\nOpen Settings → Pro to activate.');
+    upsellDialog('Search across all folders is a Pro feature.');
     return;
   }
   searchGlobal = !searchGlobal;
@@ -672,7 +710,7 @@ document.addEventListener('keydown', async (e) => {
   }
   if (e.key === 'Escape') {
     if (!snapshot?.prefs?.hasCompletedOnboarding) {
-      await refresh(await clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
+      await call(clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
       return;
     }
     await clutterDock.hidePanel();
@@ -689,7 +727,7 @@ document.addEventListener('keydown', async (e) => {
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
     e.preventDefault();
     if (e.altKey && selectedFolder()?.smartKind === 'none' && selectedId) {
-      await refresh(await clutterDock.nudgeItem(selectedId, 1, selectedFolder().id));
+      await call(clutterDock.nudgeItem(selectedId, 1, selectedFolder().id));
     } else {
       selectedId = items[Math.min(items.length - 1, idx + 1)].id;
       renderContent();
@@ -698,7 +736,7 @@ document.addEventListener('keydown', async (e) => {
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
     e.preventDefault();
     if (e.altKey && selectedFolder()?.smartKind === 'none' && selectedId) {
-      await refresh(await clutterDock.nudgeItem(selectedId, -1, selectedFolder().id));
+      await call(clutterDock.nudgeItem(selectedId, -1, selectedFolder().id));
     } else {
       selectedId = items[Math.max(0, idx - 1)].id;
       renderContent();

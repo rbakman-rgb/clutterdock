@@ -127,7 +127,13 @@ class Store {
   }
 
   get isPro() {
-    return validateLicense(this.prefs.licenseKey || '');
+    // Snapshots read this several times each; don't recompute the HMAC every access
+    const key = this.prefs.licenseKey || '';
+    if (this._isProForKey !== key) {
+      this._isProForKey = key;
+      this._isPro = validateLicense(key);
+    }
+    return this._isPro;
   }
 
   get gate() {

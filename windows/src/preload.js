@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('clutterDock', {
   showPanel: () => ipcRenderer.invoke('show-panel'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   openDataDir: () => ipcRenderer.invoke('open-data-dir'),
+  getItemIcon: (itemID) => ipcRenderer.invoke('get-item-icon', itemID),
   activateLicense: (key) => ipcRenderer.invoke('activate-license', key),
   deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
   checkForUpdates: (interactive) => ipcRenderer.invoke('check-for-updates', interactive),

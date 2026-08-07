@@ -27,8 +27,9 @@ async function load() {
 }
 
 async function savePrefs(partial) {
-  snapshot = await clutterDock.updatePrefs(partial);
-  $('status').textContent = snapshot._hotkeyError || 'Saved.';
+  const res = await clutterDock.updatePrefs(partial);
+  snapshot = res.snapshot || res;
+  $('status').textContent = res.hotkeyError || 'Saved.';
   await load();
 }
 
@@ -71,7 +72,8 @@ $('activatePro').onclick = async () => {
 };
 
 $('deactivatePro').onclick = async () => {
-  snapshot = await clutterDock.deactivateLicense();
+  const res = await clutterDock.deactivateLicense();
+  snapshot = res.snapshot || res;
   $('status').textContent = 'Pro deactivated.';
   await load();
 };
