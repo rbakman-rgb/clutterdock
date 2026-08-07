@@ -36,16 +36,9 @@ enum URLSchemeHandler {
             panel.showSettings()
 
         case "add":
-            if let path = q("path") {
-                let result = store.addPaths([path])
-                if result.added > 0 || result.hitLimit {
-                    panel.show()
-                }
-            }
-            if let urlString = q("url") {
-                _ = store.addURL(urlString)
-                panel.show()
-            }
+            // Anything (a web page, another app) can invoke this scheme, so never
+            // mutate the user's stacks without showing them exactly what's being added.
+            confirmExternalAdd(path: q("path"), urlString: q("url"), store: store, panel: panel)
 
         case "workspace":
             if FeatureGate.canUseWorkspaces,
@@ -56,7 +49,41 @@ enum URLSchemeHandler {
             panel.show()
 
         default:
-            panel.show()
+            break // unknown host: ignore rather than popping the panel
         }
+    }
+
+    @MainActor
+    private static func confirmExternalAdd(
+        path: String?,
+        urlString: String?,
+        store: FolderStore,
+        panel: PanelController
+    ) {
+        var lines: [String] = []
+        if let path { lines.append("File: \(path)") }
+        if let urlString { lines.append("URL: \(urlString)") }
+        guard !lines.isEmpty else { return }
+
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Add to ClutterDock?"
+        alert.informativeText = "Another app or link asked ClutterDock to add:\n\n"
+            + lines.joined(separator: "\n")
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Add")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        var changed = false
+        if let path {
+            let result = store.addPaths([path])
+            changed = result.added > 0 || result.hitLimit
+        }
+        if let urlString {
+            let result = store.addURL(urlString)
+            changed = result.added > 0 || result.hitLimit || changed
+        }
+        if changed { panel.show() }
     }
 }

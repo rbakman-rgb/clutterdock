@@ -34,6 +34,32 @@ function asset(...parts) {
   return path.join(__dirname, '..', 'assets', ...parts);
 }
 
+/**
+ * Renderer windows must never navigate away from the bundled HTML or open new
+ * windows — a dropped/crafted link would otherwise load remote content with the
+ * preload API attached.
+ */
+function hardenWebContents(contents) {
+  contents.on('will-navigate', (e) => e.preventDefault());
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+}
+
+const SAFE_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+
+/** Only hand web-style URLs to the OS; ms-msdt:, search-ms: etc. stay blocked. */
+function safeOpenExternal(rawUrl) {
+  try {
+    const u = new URL(String(rawUrl));
+    if (SAFE_EXTERNAL_PROTOCOLS.has(u.protocol)) {
+      return shell.openExternal(u.toString());
+    }
+  } catch (_) {
+    /* invalid URL */
+  }
+  console.warn('Blocked open-external for URL:', String(rawUrl).slice(0, 200));
+  return Promise.resolve();
+}
+
 function createPanel() {
   if (panel && !panel.isDestroyed()) return panel;
 
@@ -59,6 +85,7 @@ function createPanel() {
     },
   });
 
+  hardenWebContents(panel.webContents);
   panel.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   panel.on('blur', () => {
@@ -126,6 +153,7 @@ function createSettings() {
     height: 560,
     title: 'ClutterDock Settings',
     show: true,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -133,6 +161,7 @@ function createSettings() {
       sandbox: false,
     },
   });
+  hardenWebContents(settingsWin.webContents);
   settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
   settingsWin.on('closed', () => {
     settingsWin = null;
@@ -288,11 +317,14 @@ function wireIpc() {
     return store.getSnapshot();
   });
 
-  ipcMain.handle('open-item', async (_e, item) => {
-    if (!item) return { ok: false };
+  // Items are resolved by id in the store — the renderer must not be able to
+  // launch arbitrary paths by sending a crafted item object.
+  ipcMain.handle('open-item', async (_e, itemOrId) => {
+    const item = store.findItem(typeof itemOrId === 'string' ? itemOrId : itemOrId?.id);
+    if (!item) return { ok: false, error: 'Item not found' };
     try {
       if (item.kind === 'url') {
-        await shell.openExternal(item.path);
+        await safeOpenExternal(item.path);
       } else if (fs.existsSync(item.path)) {
         const err = await shell.openPath(item.path);
         if (err) return { ok: false, error: err };
@@ -307,15 +339,19 @@ function wireIpc() {
     }
   });
 
-  ipcMain.handle('reveal-item', async (_e, item) => {
-    if (!item || item.kind === 'url') {
-      if (item?.path) await shell.openExternal(item.path);
+  ipcMain.handle('reveal-item', async (_e, itemOrId) => {
+    const item = store.findItem(typeof itemOrId === 'string' ? itemOrId : itemOrId?.id);
+    if (!item) return;
+    if (item.kind === 'url') {
+      await safeOpenExternal(item.path);
       return;
     }
     if (fs.existsSync(item.path)) shell.showItemInFolder(item.path);
   });
 
-  ipcMain.handle('search-all', (_e, query) => store.searchAll(query));
+  ipcMain.handle('search-all', (_e, query) =>
+    store.gate.canUseGlobalSearch ? store.searchAll(query) : []
+  );
 
   ipcMain.handle('display-items', (_e, folderID) => {
     const folder = store.state.folders.find((f) => f.id === folderID) || store.selectedFolder();
@@ -400,7 +436,7 @@ function wireIpc() {
   ipcMain.handle('hide-panel', () => hidePanel());
   ipcMain.handle('show-panel', () => showPanel());
 
-  ipcMain.handle('open-external', (_e, url) => shell.openExternal(url));
+  ipcMain.handle('open-external', (_e, url) => safeOpenExternal(url));
 
   ipcMain.handle('get-item-icon', async (_e, itemPath) => {
     // Electron doesn't extract Windows icons easily cross-platform.
@@ -430,6 +466,8 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    // No app menu on Windows — the default one exposes devtools/reload in production.
+    if (!isMac) Menu.setApplicationMenu(null);
     store = new Store();
     // Sync login item from OS if possible
     try {

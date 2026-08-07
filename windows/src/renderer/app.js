@@ -565,6 +565,10 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// Default drop behaviour navigates the window to the dropped URL — never allow it.
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => e.preventDefault());
+
 // Drag files / URLs into panel
 const contentEl = $('content');
 contentEl.addEventListener('dragover', (e) => {
@@ -604,14 +608,15 @@ $('search').addEventListener('input', async (e) => {
   searchText = e.target.value;
   await refresh();
 });
-$('searchAll').onclick = async () => {
+async function toggleGlobalSearch() {
   if (!snapshot?.gate?.canUseGlobalSearch) {
     alert('Search all folders is a Pro feature.\n\nOpen Settings → Pro to activate.');
     return;
   }
   searchGlobal = !searchGlobal;
   await refresh();
-};
+}
+$('searchAll').onclick = toggleGlobalSearch;
 $('settingsBtn').onclick = () => clutterDock.openSettings();
 $('helpBtn').onclick = () => {
   alert(
@@ -644,8 +649,7 @@ document.addEventListener('keydown', async (e) => {
   }
   if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
-    searchGlobal = !searchGlobal;
-    await refresh();
+    await toggleGlobalSearch();
     return;
   }
   const items = itemsForView();

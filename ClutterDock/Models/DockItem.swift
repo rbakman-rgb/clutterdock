@@ -142,13 +142,20 @@ struct DockItem: Identifiable, Codable, Equatable, Hashable {
         return DockItem(kind: kind, path: normalized)
     }
 
+    /// Web-style URLs only: file://, smb:// etc. would turn a "link" into a one-click
+    /// file/app launcher, which matters because URLs can arrive from untrusted sources
+    /// (clutterdock:// scheme, imported packs).
+    static let allowedURLSchemes: Set<String> = ["http", "https", "mailto"]
+
     static func fromURLString(_ string: String) -> DockItem? {
         var s = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !s.isEmpty else { return nil }
-        if !s.contains("://") {
+        if !s.contains("://") && !s.lowercased().hasPrefix("mailto:") {
             s = "https://\(s)"
         }
-        guard let url = URL(string: s), url.scheme != nil else { return nil }
+        guard let url = URL(string: s),
+              let scheme = url.scheme?.lowercased(),
+              allowedURLSchemes.contains(scheme) else { return nil }
         return DockItem(kind: .url, path: url.absoluteString, name: url.host ?? url.absoluteString)
     }
 }

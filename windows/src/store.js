@@ -205,6 +205,18 @@ class Store {
     };
   }
 
+  /** Resolve an item by id across folders and launch history. */
+  findItem(itemID) {
+    if (!itemID || typeof itemID !== 'string') return null;
+    for (const f of this.state.folders) {
+      const item = (f.items || []).find((i) => i.id === itemID);
+      if (item) return item;
+    }
+    const h = this.history.entries.find((e) => e.id === itemID);
+    if (h) return { id: h.id, kind: h.kind, path: h.path, name: h.name };
+    return null;
+  }
+
   normalFolderCount() {
     return this.state.folders.filter((f) => f.smartKind === 'none').length;
   }
@@ -321,10 +333,13 @@ class Store {
   addURL(urlString, folderID) {
     let s = (urlString || '').trim();
     if (!s) return { added: 0, hitLimit: false };
-    if (!s.includes('://')) s = 'https://' + s;
+    if (!s.includes('://') && !s.toLowerCase().startsWith('mailto:')) s = 'https://' + s;
     try {
-      // eslint-disable-next-line no-new
-      new URL(s);
+      // Web-style URLs only — a file:// or ms-* "link" would be a disguised launcher.
+      const u = new URL(s);
+      if (!['http:', 'https:', 'mailto:'].includes(u.protocol)) {
+        return { added: 0, hitLimit: false };
+      }
     } catch {
       return { added: 0, hitLimit: false };
     }

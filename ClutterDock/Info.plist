@@ -40,7 +40,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>clutterdock</string>
-				<string>slavedock</string>
 			</array>
 		</dict>
 	</array>

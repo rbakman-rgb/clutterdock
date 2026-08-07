@@ -110,6 +110,17 @@ enum UpdateService {
         }.resume()
     }
 
+    /// URLs from the release JSON are only opened when they clearly point at GitHub over
+    /// HTTPS — a tampered response must not be able to launch an arbitrary URL/scheme.
+    static func isTrustedDownloadURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https", let host = url.host?.lowercased() else {
+            return false
+        }
+        return host == "github.com"
+            || host.hasSuffix(".github.com")
+            || host == "objects.githubusercontent.com"
+    }
+
     /// User-facing check (alerts).
     static func checkAndPrompt(interactive: Bool) {
         check { result in
@@ -137,10 +148,12 @@ enum UpdateService {
                 alert.addButton(withTitle: "Later")
                 let response = alert.runModal()
                 if response == .alertFirstButtonReturn {
-                    if let asset = info.macAssetURL {
+                    if let asset = info.macAssetURL, isTrustedDownloadURL(asset) {
                         NSWorkspace.shared.open(asset)
-                    } else {
+                    } else if isTrustedDownloadURL(info.htmlURL) {
                         NSWorkspace.shared.open(info.htmlURL)
+                    } else {
+                        NSWorkspace.shared.open(releasesURL)
                     }
                 }
 

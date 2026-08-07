@@ -3,6 +3,10 @@
 let snapshot = null;
 const $ = (id) => document.getElementById(id);
 
+// Default drop behaviour navigates the window to the dropped URL — never allow it.
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => e.preventDefault());
+
 async function load() {
   snapshot = await clutterDock.getSnapshot();
   $('closeAfter').checked = !!snapshot.prefs.closeAfterLaunch;
