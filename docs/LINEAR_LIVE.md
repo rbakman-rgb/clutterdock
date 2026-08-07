@@ -14,9 +14,9 @@
 | Area | Status |
 |------|--------|
 | Brand / repo / domains | ClutterDock · public `rbakman-rgb/clutterdock` · clutterdock.com |
-| Mac app | **1.4.4** (drag-drop) · polish 1.4.x Done |
-| Windows | **1.1.2** source · portable on Releases |
-| GitHub Release v1.4.3 | **Live** (Mac zip + Win exe) |
+| Mac app | **1.4.5** (multi-stack UX + settings URL) |
+| Windows | **1.1.3** source · CI builds on tag |
+| GitHub Release | Tag **v1.4.5** (supersedes v1.4.3 unsigned beta) |
 | Marketing site | **Coming soon** (no download CTAs — intentional) |
 | Merchant / checkout | **Not set up** — G2 stays Todo |
 | Apple Developer / notarize | **Not started** |
@@ -37,6 +37,9 @@
 | RON-410 | G3-09 Drag-and-drop stacks |
 | RON-411 | G3-10 Hero app-burst animation |
 | RON-412 | G3-11 Site Coming soon policy |
+| RON-369 | Real Mac screenshots on site (`website/assets/screenshots/`) |
+| RON-415 | Manual SDPRO key ops — `docs/KEY_OPS.md` |
+| RON-363 | Mac smoke from GitHub Release (Win still needs a Windows machine) |
 
 ---
 
@@ -49,7 +52,7 @@
 | RON-360 | Todo · Urgent | blocked by 359 |
 | RON-361 | Todo · Urgent | blocked by 360 |
 | RON-362 | Todo · High | Partial: SmartScreen FAQ; signing open |
-| RON-363 | Todo · Urgent | Smoke from Releases (assets ready) |
+| RON-363 | Done · Mac | Win portable smoke still manual on a PC |
 
 ### G2 Pro commerce (do not start until ready to sell)
 | ID | State | Notes |
@@ -59,12 +62,12 @@
 | RON-366 | Todo · Urgent | blocked by 365 |
 | RON-367 | Todo · Urgent | blocked by 365 |
 | RON-368 | Todo · Low | webhook optional |
-| RON-415 | Todo · Medium | G2-06 manual SDPRO key ops doc |
+| RON-415 | Done | `docs/KEY_OPS.md` |
 
 ### G3 Product polish
 | ID | State | Notes |
 |----|--------|--------|
-| RON-369 | Todo · High | Real screenshots |
+| RON-369 | Done | Real launcher + settings PNGs on site |
 | RON-372 | Todo · Medium | Re-enable site downloads when ready |
 | RON-373 | Todo · Low | Pro terms |
 | RON-382 | Backlog | Win UX parity |

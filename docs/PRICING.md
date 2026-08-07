@@ -57,6 +57,7 @@ Format: `SDPRO-XXXX-YYYY-ZZZZ`
 - Validated offline (HMAC) — no account required  
 - Same key works on **Mac and Windows**  
 - Activate: **Settings → Pro**
+- Seller runbook (manual fulfillment): [KEY_OPS.md](KEY_OPS.md)
 
 Dev / test unlock (always valid for development):
 

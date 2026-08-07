@@ -57,14 +57,16 @@ gh repo edit rbakman-rgb/clutterdock --visibility public
 | **Apple notarization** (RON-359→361) | No Developer ID cert on this Mac | Enroll Apple Developer ($99), create Developer ID Application cert, sign + notarize zip, re-release |
 | **Windows signing** (RON-362) | No Authenticode cert | Buy cert / Azure Trusted Signing, or keep SmartScreen FAQ |
 | **Pro checkout** (RON-364→367) | No merchant | Lemon Squeezy / Gumroad / Paddle product + auto key email; wire Unlock Pro |
-| **Real screenshots** (RON-369) | Needs interactive UI capture | Capture launcher + settings from Mac 1.4.3; drop into `website/assets/screenshots/` |
-| **Clean-machine smoke** (RON-363) | Human QA | Fresh Mac + Win: download from Releases, install per FAQ, open launcher |
+| **Real screenshots** (RON-369) | Done 2026-08-07 | `website/assets/screenshots/launcher.png` + `settings.png` on site |
+| **Clean-machine smoke** (RON-363) | Partial / Mac | Smoke from GitHub Release zip on this Mac; Windows needs a Win machine |
 | **Soft launch posts** (RON-374) | After smoke | Social / forums |
 | **Homebrew cask** (RON-376) | After notarization | |
 | **Sparkle auto-update** | Not ticketed | After notarization |
 | **Linear sync** | MCP OAuth | Mark RON-379/370/372 Done in Linear UI |
 
 ## License keys (seller side)
+
+Full runbook: [KEY_OPS.md](KEY_OPS.md) (RON-415).
 
 ```bash
 swift scripts/generate-license.swift A1B2 CUST

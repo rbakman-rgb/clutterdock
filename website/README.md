@@ -18,7 +18,7 @@ python3 -m http.server 5173
 | `pricing.html` | Plans, comparison, FAQ, download |
 | `privacy.html` | Privacy policy |
 | `css/styles.css` | Shared dark theme |
-| `assets/` | Real app icon only (no fake UI screenshots) |
+| `assets/` | App icon + real product screenshots under `assets/screenshots/` |
 | `robots.txt` / `sitemap.xml` | SEO |
 
 ## Deploy
@@ -69,5 +69,5 @@ Use real captures of the launcher/settings when ready (Linear G3-01).
 - [x] Accessibility: skip link, focus styles, mobile nav
 - [x] SEO: meta, OG, canonical, sitemap, schema
 - [x] Custom domain DNS + HTTPS (Cloudflare Workers, both domains, .app + www → 301 clutterdock.com)
-- [ ] Real product screenshots when ready
+- [x] Real product screenshots (launcher + settings)
 - [ ] Enable public downloads after release

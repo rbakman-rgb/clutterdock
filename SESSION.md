@@ -1,7 +1,7 @@
 # ClutterDock — Session save
 
-**Saved:** 2026-08-06  
-**Status:** **Public unsigned beta** — Mac **1.4.3** zip + Win **1.1.1** exe on GitHub Releases · site downloads live · install FAQ · next = Apple notarization + Pro merchant.  
+**Saved:** 2026-08-07  
+**Status:** **Public unsigned beta** — Mac **1.4.5** + Win **1.1.3** on GitHub Releases · real screenshots on site · KEY_OPS doc · next = Apple notarization + Pro merchant.  
 **URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ (**live** — Cloudflare Workers; clutterdock.app + www 301 → clutterdock.com)  
 **Roadmap:** [docs/ROADMAP_NOW.md](docs/ROADMAP_NOW.md) · Linear map [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md)  
 **Backlog:** [Linear — ClutterDock V1](https://linear.app/rbakman/project/clutterdock-v1-public-launch-9720be94b795) (full sync 2026-08-06 · `docs/LINEAR_LIVE.md` · protocol in `AGENTS.md`)
@@ -105,12 +105,11 @@ open /Applications/ClutterDock.app
 
 ## Good next sessions (priority order)
 
-1. **RON-379** — Tag + GitHub Release (Mac zip + Win portable, “unsigned beta”)  
-2. **RON-370** — Site install FAQ (Gatekeeper + SmartScreen)  
-3. **RON-369** — Real Mac 1.4.3 screenshots (no fake mockups)  
-4. **RON-359+** — Apple Developer enroll → sign → notarize  
-5. **G2** — Merchant + Pro checkout when ready to sell  
-6. **Soft launch** after clean-machine smoke (RON-363)  
+1. **RON-359+** — Apple Developer enroll → sign → notarize  
+2. **RON-363** — Windows smoke from Releases (Mac smoke done)  
+3. **RON-372** — Re-enable site download CTAs when ready  
+4. **G2** — Merchant + Pro checkout when ready to sell  
+5. **Soft launch** after full smoke (RON-374)  
 
 ---
 

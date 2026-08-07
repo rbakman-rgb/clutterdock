@@ -9,6 +9,7 @@ import Foundation
 /// - clutterdock://add?path=/Applications/Safari.app
 /// - clutterdock://add?url=https://example.com
 /// - clutterdock://workspace?name=Work
+/// - clutterdock://settings
 enum URLSchemeHandler {
     @MainActor
     static func handle(_ url: URL, store: FolderStore, panel: PanelController) {
@@ -30,6 +31,9 @@ enum URLSchemeHandler {
                 }
             }
             panel.show()
+
+        case "settings":
+            panel.showSettings()
 
         case "add":
             if let path = q("path") {

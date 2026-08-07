@@ -8,8 +8,8 @@
 
 | Platform | Stack | Version |
 |----------|--------|---------|
-| macOS 14+ | Native Swift / SwiftUI | **1.4.4** |
-| Windows 10/11 | Electron tray launcher | **1.1.2** |
+| macOS 14+ | Native Swift / SwiftUI | **1.4.5** |
+| Windows 10/11 | Electron tray launcher | **1.1.3** |
 
 ---
 

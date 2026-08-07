@@ -497,6 +497,7 @@ struct SettingsView: View {
             Section("Automation") {
                 Text("clutterdock://open")
                 Text("clutterdock://open?folder=Work")
+                Text("clutterdock://settings")
                 Text("clutterdock://add?path=/Applications/Safari.app")
                 Text("clutterdock://add?url=https://example.com")
                 Text("clutterdock://workspace?name=All")
