@@ -21,8 +21,9 @@ final class FolderStore: ObservableObject {
     /// copied here before defaults were written, so the user's data is never destroyed.
     let dataRecoveryBackupURL: URL?
 
-    init() {
-        supportDir = AppSupport.applicationSupportDirectory
+    /// `directory` is injectable so tests never touch the real Application Support data.
+    init(directory: URL = AppSupport.applicationSupportDirectory) {
+        supportDir = directory
         fileURL = supportDir.appendingPathComponent("folders.json")
 
         // Initialize all stored properties first (Swift requires this before reading self).

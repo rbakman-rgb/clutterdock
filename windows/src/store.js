@@ -1,7 +1,18 @@
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
+const os = require('os');
 const { randomUUID } = require('crypto');
+
+// In plain Node (tests), require('electron') resolves to the binary-path string —
+// fall back to CLUTTERDOCK_DATA_DIR so the store is testable without Electron.
+const electronApp = (() => {
+  try {
+    const e = require('electron');
+    return e && e.app ? e.app : null;
+  } catch (_) {
+    return null;
+  }
+})();
 const {
   validate: validateLicense,
   mask: maskLicense,
@@ -12,7 +23,9 @@ const {
 const CURRENT_VERSION = 1;
 
 function dataDir() {
-  const root = app.getPath('userData');
+  const root = electronApp
+    ? electronApp.getPath('userData')
+    : process.env.CLUTTERDOCK_DATA_DIR || path.join(os.tmpdir(), 'clutterdock-test');
   const dir = path.join(root, 'ClutterDock');
   if (!fs.existsSync(dir)) {
     for (const legacy of ['SlaveDock', 'DockFolder']) {
@@ -448,7 +461,15 @@ class Store {
   addURL(urlString, folderID) {
     let s = (urlString || '').trim();
     if (!s) return { added: 0, hitLimit: false };
-    if (!s.includes('://') && !s.toLowerCase().startsWith('mailto:')) s = 'https://' + s;
+    // Only bare hostnames get an implicit https:// — prefixing something that already
+    // carries a scheme (ms-msdt:, file:) would smuggle it through as a fake https URL.
+    const hasScheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(s);
+    if (!hasScheme) {
+      if (!/^[\w-]+(\.[\w-]+)*\.[A-Za-z]{2,}(\/\S*)?$/.test(s)) {
+        return { added: 0, hitLimit: false };
+      }
+      s = 'https://' + s;
+    }
     try {
       // Web-style URLs only — a file:// or ms-* "link" would be a disguised launcher.
       const u = new URL(s);

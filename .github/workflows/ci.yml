@@ -19,6 +19,11 @@ jobs:
           # CI compile check only — never a shipped artifact, so the dev secret is fine.
           CLUTTERDOCK_LICENSE_SECRET: ci-compile-check-secret
 
+      - name: Model tests
+        run: |
+          chmod +x scripts/test-mac.sh
+          ./scripts/test-mac.sh
+
   windows:
     name: Windows checks
     runs-on: ubuntu-latest
@@ -29,7 +34,7 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: windows/package-lock.json
-      - name: Syntax + license tests
+      - name: Syntax + unit tests
         working-directory: windows
         run: |
           for f in src/*.js src/renderer/*.js scripts/*.js; do node --check "$f"; done
