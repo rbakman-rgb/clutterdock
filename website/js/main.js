@@ -57,7 +57,10 @@
   const nav = document.querySelector(".nav");
   const pageBg = document.querySelector(".page-bg");
 
-  const onScroll = () => {
+  // Style writes are batched into one rAF per frame instead of per scroll event
+  let scrollScheduled = false;
+  const applyScroll = () => {
+    scrollScheduled = false;
     const y = window.scrollY || document.documentElement.scrollTop;
     if (nav) nav.classList.toggle("is-scrolled", y > 12);
     if (pageBg && !reduceMotion) {
@@ -66,8 +69,14 @@
       pageBg.style.transform = `translate3d(0, ${shift}px, 0)`;
     }
   };
+  const onScroll = () => {
+    if (!scrollScheduled) {
+      scrollScheduled = true;
+      requestAnimationFrame(applyScroll);
+    }
+  };
 
-  onScroll();
+  applyScroll();
   window.addEventListener("scroll", onScroll, { passive: true });
 
   if (reduceMotion || !("IntersectionObserver" in window)) {

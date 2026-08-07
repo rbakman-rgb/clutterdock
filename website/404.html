@@ -5,13 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Page not found · ClutterDock</title>
   <meta name="robots" content="noindex" />
-  <meta name="theme-color" content="#0b0f17" />
+  <meta name="theme-color" content="#070a10" />
   <link rel="icon" href="/assets/icon-256.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/styles.css?v=20260806e" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="page-bg" aria-hidden="true"></div>
-  <main class="container section" style="text-align: center; max-width: 520px; padding-top: 6rem;">
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/">
+        <img src="/assets/icon-256.png" alt="" width="32" height="32" />
+        ClutterDock
+      </a>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
+      <nav class="nav-links" data-nav-links id="site-nav">
+        <a href="/#problem">The problem</a>
+        <a href="/#solution">The fix</a>
+        <a href="/pricing">Pricing</a>
+        <a class="nav-cta" href="/#coming-soon">Coming soon</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="container section" style="text-align: center; max-width: 520px; padding-top: 6rem;">
     <div class="eyebrow">404</div>
     <h1 style="letter-spacing: -0.03em;">This page isn’t here</h1>
     <p class="lead" style="color: var(--text-muted); margin: 0.75rem 0 1.75rem;">
@@ -22,5 +43,13 @@
       <a class="btn btn-secondary" href="/pricing">Pricing</a>
     </div>
   </main>
+
+  <footer class="footer">
+    <div class="footer-bottom" style="border: none;">
+      <span>© <span data-year></span> ClutterDock</span>
+      <span><a href="/" style="color: var(--text-muted);">Home</a> · <a href="/privacy" style="color: var(--text-muted);">Privacy</a></span>
+    </div>
+  </footer>
+  <script src="/js/main.js?v=20260806e"></script>
 </body>
 </html>
