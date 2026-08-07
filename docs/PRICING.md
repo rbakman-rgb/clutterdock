@@ -59,13 +59,11 @@ Format: `SDPRO-XXXX-YYYY-ZZZZ`
 - Activate: **Settings → Pro**
 - Seller runbook (manual fulfillment): [KEY_OPS.md](KEY_OPS.md)
 
-Dev / test unlock (always valid for development):
+A dev/test unlock key exists but only works in development builds (never in shipped
+releases) — see [KEY_OPS.md](KEY_OPS.md).
 
-```text
-SDPRO-TEST-UNLOCK-2026
-```
-
-Do not publish the generator secret publicly in marketing pages.
+The generator secret lives outside the repo (`scripts/private/`, gitignored) — never
+publish it or commit it.
 
 ---
 

@@ -25,6 +25,8 @@ jobs:
         run: |
           chmod +x scripts/build.sh scripts/package-mac.sh
           ./scripts/package-mac.sh
+        env:
+          CLUTTERDOCK_LICENSE_SECRET: ${{ secrets.CLUTTERDOCK_LICENSE_SECRET }}
 
       - name: Upload Mac artifact
         uses: actions/upload-artifact@v4
@@ -49,10 +51,11 @@ jobs:
         working-directory: windows
         run: |
           npm ci
-          npx electron-builder --win --x64 --publish never
+          npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CLUTTERDOCK_LICENSE_SECRET: ${{ secrets.CLUTTERDOCK_LICENSE_SECRET }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -123,7 +126,7 @@ jobs:
             - **Windows (NSIS):** in-app download & restart via electron-updater
 
             ### Pro
-            Purchase / activate via the [pricing page](https://rbakman-rgb.github.io/clutterdock/pricing.html) (checkout wiring may still be manual).
+            Purchase / activate via the [pricing page](https://clutterdock.com/pricing) (checkout wiring may still be manual).
 
             Tips: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
           files: release-assets/*

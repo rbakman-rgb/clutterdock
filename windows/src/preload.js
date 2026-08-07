@@ -1,6 +1,14 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('clutterDock', {
+  // File.path was removed in Electron 32; drops must resolve paths via webUtils.
+  pathForFile: (file) => {
+    try {
+      return webUtils.getPathForFile(file) || null;
+    } catch (_) {
+      return null;
+    }
+  },
   getSnapshot: () => ipcRenderer.invoke('get-snapshot'),
   onSnapshot: (cb) => {
     const handler = (_e, data) => cb(data);

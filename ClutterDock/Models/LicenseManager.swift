@@ -17,11 +17,13 @@ final class LicenseManager: ObservableObject {
     private let legacyKeyStorageKey = "slaveDock.proLicenseKey"
     private let legacyBundleID = "com.ronald.SlaveDock"
 
-    /// Must match windows/src/license.js PRODUCT_SECRET
-    private static let productSecret = "sd-pro-v1-k9m2x7q4-rbakman-slavedock"
+    /// Injected at build time (scripts/build.sh → LicenseSecret.swift). Must match windows/src/license.js.
+    private static let productSecret = LicenseSecret.productSecret
 
-    /// Always-valid test key for development and demos (document in PRICING.md).
+    #if CLUTTERDOCK_DEV
+    /// Dev-build-only unlock. Never compiled into release builds (build.sh omits -D CLUTTERDOCK_DEV).
     static let testUnlockKey = "SDPRO-TEST-UNLOCK-2026"
+    #endif
 
     private init() {
         migrateLegacyLicenseIfNeeded()
@@ -82,15 +84,16 @@ final class LicenseManager: ObservableObject {
     // MARK: - Validation
 
     /// Format: SDPRO-XXXX-YYYY-ZZZZ where XXXX is serial (4 chars) and YYYYZZZZ is HMAC hex prefix.
-    /// Test key: SDPRO-TEST-UNLOCK-2026
     static func validate(_ key: String) -> Bool {
         let normalized = key.uppercased().filter { $0.isLetter || $0.isNumber || $0 == "-" }
         let compact = normalized.replacingOccurrences(of: "-", with: "")
 
+        #if CLUTTERDOCK_DEV
         if compact == "SDPROTESTUNLOCK2026" { return true }
+        #endif
 
-        // SDPRO + 4 serial + 8 hex signature
-        guard compact.hasPrefix("SDPRO"), compact.count == 16 else { return false }
+        // "SDPRO" (5) + 4 serial + 8 hex signature = 17
+        guard compact.hasPrefix("SDPRO"), compact.count == 17 else { return false }
         let serial = String(compact.dropFirst(5).prefix(4))
         let sig = String(compact.suffix(8))
         let expected = hmacHex(message: serial).prefix(8).uppercased()

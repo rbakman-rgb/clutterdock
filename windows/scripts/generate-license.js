@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-const { generateKey, TEST_KEY } = require('../src/license');
+// Requires the secret to be present (scripts/private/license-secret.txt or
+// CLUTTERDOCK_LICENSE_SECRET) — run scripts/write-license-secret.js first.
+const { generateKey } = require('../src/license');
 
 const serials = process.argv.slice(2);
-console.log('Test unlock:', TEST_KEY);
 if (!serials.length) {
-  for (const s of ['A1B2', 'DEMO', 'RON1']) {
-    console.log(generateKey(s));
-  }
-  console.log('\nUsage: node scripts/generate-license.js AB12 CUST');
+  console.log('Usage: node scripts/generate-license.js AB12 CUST');
 } else {
   for (const s of serials) {
     const k = generateKey(s);

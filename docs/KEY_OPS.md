@@ -12,11 +12,20 @@ SDPRO-XXXX-YYYY-ZZZZ
 - `XXXX` — 4-character serial you choose (A–Z, 0–9)
 - `YYYY-ZZZZ` — HMAC signature derived from the serial (offline validation)
 
-Built-in **dev/test** unlock (never sell this):
+Built-in **dev/test** unlock (never sell this; only accepted by development builds —
+release builds reject it):
 
 ```text
 SDPRO-TEST-UNLOCK-2026
 ```
+
+## Secret
+
+The HMAC secret is **not** in the repo. It lives in `scripts/private/license-secret.txt`
+(gitignored) and is injected at build time (`scripts/build.sh` on Mac,
+`windows/scripts/write-license-secret.js` on Windows). CI release builds read it from the
+`CLUTTERDOCK_LICENSE_SECRET` GitHub Actions secret and fail if it is missing. Keep an
+offline backup of the secret — losing it invalidates every issued key.
 
 ## Generate a customer key
 
@@ -67,8 +76,9 @@ Suggested private log columns: `date | serial | key | buyer | amount | notes`
 
 ## Security notes
 
-- The HMAC secret lives in app source + generator scripts for offline validation (standard offline-key tradeoff). Do **not** paste it into marketing pages, emails, or public docs.
-- Do not publish `SDPRO-TEST-UNLOCK-2026` as a customer offer.
+- The HMAC secret is embedded in shipped binaries for offline validation (standard offline-key tradeoff) but is kept out of the public repo (`scripts/private/`, gitignored). Do **not** paste it into marketing pages, emails, or public docs.
+- The previous secret (`sd-pro-v1-…`) was committed to the public repo and has been rotated (2026-08-07); no customer keys had been issued against it.
+- Do not publish `SDPRO-TEST-UNLOCK-2026` as a customer offer — it is rejected by release builds anyway.
 - When Lemon Squeezy / Gumroad / Paddle is wired (RON-364+), prefer auto-email from checkout; keep this doc for overrides and comps.
 
 ## Related

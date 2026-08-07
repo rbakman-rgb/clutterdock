@@ -136,7 +136,9 @@ function renderTabs() {
       b.classList.remove('drop-target');
       if (f.smartKind && f.smartKind !== 'none') return;
       const itemId = e.dataTransfer.getData('text/plain') || dragId;
-      const files = [...(e.dataTransfer.files || [])].map((x) => x.path).filter(Boolean);
+      const files = [...(e.dataTransfer.files || [])]
+        .map((x) => clutterDock.pathForFile(x))
+        .filter(Boolean);
       if (itemId && !files.length) {
         await refresh(await clutterDock.relocateItem(itemId, f.id));
         dragId = null;
@@ -158,26 +160,11 @@ function renderTabs() {
   `;
   tabs.appendChild(actions);
   $('addFolderBtn').onclick = async () => {
-    const presetList = STACK_PRESETS.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
-    const pick = prompt(
-      `New stack — enter a name, or 1–${STACK_PRESETS.length} for a preset:\n${presetList}`,
-      'Coding'
-    );
+    const pick = await newStackDialog();
     if (!pick) return;
-    let name = pick.trim();
-    let symbol = 'folder';
-    const n = parseInt(name, 10);
-    if (n >= 1 && n <= STACK_PRESETS.length) {
-      name = STACK_PRESETS[n - 1].name;
-      symbol = STACK_PRESETS[n - 1].symbol;
-    } else {
-      const lower = name.toLowerCase();
-      const match = STACK_PRESETS.find((p) => p.name.toLowerCase() === lower);
-      if (match) symbol = match.symbol;
-    }
-    const snap = await clutterDock.addFolder(name, symbol);
+    const snap = await clutterDock.addFolder(pick.name, pick.symbol);
     if (snap && snap.ok === false && snap.hitLimit) {
-      alert((snap.message || 'Stack limit reached.') + '\n\nSettings → Pro · test key SDPRO-TEST-UNLOCK-2026');
+      alert((snap.message || 'Stack limit reached.') + '\n\nUpgrade in Settings → Pro.');
       return;
     }
     await refresh(snap.state ? snap : snap.snapshot || (await clutterDock.getSnapshot()));
@@ -353,6 +340,149 @@ function renderOnboarding() {
   };
 }
 
+// ---- In-panel dialogs (Electron does not implement window.prompt) ----
+
+let modalResolve = null;
+
+function modalOpen() {
+  return !$('modal').hidden;
+}
+
+function closeModal(value) {
+  const modal = $('modal');
+  modal.hidden = true;
+  modal.innerHTML = '';
+  const resolve = modalResolve;
+  modalResolve = null;
+  if (resolve) resolve(value);
+}
+
+function openModal(build) {
+  if (modalOpen()) closeModal(null);
+  const modal = $('modal');
+  modal.hidden = false;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal(null);
+  };
+  return new Promise((resolve) => {
+    modalResolve = resolve;
+    build(modal);
+  });
+}
+
+function textDialog({ title, sub = '', value = '', placeholder = '', submitLabel = 'OK' }) {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>${escapeHtml(title)}</h2>
+        ${sub ? `<p class="dialog-sub">${escapeHtml(sub)}</p>` : ''}
+        <input type="text" id="dlgInput" autocomplete="off" spellcheck="false" />
+        <div class="row">
+          <button class="btn primary" id="dlgOk">${escapeHtml(submitLabel)}</button>
+          <button class="btn secondary" id="dlgCancel">Cancel</button>
+        </div>
+      </div>`;
+    const input = $('dlgInput');
+    input.value = value;
+    input.placeholder = placeholder;
+    const submit = () => closeModal(input.value.trim() || null);
+    $('dlgOk').onclick = submit;
+    $('dlgCancel').onclick = () => closeModal(null);
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') submit();
+    };
+    input.focus();
+    input.select();
+  });
+}
+
+function buildSymbolGrid(container, initial, onPick) {
+  let selected = initial;
+  for (const key of Object.keys(STACK_EMOJI)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'symbol-btn' + (key === selected ? ' selected' : '');
+    b.textContent = STACK_EMOJI[key];
+    b.title = key;
+    b.setAttribute('aria-label', key);
+    b.onclick = () => {
+      selected = key;
+      [...container.children].forEach((c) => c.classList.toggle('selected', c === b));
+      onPick(key);
+    };
+    container.appendChild(b);
+  }
+  return {
+    select(key) {
+      selected = key;
+      [...container.children].forEach((c) => c.classList.toggle('selected', c.title === key));
+    },
+  };
+}
+
+function newStackDialog() {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>New stack</h2>
+        <input type="text" id="dlgInput" placeholder="Name (e.g. Coding, Work)" autocomplete="off" spellcheck="false" />
+        <div class="preset-row" id="dlgPresets"></div>
+        <div class="symbol-grid" id="dlgSymbols"></div>
+        <div class="row">
+          <button class="btn primary" id="dlgOk">Create</button>
+          <button class="btn secondary" id="dlgCancel">Cancel</button>
+        </div>
+      </div>`;
+    const input = $('dlgInput');
+    let symbol = 'folder';
+    const grid = buildSymbolGrid($('dlgSymbols'), symbol, (key) => {
+      symbol = key;
+    });
+    for (const p of STACK_PRESETS) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'preset-chip';
+      chip.textContent = `${STACK_EMOJI[p.symbol]} ${p.name}`;
+      chip.onclick = () => {
+        input.value = p.name;
+        symbol = p.symbol;
+        grid.select(p.symbol);
+        input.focus();
+      };
+      $('dlgPresets').appendChild(chip);
+    }
+    const submit = () => {
+      const name = input.value.trim();
+      if (!name) {
+        input.focus();
+        return;
+      }
+      closeModal({ name, symbol });
+    };
+    $('dlgOk').onclick = submit;
+    $('dlgCancel').onclick = () => closeModal(null);
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') submit();
+    };
+    input.focus();
+  });
+}
+
+function symbolDialog(folderName, current) {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>Symbol for “${escapeHtml(folderName)}”</h2>
+        <div class="symbol-grid" id="dlgSymbols"></div>
+        <div class="row">
+          <button class="btn secondary" id="dlgCancel">Cancel</button>
+        </div>
+      </div>`;
+    buildSymbolGrid($('dlgSymbols'), current || 'folder', (key) => closeModal(key));
+    $('dlgCancel').onclick = () => closeModal(null);
+  });
+}
+
 function showItemMenu(x, y, item, folder) {
   const ctx = $('ctx');
   ctx.hidden = false;
@@ -396,29 +526,28 @@ function showFolderMenu(x, y, folder) {
     if (a === 'grid') await refresh(await clutterDock.setFolderView(folder.id, 'grid'));
     if (a === 'list') await refresh(await clutterDock.setFolderView(folder.id, 'list'));
     if (a === 'rename') {
-      const name = prompt('Rename stack (e.g. Coding, Work)', folder.name);
+      const name = await textDialog({
+        title: 'Rename stack',
+        value: folder.name,
+        placeholder: 'e.g. Coding, Work',
+        submitLabel: 'Rename',
+      });
       if (name) await refresh(await clutterDock.renameFolder(folder.id, name));
     }
     if (a === 'symbol') {
-      const keys = Object.keys(STACK_EMOJI);
-      const list = keys.map((k, i) => `${i + 1}. ${STACK_EMOJI[k]} ${k}`).join('\n');
-      const pick = prompt(`Symbol for “${folder.name}”:\n${list}`, folder.symbol || 'folder');
-      if (!pick) return;
-      let symbol = pick.trim().toLowerCase();
-      const n = parseInt(symbol, 10);
-      if (n >= 1 && n <= keys.length) symbol = keys[n - 1];
-      if (!STACK_EMOJI[symbol]) {
-        alert('Unknown symbol');
-        return;
-      }
-      await refresh(await clutterDock.setFolderSymbol(folder.id, symbol));
+      const symbol = await symbolDialog(folder.name, folder.symbol);
+      if (symbol) await refresh(await clutterDock.setFolderSymbol(folder.id, symbol));
     }
     if (a === 'delete') await refresh(await clutterDock.deleteFolder(folder.id));
   };
 }
 
 async function addUrlPrompt() {
-  const url = prompt('URL', 'https://');
+  const url = await textDialog({
+    title: 'Add URL',
+    placeholder: 'https://example.com',
+    submitLabel: 'Add',
+  });
   if (url) await refresh(await clutterDock.addURL(url));
 }
 
@@ -443,7 +572,9 @@ contentEl.addEventListener('dragleave', () => contentEl.classList.remove('drop-a
 contentEl.addEventListener('drop', async (e) => {
   e.preventDefault();
   contentEl.classList.remove('drop-active');
-  const files = [...(e.dataTransfer.files || [])].map((f) => f.path).filter(Boolean);
+  const files = [...(e.dataTransfer.files || [])]
+    .map((f) => clutterDock.pathForFile(f))
+    .filter(Boolean);
   if (files.length) {
     const snap = await clutterDock.addPaths(files);
     if (snap?._limitMessage) alert(snap._limitMessage + '\n\nUpgrade in Settings → Pro.');
@@ -469,9 +600,7 @@ $('search').addEventListener('input', async (e) => {
 });
 $('searchAll').onclick = async () => {
   if (!snapshot?.gate?.canUseGlobalSearch) {
-    alert(
-      'Search all folders is a Pro feature.\n\nOpen Settings → Pro to activate.\nTest key: SDPRO-TEST-UNLOCK-2026'
-    );
+    alert('Search all folders is a Pro feature.\n\nOpen Settings → Pro to activate.');
     return;
   }
   searchGlobal = !searchGlobal;
@@ -495,6 +624,10 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', async (e) => {
+  if (modalOpen()) {
+    if (e.key === 'Escape') closeModal(null);
+    return;
+  }
   if (e.key === 'Escape') {
     if (!snapshot?.prefs?.hasCompletedOnboarding) {
       await refresh(await clutterDock.updatePrefs({ hasCompletedOnboarding: true }));

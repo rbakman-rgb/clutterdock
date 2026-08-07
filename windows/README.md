@@ -14,7 +14,6 @@ Free tray launcher that mirrors the Mac **ClutterDock** idea: group apps, files,
 - Grid / list views, drag reorder, Alt+←/→ nudge
 - Free: 5 folders · 20 items each · JSON-friendly workflow
 - Pro: unlimited · pack export · license key (Settings → Pro)
-- Test key: `SDPRO-TEST-UNLOCK-2026`
 - Open at login, welcome tips, Buy Me a Coffee
 - Runs in the background (stays in tray)
 

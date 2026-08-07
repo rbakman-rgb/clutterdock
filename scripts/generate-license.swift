@@ -2,8 +2,31 @@
 import Foundation
 import CryptoKit
 
-// Must match LicenseManager.productSecret and windows/src/license.js
-let productSecret = "sd-pro-v1-k9m2x7q4-rbakman-slavedock"
+// Reads the product secret from CLUTTERDOCK_LICENSE_SECRET or scripts/private/license-secret.txt
+// (gitignored). The secret itself must never be committed. Same scheme as
+// ClutterDock/Models/LicenseManager.swift and windows/src/license.js.
+
+func loadSecret() -> String? {
+    if let env = ProcessInfo.processInfo.environment["CLUTTERDOCK_LICENSE_SECRET"], !env.isEmpty {
+        return env
+    }
+    let scriptDir = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()
+    let file = scriptDir.appendingPathComponent("private/license-secret.txt")
+    if let raw = try? String(contentsOf: file, encoding: .utf8) {
+        let secret = raw.split(separator: "\n").first.map(String.init)?
+            .trimmingCharacters(in: .whitespaces) ?? ""
+        if !secret.isEmpty { return secret }
+    }
+    return nil
+}
+
+guard let productSecret = loadSecret() else {
+    FileHandle.standardError.write(Data("""
+    ERROR: no license secret found.
+    Set CLUTTERDOCK_LICENSE_SECRET or create scripts/private/license-secret.txt
+    """.utf8))
+    exit(1)
+}
 
 func hmacHex(message: String) -> String {
     let key = SymmetricKey(data: Data(productSecret.utf8))
@@ -22,11 +45,6 @@ let args = CommandLine.arguments.dropFirst()
 if args.isEmpty {
     print("Usage: swift scripts/generate-license.swift <4-char-serial> [more...]")
     print("Example: swift scripts/generate-license.swift A1B2 CUST")
-    print("Test unlock (built-in): SDPRO-TEST-UNLOCK-2026")
-    // Sample batch
-    for s in ["A1B2", "DEMO", "RON1"] {
-        if let k = generateKey(serial: s) { print(k) }
-    }
 } else {
     for serial in args {
         if let k = generateKey(serial: String(serial)) {

@@ -15,8 +15,11 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
+    "test": "node scripts/test-license.js",
     "pack": "electron-builder --dir",
+    "predist": "node scripts/write-license-secret.js --require && node scripts/test-license.js",
     "dist": "electron-builder --win --publish never",
+    "predist:portable": "node scripts/write-license-secret.js --require && node scripts/test-license.js",
     "dist:portable": "electron-builder --win portable --publish never"
   },
   "build": {

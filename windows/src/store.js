@@ -6,7 +6,6 @@ const {
   validate: validateLicense,
   mask: maskLicense,
   createFeatureGate,
-  TEST_KEY,
 } = require('./license');
 
 const CURRENT_VERSION = 1;
@@ -169,7 +168,6 @@ class Store {
       license: {
         isPro: this.isPro,
         display: this.isPro ? maskLicense(this.prefs.licenseKey) : '',
-        testKey: TEST_KEY,
       },
       gate: {
         isPro: gate.isPro,

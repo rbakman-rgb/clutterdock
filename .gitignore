@@ -20,6 +20,9 @@ windows/out/
 .env
 .env.*
 *.pem
+scripts/private/
+windows/src/license-secret.js
+node_modules/
 
 # Editor
 .vscode/
