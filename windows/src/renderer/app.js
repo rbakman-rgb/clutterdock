@@ -154,6 +154,7 @@ const STACK_PRESETS = [
 ];
 
 function stackLabel(f) {
+  if (isLockedFolder(f)) return `🔒 ${f.name}`;
   const emoji = STACK_EMOJI[f.symbol] || STACK_EMOJI.folder;
   return `${emoji} ${f.name}`;
 }
@@ -266,6 +267,18 @@ function renderContent() {
   const folder = selectedFolder();
   const items = itemsForView();
   content.classList.remove('drop-active');
+
+  if (isLockedFolder(folder)) {
+    content.innerHTML = `
+      <div class="empty">
+        <div style="font-size:36px">🔒</div>
+        <h3>“${escapeHtml(folder.name)}” is locked</h3>
+        <p>This stack’s contents are encrypted on this PC.</p>
+        <div class="actions"><button class="btn primary" id="unlockBtn">Unlock…</button></div>
+      </div>`;
+    $('unlockBtn').onclick = () => unlockStack(folder);
+    return;
+  }
 
   if (!items.length) {
     const isSmart = folder && folder.smartKind !== 'none';
@@ -557,6 +570,75 @@ function newStackDialog() {
   });
 }
 
+function isLockedFolder(folder) {
+  return !!(folder && (snapshot.lockedFolderIDs || []).includes(folder.id));
+}
+
+/** Password entry. `confirm` asks twice for a new password. */
+function passwordDialog({ title, sub, submitLabel = 'Unlock', confirm = false }) {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>${escapeHtml(title)}</h2>
+        ${sub ? `<p class="dialog-sub">${escapeHtml(sub)}</p>` : ''}
+        <input type="password" id="dlgPw" placeholder="Password" autocomplete="off" />
+        ${confirm ? '<input type="password" id="dlgPw2" placeholder="Confirm password" autocomplete="off" />' : ''}
+        <p class="dialog-error" id="dlgErr" hidden></p>
+        <div class="row">
+          <button class="btn primary" id="dlgOk">${escapeHtml(submitLabel)}</button>
+          <button class="btn secondary" id="dlgCancel">Cancel</button>
+        </div>
+      </div>`;
+    const pw = $('dlgPw');
+    const pw2 = confirm ? $('dlgPw2') : null;
+    const err = $('dlgErr');
+    const submit = () => {
+      const value = pw.value;
+      if (!value) {
+        err.textContent = 'Enter a password.';
+        err.hidden = false;
+        return;
+      }
+      if (pw2 && value !== pw2.value) {
+        err.textContent = 'Those passwords didn’t match.';
+        err.hidden = false;
+        return;
+      }
+      closeModal(value);
+    };
+    $('dlgOk').onclick = submit;
+    $('dlgCancel').onclick = () => closeModal(null);
+    for (const el of [pw, pw2].filter(Boolean)) {
+      el.onkeydown = (e) => {
+        if (e.key === 'Enter') submit();
+      };
+    }
+    pw.focus();
+  });
+}
+
+async function lockStack(folder) {
+  if (!snapshot?.gate?.isPro) {
+    upsellDialog('Password-protected stacks are a Pro feature.');
+    return;
+  }
+  const password = await passwordDialog({
+    title: `Lock “${folder.name}”`,
+    sub: 'This stack’s items are encrypted on this PC and hidden until you enter this password. There is no way to recover them if you forget it.',
+    submitLabel: 'Lock',
+    confirm: true,
+  });
+  if (password) await call(clutterDock.lockFolder(folder.id, password));
+}
+
+async function unlockStack(folder) {
+  const password = await passwordDialog({
+    title: `Unlock “${folder.name}”`,
+    sub: 'Enter the password for this stack.',
+  });
+  if (password) await call(clutterDock.unlockFolder(folder.id, password));
+}
+
 function upsellDialog(message) {
   return openModal((modal) => {
     modal.innerHTML = `
@@ -634,6 +716,9 @@ function showFolderMenu(x, y, folder) {
     ${folder.smartKind === 'none' ? '<button data-a="symbol">Change symbol…</button>' : ''}
     ${folder.smartKind === 'none' ? '<button data-a="image">Custom image…</button>' : ''}
     ${folder.smartKind === 'none' && folder.customImage ? '<button data-a="clearimage">Remove image</button>' : ''}
+    ${folder.smartKind === 'none' && !folder.lock ? '<button data-a="lock">Lock with password…</button>' : ''}
+    ${folder.smartKind === 'none' && isLockedFolder(folder) ? '<button data-a="unlock">Unlock…</button>' : ''}
+    ${folder.smartKind === 'none' && folder.lock && !isLockedFolder(folder) ? '<button data-a="relock">Lock now</button><button data-a="removelock">Remove password</button>' : ''}
     ${folder.smartKind === 'none' ? '<button class="danger" data-a="delete">Delete stack</button>' : ''}
   `;
   placeCtx(ctx, x, y);
@@ -658,6 +743,10 @@ function showFolderMenu(x, y, folder) {
     }
     if (a === 'image') await call(clutterDock.pickFolderImage(folder.id));
     if (a === 'clearimage') await call(clutterDock.clearFolderImage(folder.id));
+    if (a === 'lock') await lockStack(folder);
+    if (a === 'unlock') await unlockStack(folder);
+    if (a === 'relock') await call(clutterDock.relockFolder(folder.id));
+    if (a === 'removelock') await call(clutterDock.removeFolderLock(folder.id));
     if (a === 'delete') await call(clutterDock.deleteFolder(folder.id));
   };
 }

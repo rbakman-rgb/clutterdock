@@ -111,6 +111,9 @@ struct AppFolder: Identifiable, Codable, Equatable, Hashable {
     /// Optional custom image path for tab/icon
     var customImagePath: String?
     var smartKind: SmartFolderKind
+    /// Present when this stack is password-protected. While locked, `items` is
+    /// empty and the real contents live encrypted inside this payload.
+    var lock: FolderLock?
 
     init(
         id: UUID = UUID(),
@@ -121,7 +124,8 @@ struct AppFolder: Identifiable, Codable, Equatable, Hashable {
         viewMode: FolderViewMode = .grid,
         hotkey: FolderHotkey = .none,
         customImagePath: String? = nil,
-        smartKind: SmartFolderKind = .none
+        smartKind: SmartFolderKind = .none,
+        lock: FolderLock? = nil
     ) {
         self.id = id
         self.name = name
@@ -132,6 +136,7 @@ struct AppFolder: Identifiable, Codable, Equatable, Hashable {
         self.hotkey = hotkey
         self.customImagePath = customImagePath
         self.smartKind = smartKind
+        self.lock = lock
     }
 
     init(from decoder: Decoder) throws {
@@ -150,6 +155,7 @@ struct AppFolder: Identifiable, Codable, Equatable, Hashable {
         hotkey = try c.decodeIfPresent(FolderHotkey.self, forKey: .hotkey) ?? .none
         customImagePath = try c.decodeIfPresent(String.self, forKey: .customImagePath)
         smartKind = try c.decodeIfPresent(SmartFolderKind.self, forKey: .smartKind) ?? .none
+        lock = try c.decodeIfPresent(FolderLock.self, forKey: .lock)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -163,10 +169,11 @@ struct AppFolder: Identifiable, Codable, Equatable, Hashable {
         try c.encode(hotkey, forKey: .hotkey)
         try c.encodeIfPresent(customImagePath, forKey: .customImagePath)
         try c.encode(smartKind, forKey: .smartKind)
+        try c.encodeIfPresent(lock, forKey: .lock)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, items, apps, symbolName, sortMode, viewMode, hotkey, customImagePath, smartKind
+        case id, name, items, apps, symbolName, sortMode, viewMode, hotkey, customImagePath, smartKind, lock
     }
 
     func sortedItems() -> [DockItem] {

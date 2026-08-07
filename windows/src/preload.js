@@ -48,6 +48,10 @@ contextBridge.exposeInMainWorld('clutterDock', {
   deleteWorkspace: (id) => ipcRenderer.invoke('delete-workspace', id),
   toggleWorkspaceFolder: (workspaceID, folderID) =>
     ipcRenderer.invoke('toggle-workspace-folder', workspaceID, folderID),
+  lockFolder: (folderID, password) => ipcRenderer.invoke('lock-folder', folderID, password),
+  unlockFolder: (folderID, password) => ipcRenderer.invoke('unlock-folder', folderID, password),
+  relockFolder: (folderID) => ipcRenderer.invoke('relock-folder', folderID),
+  removeFolderLock: (folderID) => ipcRenderer.invoke('remove-folder-lock', folderID),
   pickFolderImage: (folderID) => ipcRenderer.invoke('pick-folder-image', folderID),
   clearFolderImage: (folderID) => ipcRenderer.invoke('clear-folder-image', folderID),
   getFolderImage: (folderID) => ipcRenderer.invoke('get-folder-image', folderID),

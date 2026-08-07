@@ -19,6 +19,7 @@ const {
   createFeatureGate,
   PRO_HISTORY,
 } = require('./license');
+const { lockItems, unlockItems, relockItems } = require('./stack-lock');
 
 const CURRENT_VERSION = 1;
 
@@ -122,6 +123,8 @@ function saveJSON(file, data) {
 class Store {
   constructor() {
     this.dataWarning = null;
+    this._unlocked = new Set();
+    this._sessionPasswords = {};
     this.state = loadJSON(configPath(), defaultState(), (backup) => {
       this.dataWarning =
         'Your stacks file was unreadable, so ClutterDock started fresh. ' +
@@ -286,7 +289,7 @@ class Store {
 
   persist() {
     this.state.version = CURRENT_VERSION;
-    saveJSON(configPath(), this.state);
+    saveJSON(configPath(), { ...this.state, folders: this._sealedFolders() });
   }
 
   persistHistory() {
@@ -308,6 +311,7 @@ class Store {
       },
       history: this.history.entries.slice(0, gate.historyLimit),
       visibleFolderIDs: this.visibleFolders().map((f) => f.id),
+      lockedFolderIDs: this.state.folders.filter((f) => this.isLocked(f)).map((f) => f.id),
       dataDir: dataDir(),
       dataWarning: this.dataWarning,
       license: {
@@ -324,6 +328,81 @@ class Store {
         historyLimit: gate.historyLimit,
       },
     };
+  }
+
+  // MARK: Password-protected stacks (Pro).
+  // Passwords live in memory only (this._sessionPasswords) and are never persisted.
+
+  isLocked(folder) {
+    return !!(folder && folder.lock && !this._unlocked.has(folder.id));
+  }
+
+  lockFolder(id, password) {
+    const f = this.state.folders.find((x) => x.id === id);
+    if (!f || f.smartKind !== 'none') return { ok: false, error: 'That stack can’t be locked.' };
+    try {
+      f.lock = lockItems(f.items || [], password);
+      f.items = [];
+      this._unlocked.delete(id);
+      delete this._sessionPasswords[id];
+      this.persist();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  unlockFolder(id, password) {
+    const f = this.state.folders.find((x) => x.id === id);
+    if (!f || !f.lock) return { ok: false, error: 'That stack isn’t locked.' };
+    try {
+      f.items = unlockItems(f.lock, password);
+      this._unlocked.add(id);
+      this._sessionPasswords[id] = password;
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  relockFolder(id) {
+    const f = this.state.folders.find((x) => x.id === id);
+    const password = this._sessionPasswords[id];
+    if (!f || !f.lock || !password) return { ok: false };
+    try {
+      f.lock = relockItems(f.items || [], f.lock, password);
+    } catch (e) {
+      console.error('ClutterDock relock failed', e);
+    }
+    f.items = [];
+    this._unlocked.delete(id);
+    delete this._sessionPasswords[id];
+    this.persist();
+    return { ok: true };
+  }
+
+  removeLock(id) {
+    const f = this.state.folders.find((x) => x.id === id);
+    if (!f || !this._unlocked.has(id)) return { ok: false };
+    delete f.lock;
+    this._unlocked.delete(id);
+    delete this._sessionPasswords[id];
+    this.persist();
+    return { ok: true };
+  }
+
+  /** Re-seals every unlocked stack so plaintext never reaches folders.json. */
+  _sealedFolders() {
+    return this.state.folders.map((f) => {
+      if (!f.lock || !this._unlocked.has(f.id) || !this._sessionPasswords[f.id]) return f;
+      const copy = { ...f, items: [] };
+      try {
+        copy.lock = relockItems(f.items || [], f.lock, this._sessionPasswords[f.id]);
+      } catch (e) {
+        console.error('ClutterDock seal failed', e);
+      }
+      return copy;
+    });
   }
 
   /** Resolve an item by id across folders and launch history. */
@@ -611,6 +690,7 @@ class Store {
     const hits = [];
     for (const folder of this.state.folders) {
       if (folder.smartKind !== 'none') continue;
+      if (this.isLocked(folder)) continue; // a locked stack must not leak via search
       for (const item of folder.items || []) {
         const hay = `${item.name} ${item.path}`.toLowerCase();
         if (hay.includes(q)) {
@@ -625,7 +705,8 @@ class Store {
     if (!this.gate.canExportPack) {
       throw new Error('Pack export requires ClutterDock Pro.');
     }
-    return JSON.stringify(this.state, null, 2);
+    // Export the sealed form so a pack never carries a locked stack in the clear
+    return JSON.stringify({ ...this.state, folders: this._sealedFolders() }, null, 2);
   }
 
   importPack(json, merge) {
@@ -714,7 +795,7 @@ function sanitizePackFolders(rawFolders) {
         name: (typeof item.name === 'string' && item.name.trim()) || displayName(p, kind),
       });
     }
-    folders.push({
+    const folder = {
       id: randomUUID(),
       name: ((typeof raw.name === 'string' && raw.name.trim()) || 'Stack').slice(0, 80),
       items,
@@ -722,7 +803,21 @@ function sanitizePackFolders(rawFolders) {
       sortMode: PACK_SORT_MODES.has(raw.sortMode) ? raw.sortMode : 'manual',
       viewMode: raw.viewMode === 'list' ? 'list' : 'grid',
       smartKind: 'none',
-    });
+    };
+    // Carry an encrypted stack across intact — the importer needs the password,
+    // and the payload is opaque, so only well-formed fields are copied.
+    const lk = raw.lock;
+    if (lk && typeof lk.salt === 'string' && typeof lk.nonce === 'string' && typeof lk.ct === 'string') {
+      folder.lock = {
+        v: Number(lk.v) || 1,
+        salt: lk.salt,
+        iter: Number(lk.iter) || 200000,
+        nonce: lk.nonce,
+        ct: lk.ct,
+      };
+      folder.items = [];
+    }
+    folders.push(folder);
   }
   return folders;
 }

@@ -127,4 +127,36 @@ assert.strictEqual(store.state.workspaces.length, 1, 'workspace deleted');
 store.deleteWorkspace(store.state.workspaces[0].id);
 assert.strictEqual(store.state.workspaces.length, 1, 'last workspace protected');
 
+// --- password-protected stacks
+dir = freshDir();
+store = freshStore();
+store.addFolder('Private');
+const priv = store.state.folders.find((f) => f.name === 'Private');
+const secretPath = path.join(dir, 'secret-notes.txt');
+fs.writeFileSync(secretPath, 'x');
+store.addPaths([secretPath], priv.id);
+assert.strictEqual(store.lockFolder(priv.id, 'hunter2').ok, true, 'locks a stack');
+
+let lockedFolder = store.state.folders.find((f) => f.id === priv.id);
+assert.strictEqual(lockedFolder.items.length, 0, 'items cleared when locked');
+assert.ok(lockedFolder.lock, 'lock payload stored');
+assert.ok(store.isLocked(lockedFolder), 'reports locked');
+assert.strictEqual(store.searchAll('secret-notes').length, 0, 'locked items excluded from search');
+assert.ok(
+  !fs.readFileSync(path.join(dir, 'ClutterDock', 'folders.json'), 'utf8').includes('secret-notes.txt'),
+  'plaintext path absent from folders.json'
+);
+
+const reopened2 = freshStore();
+assert.ok(store.isLocked(reopened2.state.folders.find((f) => f.id === priv.id)), 'locked after reload');
+assert.strictEqual(reopened2.unlockFolder(priv.id, 'nope').ok, false, 'wrong password rejected');
+assert.strictEqual(reopened2.unlockFolder(priv.id, 'hunter2').ok, true, 'unlocks with password');
+assert.strictEqual(
+  reopened2.state.folders.find((f) => f.id === priv.id).items.length,
+  1,
+  'items restored on unlock'
+);
+reopened2.relockFolder(priv.id);
+assert.ok(store.isLocked(reopened2.state.folders.find((f) => f.id === priv.id)), 'relocks');
+
 console.log('store tests passed');

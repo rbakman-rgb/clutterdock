@@ -102,6 +102,79 @@ func run() {
         "corrupt file preserved as .bak")
     check(!recovered.folders.isEmpty, "fresh defaults loaded after corruption")
 
+    print("StackLock (password-protected stacks)")
+    let secretItems = [
+        DockItem(kind: .url, path: "https://client-a.example/portal", name: "Client A"),
+        DockItem(kind: .url, path: "https://payroll.example", name: "Payroll"),
+    ]
+    do {
+        let payload = try StackLock.lock(items: secretItems, password: "correct horse battery")
+        check(payload.iter == StackLock.iterations, "uses the configured iteration count")
+        check(!payload.ct.contains("client-a"), "ciphertext doesn't leak the plaintext")
+        let out = try StackLock.unlock(payload, password: "correct horse battery")
+        check(out == secretItems, "round-trips the exact items")
+
+        var wrongRejected = false
+        do { _ = try StackLock.unlock(payload, password: "wrong") } catch { wrongRejected = true }
+        check(wrongRejected, "wrong password is rejected")
+
+        // Tampering with the ciphertext must fail the GCM tag, not silently decode
+        var tampered = payload
+        var raw = Array(Data(base64Encoded: payload.ct)!)
+        raw[0] ^= 0xFF
+        tampered.ct = Data(raw).base64EncodedString()
+        var tamperRejected = false
+        do { _ = try StackLock.unlock(tampered, password: "correct horse battery") } catch {
+            tamperRejected = true
+        }
+        check(tamperRejected, "tampered ciphertext is rejected")
+
+        let resealed = try StackLock.relock(
+            items: secretItems, existing: payload, password: "correct horse battery")
+        check(resealed.salt == payload.salt, "relock keeps the salt so the password still works")
+        check(try StackLock.unlock(resealed, password: "correct horse battery") == secretItems,
+              "relocked payload still decrypts")
+    } catch {
+        check(false, "StackLock threw: \(error)")
+    }
+
+    print("FolderStore lock lifecycle")
+    let lockDir = tempDir()
+    let lockStore = FolderStore(directory: lockDir)
+    _ = lockStore.addFolder(named: "Private", symbolName: "lock")
+    let privateID = lockStore.folders.first { $0.name == "Private" }!.id
+    let secretFile = lockDir.appendingPathComponent("secret-notes.txt")
+    try? "x".write(to: secretFile, atomically: true, encoding: .utf8)
+    _ = lockStore.addPaths([secretFile.path], to: privateID)
+    check(lockStore.folders.first { $0.id == privateID }?.items.count == 1, "item added before lock")
+
+    do {
+        try lockStore.lockFolder(id: privateID, password: "hunter2")
+        let locked = lockStore.folders.first { $0.id == privateID }!
+        check(locked.items.isEmpty, "items cleared from memory when locked")
+        check(locked.lock != nil, "lock payload stored")
+        check(lockStore.isLocked(locked), "reports as locked")
+        check(lockStore.searchAll(query: "secret-notes").isEmpty, "locked items excluded from search")
+
+        // The on-disk file must not contain the plaintext path
+        let onDisk = try String(contentsOf: lockDir.appendingPathComponent("folders.json"), encoding: .utf8)
+        check(!onDisk.contains("secret-notes.txt"), "plaintext path absent from folders.json")
+
+        let reopened = FolderStore(directory: lockDir)
+        let stillLocked = reopened.folders.first { $0.id == privateID }!
+        check(reopened.isLocked(stillLocked), "still locked after relaunch")
+        check(try reopened.unlockFolder(id: privateID, password: "hunter2"), "unlocks with password")
+        check(reopened.folders.first { $0.id == privateID }?.items.count == 1, "items restored")
+
+        var badRejected = false
+        reopened.relockFolder(id: privateID)
+        do { _ = try reopened.unlockFolder(id: privateID, password: "nope") } catch { badRejected = true }
+        check(badRejected, "wrong password can't unlock")
+    } catch {
+        check(false, "lock lifecycle threw: \(error)")
+    }
+    try? FileManager.default.removeItem(at: lockDir)
+
     print("LicenseManager")
     if let key = LicenseManager.generateKey(serial: "A1B2") {
         check(key.replacingOccurrences(of: "-", with: "").count == 17, "generated key is 17 chars")

@@ -13,6 +13,10 @@ final class FolderStore: ObservableObject {
     @Published var activeWorkspaceID: UUID?
     /// Smart folders the user deleted — without this they'd resurrect on relaunch.
     @Published private(set) var hiddenSmartKinds: Set<SmartFolderKind> = []
+    /// Stacks unlocked in this session. Passwords are held in memory only, never
+    /// written to disk, and are dropped when the app quits.
+    @Published private(set) var unlockedFolderIDs: Set<UUID> = []
+    private var sessionPasswords: [UUID: String] = [:]
 
     private let fileURL: URL
     private var saveTask: Task<Void, Never>?
@@ -523,7 +527,8 @@ final class FolderStore: ObservableObject {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return [] }
         var hits: [SearchHit] = []
-        for folder in folders where !folder.isSmart {
+        // A locked stack must not leak its contents through search
+        for folder in folders where !folder.isSmart && !isLocked(folder) {
             for item in folder.items where item.searchText.contains(q) {
                 hits.append(SearchHit(item: item, folderName: folder.name, folderID: folder.id))
             }
@@ -536,7 +541,7 @@ final class FolderStore: ObservableObject {
     func exportData() throws -> Data {
         let state = PersistedState(
             version: Self.currentVersion,
-            folders: folders,
+            folders: sealedFoldersForPersistence(),
             selectedFolderID: selectedFolderID,
             workspaces: workspaces,
             activeWorkspaceID: activeWorkspaceID,
@@ -630,6 +635,84 @@ final class FolderStore: ObservableObject {
         }
     }
 
+    // MARK: - Password-protected stacks
+
+    func isLocked(_ folder: AppFolder) -> Bool {
+        folder.lock != nil && !unlockedFolderIDs.contains(folder.id)
+    }
+
+    /// Encrypts the stack's items under `password`. The plaintext is only dropped
+    /// after StackLock has proven the payload decrypts back to the same items.
+    @discardableResult
+    func lockFolder(id: UUID, password: String) throws -> Bool {
+        guard let idx = folders.firstIndex(where: { $0.id == id }), !folders[idx].isSmart else {
+            return false
+        }
+        let payload = try StackLock.lock(items: folders[idx].items, password: password)
+        folders[idx].lock = payload
+        folders[idx].items = []
+        unlockedFolderIDs.remove(id)
+        sessionPasswords[id] = nil
+        persistNow()
+        return true
+    }
+
+    /// Decrypts the stack for this session. Throws on a wrong password.
+    @discardableResult
+    func unlockFolder(id: UUID, password: String) throws -> Bool {
+        guard let idx = folders.firstIndex(where: { $0.id == id }),
+              let payload = folders[idx].lock else { return false }
+        let items = try StackLock.unlock(payload, password: password)
+        folders[idx].items = items
+        unlockedFolderIDs.insert(id)
+        sessionPasswords[id] = password
+        return true
+    }
+
+    /// Re-encrypts an unlocked stack and clears its plaintext from memory.
+    func relockFolder(id: UUID) {
+        guard let idx = folders.firstIndex(where: { $0.id == id }),
+              let payload = folders[idx].lock,
+              let password = sessionPasswords[id] else { return }
+        if let updated = try? StackLock.relock(
+            items: folders[idx].items, existing: payload, password: password
+        ) {
+            folders[idx].lock = updated
+        }
+        folders[idx].items = []
+        unlockedFolderIDs.remove(id)
+        sessionPasswords[id] = nil
+        persistNow()
+    }
+
+    /// Removes protection, leaving the items in the clear. Requires the stack to be unlocked.
+    func removeLock(id: UUID) {
+        guard let idx = folders.firstIndex(where: { $0.id == id }),
+              unlockedFolderIDs.contains(id) else { return }
+        folders[idx].lock = nil
+        unlockedFolderIDs.remove(id)
+        sessionPasswords[id] = nil
+        persist()
+    }
+
+    /// Re-encrypts every unlocked stack — called before writing to disk and at quit
+    /// so plaintext items of a protected stack never reach `folders.json`.
+    private func sealedFoldersForPersistence() -> [AppFolder] {
+        folders.map { folder in
+            guard let payload = folder.lock,
+                  unlockedFolderIDs.contains(folder.id),
+                  let password = sessionPasswords[folder.id] else { return folder }
+            var copy = folder
+            if let updated = try? StackLock.relock(
+                items: folder.items, existing: payload, password: password
+            ) {
+                copy.lock = updated
+            }
+            copy.items = []
+            return copy
+        }
+    }
+
     // MARK: - Smart folders
 
     private func ensureSmartFolders() {
@@ -675,6 +758,7 @@ final class FolderStore: ObservableObject {
     }
 
     /// Write any debounced changes immediately (call before app termination).
+    /// Locked stacks are re-sealed here, so quitting always leaves them encrypted.
     func flushPendingSave() {
         persistNow()
     }

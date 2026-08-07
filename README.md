@@ -42,6 +42,7 @@
 | Per-folder hotkeys | — | Yes |
 | Custom folder images | — | Yes |
 | `.clutterdock` pack export | — | Yes |
+| Password-protected stacks | — | Yes |
 | Core launcher, Recents, JSON backup | Yes | Yes |
 
 Activate Pro: **Settings → Pro** (same key on Mac + Windows).  

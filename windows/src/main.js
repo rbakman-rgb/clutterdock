@@ -576,6 +576,32 @@ function wireIpc() {
     return okSnap();
   }));
 
+  // Password-protected stacks (Pro). Passwords cross IPC but are never persisted.
+  ipcMain.handle('lock-folder', (_e, folderID, password) => {
+    if (!store.gate.isPro) {
+      return failSnap('Password-protected stacks are a Pro feature.', {
+        limitMessage: 'Password-protected stacks are a Pro feature.',
+      });
+    }
+    const res = store.lockFolder(folderID, String(password || ''));
+    return res.ok ? okSnap() : failSnap(res.error);
+  });
+
+  ipcMain.handle('unlock-folder', (_e, folderID, password) => {
+    const res = store.unlockFolder(folderID, String(password || ''));
+    return res.ok ? okSnap() : failSnap(res.error);
+  });
+
+  ipcMain.handle('relock-folder', (_e, folderID) => {
+    store.relockFolder(folderID);
+    return okSnap();
+  });
+
+  ipcMain.handle('remove-folder-lock', (_e, folderID) => {
+    store.removeLock(folderID);
+    return okSnap();
+  });
+
   // Custom folder images (Pro)
   const folderImageCache = new Map();
 

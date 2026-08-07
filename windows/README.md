@@ -13,7 +13,7 @@ Free tray launcher that mirrors the Mac **ClutterDock** idea: group apps, files,
 - Search this folder; **All** folders = Pro
 - Grid / list views, drag reorder, Alt+←/→ nudge
 - Free: 5 folders · 20 items each · JSON-friendly workflow
-- Pro: unlimited · global search · workspaces · Ctrl+Shift+1–9 stack hotkeys · custom stack images · pack export
+- Pro: unlimited · global search · workspaces · Ctrl+Shift+1–9 stack hotkeys · custom stack images · password-protected stacks · pack export
 - Open at login, welcome tips, Buy Me a Coffee
 - Runs in the background (stays in tray)
 

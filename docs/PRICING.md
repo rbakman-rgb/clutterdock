@@ -33,6 +33,7 @@ Payment later: Lemon Squeezy / Gumroad / Paddle → deliver license key.
 | Custom folder images | No | Yes |
 | Launch history (Recents) | Last **15** | Last **40** |
 | Pack export `.clutterdock` | No | Yes |
+| Password-protected stacks | No | Yes |
 | JSON backup export | Yes | Yes |
 | Core hotkey, Recents, Running, drag/drop | Yes | Yes |
 
@@ -88,3 +89,20 @@ Future rebrand candidates: Dockpack, Stackly, NestDock, AppStash — see SESSION
 | Shared rules | This doc |
 | Mac | `LicenseManager.swift`, `FeatureGate.swift` |
 | Windows | `src/license.js`, gates in `store.js` / UI |
+
+---
+
+## Password-protected stacks (Pro)
+
+A stack can be locked with a password. Its items are **encrypted at rest**
+(PBKDF2-HMAC-SHA256, 200k iterations → AES-256-GCM), so `folders.json` holds
+only ciphertext — locking is not just a UI gate. Locked stacks are hidden from
+global search and show a lock symbol until unlocked for the session.
+
+The format is identical on Mac and Windows (`scripts/test-interop.sh` proves a
+stack locked on one platform opens on the other), so `.clutterdock` packs stay
+portable and export sealed.
+
+**There is no recovery path.** A forgotten password means the items in that
+stack are unreadable — by design, there is no backdoor. Say so plainly in any
+support reply.

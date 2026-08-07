@@ -340,7 +340,9 @@ struct LauncherView: View {
                                 }
                             } label: {
                                 HStack(spacing: 5) {
-                                    if let img = AppIconService.folderTabImage(folder: folder, size: 13) {
+                                    if store.isLocked(folder) {
+                                        Image(systemName: "lock.fill").font(.system(size: 10, weight: .semibold))
+                                    } else if let img = AppIconService.folderTabImage(folder: folder, size: 13) {
                                         Image(nsImage: img).resizable().frame(width: 13, height: 13)
                                     } else if let symbol = folder.symbolName {
                                         Image(systemName: symbol).font(.system(size: 11, weight: .medium))
@@ -352,7 +354,7 @@ struct LauncherView: View {
                                             .font(.system(size: 9, weight: .medium))
                                             .foregroundStyle(.secondary)
                                     }
-                                    if !folder.isSmart {
+                                    if !folder.isSmart && !store.isLocked(folder) {
                                         Text("\(folder.items.count)")
                                             .font(.system(size: 9, weight: .semibold))
                                             .foregroundStyle(.tertiary)
@@ -405,6 +407,15 @@ struct LauncherView: View {
                                         showingStackEditor = true
                                     }
                                     Button("Rename…") { renameFolder(folder) }
+                                    Divider()
+                                    if folder.lock == nil {
+                                        Button("Lock with Password…") { lockStack(folder) }
+                                    } else if store.isLocked(folder) {
+                                        Button("Unlock…") { unlockStack(folder) }
+                                    } else {
+                                        Button("Lock Now") { store.relockFolder(id: folder.id) }
+                                        Button("Remove Password…") { removeStackLock(folder) }
+                                    }
                                 }
                                 if store.folders.filter({ !$0.isSmart }).count > 1 || folder.isSmart {
                                     if !folder.isSmart || store.folders.count > 1 {
@@ -517,6 +528,8 @@ struct LauncherView: View {
             Group {
                 if searchGlobal && !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     globalResults
+                } else if let folder = currentFolder, store.isLocked(folder) {
+                    lockedState(folder: folder)
                 } else if let folder = currentFolder {
                     let items = folderItems
                     if items.isEmpty {
@@ -572,6 +585,72 @@ struct LauncherView: View {
             return "Recents and Running can’t hold drops — pick Apps or your own stack"
         }
         return "Apps · files · folders · URLs"
+    }
+
+    private func lockedState(folder: AppFolder) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 38, weight: .light))
+                .foregroundStyle(.secondary)
+            Text("“\(folder.name)” is locked")
+                .font(.headline)
+            Text("This stack’s contents are encrypted on this Mac.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
+            Button("Unlock…") { unlockStack(folder) }
+                .buttonStyle(.borderedProminent)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(20)
+    }
+
+    private func lockStack(_ folder: AppFolder) {
+        guard FeatureGate.canLockStacks else {
+            promptUpgrade("Password-protected stacks are a Pro feature.")
+            return
+        }
+        guard let password = PasswordPrompt.askNew(stackName: folder.name) else { return }
+        do {
+            try store.lockFolder(id: folder.id, password: password)
+            flashDropStatus("Locked \(folder.name)")
+        } catch {
+            presentLockError(error)
+        }
+    }
+
+    private func unlockStack(_ folder: AppFolder) {
+        guard let password = PasswordPrompt.ask(stackName: folder.name) else { return }
+        do {
+            try store.unlockFolder(id: folder.id, password: password)
+            flashDropStatus("Unlocked \(folder.name)")
+        } catch {
+            presentLockError(error)
+        }
+    }
+
+    private func removeStackLock(_ folder: AppFolder) {
+        let alert = NSAlert()
+        alert.messageText = "Remove password protection?"
+        alert.informativeText = "“\(folder.name)” will be stored unencrypted like your other stacks."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            store.removeLock(id: folder.id)
+            flashDropStatus("Password removed")
+        }
+    }
+
+    private func presentLockError(_ error: Error) {
+        let alert = NSAlert()
+        alert.messageText = "Couldn’t unlock"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     private func emptyState(folder: AppFolder?) -> some View {

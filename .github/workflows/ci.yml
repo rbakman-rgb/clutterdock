@@ -24,6 +24,11 @@ jobs:
           chmod +x scripts/test-mac.sh
           ./scripts/test-mac.sh
 
+      - name: Stack-lock interop (macOS <-> Windows format)
+        run: |
+          chmod +x scripts/test-interop.sh
+          ./scripts/test-interop.sh
+
   windows:
     name: Windows checks
     runs-on: ubuntu-latest

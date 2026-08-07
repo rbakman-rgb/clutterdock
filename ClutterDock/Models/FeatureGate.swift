@@ -33,6 +33,7 @@ enum FeatureGate {
     static var canUseFolderHotkeys: Bool { isPro }
     static var canUseCustomFolderImages: Bool { isPro }
     static var canExportPack: Bool { isPro }
+    static var canLockStacks: Bool { isPro }
 
     static func canAddNormalFolder(currentNormalCount: Int) -> Bool {
         isPro || currentNormalCount < freeMaxNormalFolders
