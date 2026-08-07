@@ -41,13 +41,22 @@ gh release create vX.Y.Z dist/ClutterDock-*-mac.zip --generate-notes
 gh repo edit rbakman-rgb/clutterdock --visibility public
 ```
 
+## Shipped 2026-08-07 (v1.4.5 unsigned beta)
+
+| Item | Evidence |
+|------|----------|
+| Release **v1.4.5** | https://github.com/rbakman-rgb/clutterdock/releases/tag/v1.4.5 |
+| Mac | `ClutterDock-1.4.5-mac.zip` (smoked: install → launcher + settings) |
+| Windows | `ClutterDock-1.1.3-x64.exe` (CI artifact; smoke on a PC still open) |
+| Screenshots | https://clutterdock.com/ — real launcher + settings |
+| Key ops | `docs/KEY_OPS.md` |
+
 ## Shipped 2026-08-06 (unsigned public beta)
 
 | Item | Evidence |
 |------|----------|
 | Public repo | https://github.com/rbakman-rgb/clutterdock |
-| Release **v1.4.3** | Mac universal zip + Win 1.1.1 exe + sha256 |
-| Site downloads | https://clutterdock.com/#download |
+| Release **v1.4.3** | Mac universal zip + Win 1.1.1 exe (superseded by v1.4.5) |
 | Install FAQ | https://clutterdock.com/install |
 
 ## Still manual / blocked without accounts
