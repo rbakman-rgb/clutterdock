@@ -2,6 +2,7 @@
 
 **Saved:** 2026-08-07  
 **Status:** **Public unsigned beta** — Mac **1.4.5** + Win **1.1.3** on GitHub Releases · real screenshots on site · KEY_OPS doc · next = Apple notarization + Pro merchant.  
+**2026-08-07 full-app audit shipped (RON-417…423):** license length bug fixed (real keys now validate on both platforms), secret rotated out of repo (`scripts/private/license-secret.txt`, gitignored + `CLUTTERDOCK_LICENSE_SECRET` GitHub secret — **keep an offline backup**), Windows Electron-33 breakage fixed (drag-drop, prompt dialogs), data-safety/security/dark-mode/a11y/perf fixes, PR CI added. Commits `5ccc951…9c35d48` local — **push + wrangler deploy + Windows smoke pending**. Dev test key needs `CLUTTERDOCK_DEV=1` build.  
 **URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ (**live** — Cloudflare Workers; clutterdock.app + www 301 → clutterdock.com)  
 **Roadmap:** [docs/ROADMAP_NOW.md](docs/ROADMAP_NOW.md) · Linear map [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md)  
 **Backlog:** [Linear — ClutterDock V1](https://linear.app/rbakman/project/clutterdock-v1-public-launch-9720be94b795) (full sync 2026-08-06 · `docs/LINEAR_LIVE.md` · protocol in `AGENTS.md`)
