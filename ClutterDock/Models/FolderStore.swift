@@ -10,6 +10,8 @@ final class FolderStore: ObservableObject {
     @Published var selectedFolderID: UUID?
     @Published var workspaces: [Workspace]
     @Published var activeWorkspaceID: UUID?
+    /// Smart folders the user deleted — without this they'd resurrect on relaunch.
+    @Published private(set) var hiddenSmartKinds: Set<SmartFolderKind> = []
 
     private let fileURL: URL
     private var saveTask: Task<Void, Never>?
@@ -31,12 +33,15 @@ final class FolderStore: ObservableObject {
         var shouldPersist = false
         var recoveryBackup: URL?
 
+        var loadedHidden: Set<SmartFolderKind> = []
+
         if let data = try? Data(contentsOf: fileURL),
            let decoded = try? Self.decodeState(from: data) {
             loadedFolders = Self.sanitize(decoded.folders)
             loadedSelected = decoded.selectedFolderID ?? loadedFolders.first?.id
             loadedWorkspaces = decoded.workspaces ?? []
             loadedActiveWS = decoded.activeWorkspaceID
+            loadedHidden = Set((decoded.hiddenSmartKinds ?? []).compactMap(SmartFolderKind.init(rawValue:)))
             if decoded.version < Self.currentVersion {
                 shouldPersist = true
             }
@@ -74,6 +79,7 @@ final class FolderStore: ObservableObject {
         selectedFolderID = loadedSelected
         workspaces = loadedWorkspaces
         activeWorkspaceID = loadedActiveWS
+        hiddenSmartKinds = loadedHidden
         dataRecoveryBackupURL = recoveryBackup
 
         ensureSmartFolders()
@@ -279,6 +285,9 @@ final class FolderStore: ObservableObject {
         let normalCount = folders.filter { !$0.isSmart }.count
         if !folder.isSmart && normalCount <= 1 { return }
 
+        if folder.isSmart {
+            hiddenSmartKinds.insert(folder.smartKind)
+        }
         folders.removeAll { $0.id == id }
         for i in workspaces.indices {
             workspaces[i].folderIDs.removeAll { $0 == id }
@@ -528,24 +537,50 @@ final class FolderStore: ObservableObject {
             folders: folders,
             selectedFolderID: selectedFolderID,
             workspaces: workspaces,
-            activeWorkspaceID: activeWorkspaceID
+            activeWorkspaceID: activeWorkspaceID,
+            hiddenSmartKinds: hiddenSmartKinds.isEmpty ? nil : hiddenSmartKinds.map(\.rawValue).sorted()
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try encoder.encode(state)
     }
 
-    func importData(_ data: Data, merge: Bool) throws {
+    struct ImportSummary {
+        var foldersAdded = 0
+        var foldersMerged = 0
+        /// Folders dropped because the Free folder limit was reached.
+        var foldersSkipped = 0
+        var hitItemLimit = false
+
+        var message: String {
+            var parts: [String] = []
+            if foldersAdded > 0 { parts.append("\(foldersAdded) folder\(foldersAdded == 1 ? "" : "s") added") }
+            if foldersMerged > 0 { parts.append("\(foldersMerged) merged") }
+            if foldersSkipped > 0 { parts.append("\(foldersSkipped) skipped (Free folder limit)") }
+            if hitItemLimit { parts.append("some items hit the Free item limit") }
+            return parts.isEmpty ? "Nothing new to import." : parts.joined(separator: " · ")
+        }
+    }
+
+    @discardableResult
+    func importData(_ data: Data, merge: Bool) throws -> ImportSummary {
         let decoded = try Self.decodeState(from: data)
         let incoming = Self.sanitize(decoded.folders)
         guard !incoming.isEmpty else { throw StoreError.emptyImport }
 
+        var summary = ImportSummary()
         if merge {
             for folder in incoming where !folder.isSmart {
                 if let idx = folders.firstIndex(where: { $0.name == folder.name && !$0.isSmart }) {
-                    _ = addItems(folder.items, to: folders[idx].id)
-                } else {
+                    let r = addItems(folder.items, to: folders[idx].id)
+                    summary.foldersMerged += 1
+                    summary.hitItemLimit = summary.hitItemLimit || r.hitLimit
+                } else if FeatureGate.canAddNormalFolder(currentNormalCount: normalFolderCount) {
                     folders.append(folder)
+                    summary.foldersAdded += 1
+                } else {
+                    // Silently exceeding the Free cap here would bypass the paywall
+                    summary.foldersSkipped += 1
                 }
             }
             if let ws = decoded.workspaces {
@@ -559,10 +594,12 @@ final class FolderStore: ObservableObject {
             workspaces = decoded.workspaces ?? [Workspace(name: "All", folderIDs: [])]
             selectedFolderID = decoded.selectedFolderID ?? folders.first?.id
             activeWorkspaceID = decoded.activeWorkspaceID ?? workspaces.first?.id
+            summary.foldersAdded = incoming.count
             ensureSmartFolders()
             persistNow()
         }
         NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
+        return summary
     }
 
     /// Export a `.clutterdock` pack (JSON with that extension).
@@ -574,9 +611,10 @@ final class FolderStore: ObservableObject {
         try data.write(to: url, options: .atomic)
     }
 
-    func importPack(from url: URL, merge: Bool) throws {
+    @discardableResult
+    func importPack(from url: URL, merge: Bool) throws -> ImportSummary {
         let data = try Data(contentsOf: url)
-        try importData(data, merge: merge)
+        return try importData(data, merge: merge)
     }
 
     enum StoreError: LocalizedError {
@@ -593,12 +631,28 @@ final class FolderStore: ObservableObject {
     // MARK: - Smart folders
 
     private func ensureSmartFolders() {
-        if !folders.contains(where: { $0.smartKind == .recents }) {
+        if !hiddenSmartKinds.contains(.recents), !folders.contains(where: { $0.smartKind == .recents }) {
             folders.append(AppFolder(name: "Recents", symbolName: "clock", smartKind: .recents))
         }
-        if !folders.contains(where: { $0.smartKind == .running }) {
+        if !hiddenSmartKinds.contains(.running), !folders.contains(where: { $0.smartKind == .running }) {
             folders.append(AppFolder(name: "Running", symbolName: "circle.fill", smartKind: .running))
         }
+    }
+
+    func setSmartFolderVisible(_ kind: SmartFolderKind, _ visible: Bool) {
+        guard kind != .none else { return }
+        if visible {
+            hiddenSmartKinds.remove(kind)
+            ensureSmartFolders()
+        } else {
+            hiddenSmartKinds.insert(kind)
+            folders.removeAll { $0.smartKind == kind }
+            if let selectedFolderID, !folders.contains(where: { $0.id == selectedFolderID }) {
+                self.selectedFolderID = folders.first?.id
+            }
+        }
+        persist()
+        NotificationCenter.default.post(name: .clutterDockHotkeysNeedRefresh, object: nil)
     }
 
     // MARK: - Persistence
@@ -672,6 +726,7 @@ final class FolderStore: ObservableObject {
         var selectedFolderID: UUID?
         var workspaces: [Workspace]?
         var activeWorkspaceID: UUID?
+        var hiddenSmartKinds: [String]? = nil
     }
 }
 

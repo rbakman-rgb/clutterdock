@@ -15,6 +15,29 @@ enum AppIconService {
         return resized
     }
 
+    /// Cache-only lookup — lets views paint a placeholder first and render the real
+    /// icon a frame later instead of blocking the first frame of a large stack.
+    static func cachedIcon(for item: DockItem, size: CGFloat) -> NSImage? {
+        cache.object(forKey: "\(item.kind.rawValue)|\(item.path)|\(Int(size))" as NSString)
+    }
+
+    private static var placeholders: [DockItemKind: NSImage] = [:]
+
+    static func placeholder(for kind: DockItemKind) -> NSImage {
+        if let cached = placeholders[kind] { return cached }
+        let symbol: String
+        switch kind {
+        case .app: symbol = "app.dashed"
+        case .file: symbol = "doc"
+        case .folder: symbol = "folder"
+        case .url: symbol = "link.circle.fill"
+        }
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            ?? NSImage(size: NSSize(width: 64, height: 64))
+        placeholders[kind] = image
+        return image
+    }
+
     static func folderTabImage(folder: AppFolder, size: CGFloat = 16) -> NSImage? {
         if let path = folder.customImagePath,
            FileManager.default.fileExists(atPath: path),

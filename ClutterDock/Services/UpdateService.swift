@@ -32,6 +32,29 @@ enum UpdateService {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
     }
 
+    // MARK: - Background-check state
+
+    private static let skippedVersionKey = "clutterDock.skippedUpdateVersion"
+    private static let lastAutoCheckKey = "clutterDock.lastUpdateAutoCheckAt"
+
+    /// Set when a background check finds an update; surfaced passively (Dock menu)
+    /// instead of interrupting the user with a modal.
+    static private(set) var pendingUpdate: ReleaseInfo?
+
+    static var skippedVersion: String? {
+        get { UserDefaults.standard.string(forKey: skippedVersionKey) }
+        set { UserDefaults.standard.set(newValue, forKey: skippedVersionKey) }
+    }
+
+    private static var shouldRunBackgroundCheck: Bool {
+        let last = UserDefaults.standard.double(forKey: lastAutoCheckKey)
+        return Date().timeIntervalSince1970 - last > 24 * 60 * 60
+    }
+
+    private static func markBackgroundCheck() {
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastAutoCheckKey)
+    }
+
     /// Semantic-ish compare: "1.3.0" vs "v1.4.0"
     static func isRemoteNewer(_ remoteTag: String, than local: String) -> Bool {
         let r = parseVersion(remoteTag)
@@ -121,11 +144,18 @@ enum UpdateService {
             || host == "objects.githubusercontent.com"
     }
 
-    /// User-facing check (alerts).
+    /// Interactive checks show alerts. Background checks never interrupt: they run at
+    /// most once a day, respect "Skip This Version", and surface passively via
+    /// `pendingUpdate` (shown in the Dock menu) + `.clutterDockUpdateAvailable`.
     static func checkAndPrompt(interactive: Bool) {
+        if !interactive {
+            guard shouldRunBackgroundCheck else { return }
+            markBackgroundCheck()
+        }
         check { result in
             switch result {
             case .upToDate(let current):
+                pendingUpdate = nil
                 guard interactive else { return }
                 let alert = NSAlert()
                 alert.messageText = "You’re up to date"
@@ -135,6 +165,12 @@ enum UpdateService {
                 alert.runModal()
 
             case .updateAvailable(let info):
+                if !interactive {
+                    guard info.tagName != skippedVersion else { return }
+                    pendingUpdate = info
+                    NotificationCenter.default.post(name: .clutterDockUpdateAvailable, object: nil)
+                    return
+                }
                 let alert = NSAlert()
                 alert.messageText = "Update available"
                 alert.informativeText = """
@@ -145,9 +181,11 @@ enum UpdateService {
                 """
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "Download Update")
+                alert.addButton(withTitle: "Skip This Version")
                 alert.addButton(withTitle: "Later")
-                let response = alert.runModal()
-                if response == .alertFirstButtonReturn {
+                switch alert.runModal() {
+                case .alertFirstButtonReturn:
+                    pendingUpdate = nil
                     if let asset = info.macAssetURL, isTrustedDownloadURL(asset) {
                         NSWorkspace.shared.open(asset)
                     } else if isTrustedDownloadURL(info.htmlURL) {
@@ -155,6 +193,12 @@ enum UpdateService {
                     } else {
                         NSWorkspace.shared.open(releasesURL)
                     }
+                case .alertSecondButtonReturn:
+                    skippedVersion = info.tagName
+                    pendingUpdate = nil
+                    NotificationCenter.default.post(name: .clutterDockUpdateAvailable, object: nil)
+                default:
+                    break
                 }
 
             case .failed(let message):
@@ -171,4 +215,8 @@ enum UpdateService {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let clutterDockUpdateAvailable = Notification.Name("clutterDockUpdateAvailable")
 }

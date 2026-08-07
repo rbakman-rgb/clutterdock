@@ -9,11 +9,12 @@ final class PanelController {
     private let preferences: AppPreferences
     private let runningApps: RunningAppsService
     private let history: LaunchHistory
-    private var settingsWindow: NSWindow?
-    private var prefsObserver: NSObjectProtocol?
+    // nonisolated(unsafe): read from deinit, which is not MainActor-isolated under
+    // strict concurrency. Only written once from init/ensurePanel on the main actor.
+    nonisolated(unsafe) private var prefsObserver: NSObjectProtocol?
     /// True while the fade-out animation is running (panel still “visible”).
     private var isHiding = false
-    private var resignObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var resignObserver: NSObjectProtocol?
 
     init(
         store: FolderStore,
@@ -98,30 +99,11 @@ final class PanelController {
         })
     }
 
+    /// One Settings surface only: the SwiftUI `Settings` scene (⌘,). A second custom
+    /// NSWindow here used to allow two Settings windows with divergent state.
     func showSettings() {
-        if let settingsWindow, settingsWindow.isVisible {
-            settingsWindow.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let root = SettingsView(store: store, preferences: preferences, history: history)
-            .frame(minWidth: 640, minHeight: 480)
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 520),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "ClutterDock Settings"
-        window.contentView = NSHostingView(rootView: root)
-        window.center()
-        window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("ClutterDockSettings")
-        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        settingsWindow = window
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
     private func ensurePanel() -> NSPanel {
@@ -180,12 +162,11 @@ final class PanelController {
                 guard let self else { return }
                 // Keep open for sheets, open panels, alerts, and settings
                 if NSApp.modalWindow != nil { return }
-                if self.settingsWindow?.isKeyWindow == true { return }
                 if let key = NSApp.keyWindow, key !== self.panel {
                     // Don't hide if a sheet/alert took key
                     if key.sheetParent != nil || key.isSheet { return }
-                    // Settings window is open
-                    if key === self.settingsWindow { return }
+                    // The SwiftUI Settings scene window is open
+                    if key.title.contains("Settings") { return }
                 }
                 if self.panel?.isKeyWindow != true {
                     self.hide()

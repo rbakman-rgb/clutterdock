@@ -2,6 +2,32 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+/// Edits a local draft and commits on Return or when the field disappears —
+/// writing through on every keystroke made names impossible to clear-and-retype
+/// (empty renames are rejected, snapping the old name back).
+private struct CommitTextField: View {
+    let title: String
+    let text: String
+    let onCommit: (String) -> Void
+
+    @State private var draft = ""
+
+    var body: some View {
+        TextField(title, text: $draft)
+            .onAppear { draft = text }
+            .onChange(of: text) { draft = text }
+            .onSubmit { commit() }
+            .onDisappear { commit() }
+    }
+
+    private func commit() {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed != text {
+            onCommit(trimmed)
+        }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var store: FolderStore
     @ObservedObject var preferences: AppPreferences
@@ -97,10 +123,9 @@ struct SettingsView: View {
                     Text("Stacks are your mini-docks — e.g. Coding, Client A, Personal.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("Name", text: Binding(
-                        get: { folder.name },
-                        set: { store.renameFolder(id: folder.id, to: $0) }
-                    ))
+                    CommitTextField(title: "Name", text: folder.name) {
+                        store.renameFolder(id: folder.id, to: $0)
+                    }
                     .disabled(folder.isSmart)
 
                     if !folder.isSmart {
@@ -289,10 +314,9 @@ struct SettingsView: View {
                     ForEach(store.workspaces) { ws in
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                TextField("Name", text: Binding(
-                                    get: { ws.name },
-                                    set: { store.renameWorkspace(id: ws.id, to: $0) }
-                                ))
+                                CommitTextField(title: "Name", text: ws.name) {
+                                    store.renameWorkspace(id: ws.id, to: $0)
+                                }
                                 .textFieldStyle(.roundedBorder)
                                 Button("Activate") { store.selectWorkspace(id: ws.id) }
                                 if store.workspaces.count > 1 {
@@ -429,6 +453,16 @@ struct SettingsView: View {
                     Text(FeatureGate.canUseGlobalSearch ? "Default search to “All folders”" : "Default search to “All folders” (Pro)")
                 }
 
+            }
+            Section("Smart stacks") {
+                Toggle("Show Recents stack", isOn: Binding(
+                    get: { !store.hiddenSmartKinds.contains(.recents) },
+                    set: { store.setSmartFolderVisible(.recents, $0) }
+                ))
+                Toggle("Show Running stack", isOn: Binding(
+                    get: { !store.hiddenSmartKinds.contains(.running) },
+                    set: { store.setSmartFolderVisible(.running, $0) }
+                ))
             }
             Section("Access") {
                 Toggle("Show menu bar icon", isOn: $preferences.showMenuBarIcon)
@@ -681,9 +715,9 @@ struct SettingsView: View {
         panel.allowedContentTypes = types
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try store.importPack(from: url, merge: merge)
+            let summary = try store.importPack(from: url, merge: merge)
             selectedFolderID = store.selectedFolderID
-            statusMessage = merge ? "Merged \(url.lastPathComponent)" : "Replaced from \(url.lastPathComponent)"
+            statusMessage = "\(merge ? "Merged" : "Replaced from") \(url.lastPathComponent): \(summary.message)"
         } catch {
             presentAlert("Import failed", error.localizedDescription)
         }

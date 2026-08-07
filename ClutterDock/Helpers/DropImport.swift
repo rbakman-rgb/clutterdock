@@ -32,19 +32,16 @@ enum DropImport {
     static func parse(_ providers: [NSItemProvider]) async -> ParsedDrop {
         var result = ParsedDrop()
         for provider in providers {
-            // Internal item UUID (preferred custom type, then plain text UUID)
+            // Internal item UUID (our custom type — only set by in-app drags)
             if provider.hasItemConformingToTypeIdentifier(itemUUIDType) {
                 if let id = await loadUUID(provider, type: itemUUIDType) {
                     result.itemIDs.append(id)
                     continue
                 }
             }
-            if let id = await loadPlainUUID(provider) {
-                result.itemIDs.append(id)
-                continue
-            }
 
-            // File URLs from Finder
+            // File URLs from Finder (checked before the plain-text UUID fallback so
+            // every Finder drop doesn't pay an extra async round-trip)
             if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
                 if let url = await loadURL(provider, type: UTType.fileURL.identifier), url.isFileURL {
                     result.paths.append(url.path)
@@ -64,7 +61,7 @@ enum DropImport {
                 }
             }
 
-            // Plain text that looks like a path or URL
+            // Plain text: internal UUID (legacy drag payload), path, or URL
             if let text = await loadString(provider) {
                 let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if let uuid = UUID(uuidString: trimmed) {
@@ -72,7 +69,7 @@ enum DropImport {
                 } else if trimmed.hasPrefix("/") || trimmed.hasPrefix("~") {
                     let expanded = (trimmed as NSString).expandingTildeInPath
                     result.paths.append(expanded)
-                } else if trimmed.contains("://") || trimmed.contains(".") {
+                } else if looksLikeURL(trimmed) {
                     result.urlStrings.append(trimmed)
                 }
             }
@@ -80,22 +77,60 @@ enum DropImport {
         return result
     }
 
+    /// "Any text containing a dot" used to become a URL ("e.g." → https://e.g.).
+    /// Require an explicit scheme or a plausible bare domain.
+    static func looksLikeURL(_ s: String) -> Bool {
+        if s.contains("://") { return true }
+        guard !s.contains(" "), !s.contains("\n") else { return false }
+        let domain = #"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}(/\S*)?$"#
+        return s.range(of: domain, options: .regularExpression) != nil
+    }
+
     // MARK: - Loaders
 
+    /// NSItemProvider is documented thread-safe but not marked Sendable.
+    private struct SendableProvider: @unchecked Sendable {
+        let value: NSItemProvider
+    }
+
+    /// A misbehaving drag source that never calls its completion would hang the drop
+    /// forever — race every provider load against a short deadline instead.
+    private static func withDeadline<T: Sendable>(
+        seconds: Double = 2,
+        _ operation: @escaping @Sendable () async -> T?
+    ) async -> T? {
+        await withTaskGroup(of: T?.self) { group in
+            group.addTask { await operation() }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+    }
+
     private static func loadURL(_ provider: NSItemProvider, type: String) async -> URL? {
-        await withCheckedContinuation { cont in
-            provider.loadItem(forTypeIdentifier: type, options: nil) { item, _ in
-                cont.resume(returning: coerceURL(item))
+        let boxed = SendableProvider(value: provider)
+        return await withDeadline {
+            await withCheckedContinuation { cont in
+                boxed.value.loadItem(forTypeIdentifier: type, options: nil) { item, _ in
+                    cont.resume(returning: coerceURL(item))
+                }
             }
         }
     }
 
     private static func loadString(_ provider: NSItemProvider) async -> String? {
+        let boxed = SendableProvider(value: provider)
         let types = [UTType.plainText.identifier, UTType.utf8PlainText.identifier, UTType.text.identifier]
         for type in types where provider.hasItemConformingToTypeIdentifier(type) {
-            let value: String? = await withCheckedContinuation { cont in
-                provider.loadItem(forTypeIdentifier: type, options: nil) { item, _ in
-                    cont.resume(returning: coerceString(item))
+            let value: String? = await withDeadline {
+                await withCheckedContinuation { cont in
+                    boxed.value.loadItem(forTypeIdentifier: type, options: nil) { item, _ in
+                        cont.resume(returning: coerceString(item))
+                    }
                 }
             }
             if let value, !value.isEmpty { return value }
@@ -104,20 +139,16 @@ enum DropImport {
     }
 
     private static func loadUUID(_ provider: NSItemProvider, type: String) async -> UUID? {
-        let s: String? = await withCheckedContinuation { cont in
-            provider.loadItem(forTypeIdentifier: type, options: nil) { item, _ in
-                cont.resume(returning: coerceString(item))
+        let boxed = SendableProvider(value: provider)
+        let s: String? = await withDeadline {
+            await withCheckedContinuation { cont in
+                boxed.value.loadItem(forTypeIdentifier: type, options: nil) { item, _ in
+                    cont.resume(returning: coerceString(item))
+                }
             }
         }
         guard let s else { return nil }
         return UUID(uuidString: s.trimmingCharacters(in: .whitespacesAndNewlines))
-    }
-
-    private static func loadPlainUUID(_ provider: NSItemProvider) async -> UUID? {
-        guard let s = await loadString(provider) else { return nil }
-        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Only treat pure UUID strings as item IDs (avoid hijacking short text)
-        return UUID(uuidString: trimmed)
     }
 
     private static func coerceURL(_ item: NSSecureCoding?) -> URL? {

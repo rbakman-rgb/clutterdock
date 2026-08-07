@@ -74,6 +74,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        NotificationCenter.default.addObserver(
+            forName: .clutterDockUpdateAvailable,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.async { [weak self] in self?.rebuildDockMenu() }
+        }
+
         if let backup = store.dataRecoveryBackupURL {
             let alert = NSAlert()
             alert.messageText = "ClutterDock couldn’t read its saved stacks"
@@ -232,7 +240,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Open Launcher", action: #selector(showLauncher), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: ""))
+        if let pending = UpdateService.pendingUpdate {
+            menu.addItem(NSMenuItem(
+                title: "Update to \(pending.tagName) Available…",
+                action: #selector(checkForUpdates),
+                keyEquivalent: ""
+            ))
+        } else {
+            menu.addItem(NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: ""))
+        }
 
         if store.workspaces.count > 1 {
             menu.addItem(NSMenuItem.separator())

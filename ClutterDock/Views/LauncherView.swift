@@ -26,6 +26,7 @@ struct LauncherView: View {
     @ObservedObject private var license = LicenseManager.shared
     @FocusState private var searchFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var columns: [GridItem] {
         [GridItem(.adaptive(minimum: preferences.tileWidth, maximum: preferences.tileWidth + 12), spacing: 10)]
@@ -55,6 +56,9 @@ struct LauncherView: View {
 
     var body: some View {
         launcherChrome
+            .transaction { t in
+                if reduceMotion { t.animation = nil }
+            }
             .frame(width: preferences.panelWidth, height: preferences.panelHeight)
             .background {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -713,9 +717,7 @@ struct LauncherView: View {
             List(selection: $selectedItemID) {
                 ForEach(items) { item in
                     HStack(spacing: 10) {
-                        Image(nsImage: AppIconService.icon(for: item, size: 28))
-                            .resizable()
-                            .frame(width: 28, height: 28)
+                        ItemIconView(item: item, size: 28)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.name)
                             Text(item.kind.label)
@@ -794,8 +796,7 @@ struct LauncherView: View {
                                 open(hit.item)
                             } label: {
                                 HStack(spacing: 10) {
-                                    Image(nsImage: AppIconService.icon(for: hit.item, size: 28))
-                                        .resizable().frame(width: 28, height: 28)
+                                    ItemIconView(item: hit.item, size: 28)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(hit.item.name)
                                         Text(hit.folderName)
@@ -1184,10 +1185,7 @@ private struct ItemTile: View {
         return Button(action: onLaunch) {
             VStack(spacing: 7) {
                 ZStack(alignment: .bottom) {
-                    Image(nsImage: AppIconService.icon(for: item, size: iconSize))
-                        .resizable()
-                        .interpolation(.high)
-                        .frame(width: iconSize, height: iconSize)
+                    ItemIconView(item: item, size: iconSize)
                         .shadow(color: .black.opacity(hovering || isSelected ? 0.22 : 0.12), radius: hovering ? 6 : 3, y: 2)
                         .scaleEffect(hovering ? 1.04 : 1.0)
                         .opacity(missing ? 0.4 : 1)
