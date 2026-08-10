@@ -1,7 +1,7 @@
 {
   "name": "clutterdock",
   "productName": "ClutterDock",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Free app folders for your Windows taskbar / tray — group apps, files, folders, and URLs.",
   "main": "src/main.js",
   "author": "Ronald",

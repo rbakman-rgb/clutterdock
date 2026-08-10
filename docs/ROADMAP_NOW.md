@@ -1,7 +1,7 @@
 # ClutterDock — Where we go from here
 
-**As of:** 2026-08-07 (post full-app audit)  
-**Project:** [ClutterDock — V1 Public Launch](https://linear.app/rbakman/project/slavedock-v1-public-launch-9720be94b795)
+**As of:** 2026-08-10  
+**Project:** [ClutterDock — V1 Public Launch](https://linear.app/rbakman/project/clutterdock-v1-public-launch-9720be94b795)
 
 ---
 
@@ -11,34 +11,34 @@
 |------|--------|
 | **Product name / brand** | ClutterDock shipped (repo, app, site) |
 | **Marketing site** | Live at clutterdock.com — Coming soon, no download CTAs yet; terms + OG card shipped |
-| **Mac app** | **1.4.6** in git (1.4.5 on Releases) — audit fixes, calm updates, async icons |
-| **Windows app** | **1.2.0** in git (1.1.3 on Releases) — full Pro parity: workspaces, stack hotkeys, custom images, native icons |
-| **Public GitHub Releases** | **Stale: v1.4.5 / 1.1.3** still contain the broken license validator and unusable Windows app |
-| **Licensing** | Fixed + secret rotated out of the repo; CI secret set; **keep an offline backup of `scripts/private/license-secret.txt`** |
-| **Tests / CI** | Mac model suite + Windows store suite run on every push/PR |
-| **Code signing** | Mac ad-hoc only · Windows unsigned (SmartScreen expected) |
-| **Pro checkout** | License keys work offline; no merchant yet |
+| **Mac app** | **1.4.7** packaged + installed locally (audit fixes, password stacks, working license keys) |
+| **Windows app** | **1.2.1** version in git; CI builds on tag (smoke still needs a PC) |
+| **Public GitHub Releases** | **v1.4.7** cut (supersedes v1.4.5 with broken license validator) |
+| **Licensing** | Fixed + secret rotated; CI secret set; **keep offline backup of `scripts/private/license-secret.txt`** |
+| **Tests / CI** | Mac model + Windows store + stack-lock interop green |
+| **Code signing** | Apple Developer **enrolled**; this Mac has **no Developer ID identity** yet (ad-hoc only). Windows unsigned |
+| **Pro checkout** | Offline keys work; pick **Lemon Squeezy** next (RON-364) |
 
 **Ship philosophy:** free core stays free; no Dock replacement; local-first.
 
 ---
 
-## Next 10 (as of 2026-08-07)
+## Next 10 (as of 2026-08-10)
 
 | # | Work | Linear | Why now |
 |---|------|--------|---------|
-| 1 | Smoke-test Mac 1.4.6 + Win 1.2.0 | **RON-440** | Windows parity work has never run on Windows |
-| 2 | Cut 1.4.6 / 1.2.0 releases | **RON-441** | Shipped builds still reject every real key |
-| 3 | Review terms wording | **RON-373** | Drafted + live; not lawyer-reviewed |
-| 4 | Apple Developer enrollment | **RON-359** | Gates signing → notarization → Homebrew |
-| 5 | Developer ID cert + signed build | **RON-360** | Depends 4 |
-| 6 | Notarize Mac zip | **RON-361** | Kills the right-click-to-open dance |
-| 7 | Windows signing or SmartScreen doc | **RON-362** | Same friction on the other platform |
-| 8 | Refresh screenshots incl. first Windows shots | **RON-442** | Site sells Windows features nobody can see |
-| 9 | Merchant + products + key email + wire CTA | **RON-364/365/366/367** | Nothing to buy until this exists |
-| 10 | Support diagnostics button | **RON-443** | Makes post-launch bug reports answerable |
+| 1 | Confirm Win CI artifact from v1.4.7 + PC smoke | **RON-363 / 440** | Mac smoked; Win still open |
+| 2 | Create Developer ID Application cert + sign Mac | **RON-360** | Enrolled; cert not on this machine |
+| 3 | Notarize Mac zip | **RON-361** | After 360 |
+| 4 | Open Lemon Squeezy + Pro products | **RON-364 / 365** | Best fit for one-time offline keys |
+| 5 | Auto-email keys + wire Unlock Pro | **RON-366 / 367** | After merchant |
+| 6 | Windows signing or keep SmartScreen FAQ | **RON-362** | Optional friction reduction |
+| 7 | Refresh screenshots (Win + password stacks) | **RON-442** | Marketing lag |
+| 8 | Review terms wording | **RON-373** | In Review |
+| 9 | Support diagnostics button | **RON-443** | Support readiness |
+| 10 | Re-enable site downloads → soft launch | **RON-372 / 374** | When you want traffic |
 
-Then: re-enable downloads (**RON-372**) → soft launch (**RON-374**).
+Then: Homebrew (**RON-376**) after notarization.
 
 ---
 

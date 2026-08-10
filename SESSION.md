@@ -1,9 +1,9 @@
 # ClutterDock — Session save
 
-**Saved:** 2026-08-07  
-**Status:** **Public unsigned beta** — Mac **1.4.5** + Win **1.1.3** on GitHub Releases · real screenshots on site · KEY_OPS doc · next = Apple notarization + Pro merchant.  
-**2026-08-07 full-app audit + round 2 shipped (RON-417…425).** Round 1: license length bug fixed (real keys now validate on both platforms), secret rotated out of repo (`scripts/private/license-secret.txt`, gitignored + `CLUTTERDOCK_LICENSE_SECRET` GitHub secret — **keep an offline backup**), Windows Electron-33 breakage fixed (drag-drop, prompt dialogs), data-safety/security/dark-mode/a11y/perf fixes, PR CI added. Round 2: site OG card + terms page (**deployed**), Mac calm-update UX + async icons + drop robustness, Windows native file icons + uniform IPC + **full Pro parity** (workspaces, Ctrl+Shift+1–9 stack hotkeys, custom stack images, running indicators), and real test suites on both platforms (`./scripts/test-mac.sh`, `cd windows && npm test`) wired into CI.  
-**Versions bumped, not released:** Mac **1.4.6** / Win **1.2.0** — tag only after a real-Windows smoke test. Dev test key needs a `CLUTTERDOCK_DEV=1` build.  
+**Saved:** 2026-08-10  
+**Status:** **Public unsigned beta** — cutting **Mac 1.4.7** + **Win 1.2.1** (working license validation, audit fixes, password stacks). Site Coming soon; Pro keys manual until Lemon Squeezy.  
+**2026-08-10:** Ronald is already an Apple Developer (RON-359 Done). No Developer ID Application cert in this Mac's keychain yet (`security find-identity` empty for codesigning beyond ad-hoc) — RON-360 is create/install cert + signed build, then RON-361 notarize. Merchant pick: **Lemon Squeezy** (RON-364).  
+**2026-08-07 full-app audit + round 2 shipped (RON-417…425).** License fix + secret rotation; Windows Electron-33 fixes; Pro parity; CI tests. Password stacks **RON-473** on main.  
 **URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ (**live** — Cloudflare Workers; clutterdock.app + www 301 → clutterdock.com)  
 **Roadmap:** [docs/ROADMAP_NOW.md](docs/ROADMAP_NOW.md) · Linear map [docs/LINEAR_LIVE.md](docs/LINEAR_LIVE.md)  
 **Backlog:** [Linear — ClutterDock V1](https://linear.app/rbakman/project/clutterdock-v1-public-launch-9720be94b795) (full sync 2026-08-06 · `docs/LINEAR_LIVE.md` · protocol in `AGENTS.md`)

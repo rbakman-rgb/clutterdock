@@ -41,6 +41,17 @@ gh release create vX.Y.Z dist/ClutterDock-*-mac.zip --generate-notes
 gh repo edit rbakman-rgb/clutterdock --visibility public
 ```
 
+## Shipped 2026-08-10 (v1.4.7 / Win 1.2.1 unsigned beta)
+
+| Item | Evidence |
+|------|----------|
+| Release **v1.4.7** | https://github.com/rbakman-rgb/clutterdock/releases/tag/v1.4.7 |
+| Mac | `ClutterDock-1.4.7-mac.zip` — license fix, audit round 2, password-protected stacks, Pro polish |
+| Windows | `ClutterDock-1.2.1-x64.exe` (CI on tag; smoke on a PC still open) |
+| Tests | Mac model suite + Windows store/license + stack-lock interop green locally |
+| Apple Developer | Enrolled (RON-359). No Developer ID cert on this Mac yet — still ad-hoc signed |
+| Merchant | **Lemon Squeezy recommended** (RON-364) — MoR + license keys for one-time Pro |
+
 ## Shipped 2026-08-07 (v1.4.5 unsigned beta)
 
 | Item | Evidence |
