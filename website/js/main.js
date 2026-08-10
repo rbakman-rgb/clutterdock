@@ -111,4 +111,21 @@
       el.classList.add("is-visible");
     });
   }, 4000);
+
+  // Lemon Squeezy checkout (only when URLs are set in checkout-config.js)
+  const checkout = window.CLUTTERDOCK_CHECKOUT || {};
+  const checkoutMap = {
+    pro: checkout.proCheckoutUrl,
+    multi: checkout.multiCheckoutUrl,
+  };
+  document.querySelectorAll("[data-checkout]").forEach((el) => {
+    const key = el.getAttribute("data-checkout");
+    const url = (checkoutMap[key] || "").trim();
+    if (!url) return;
+    el.setAttribute("href", url);
+    el.setAttribute("target", "_blank");
+    el.setAttribute("rel", "noopener noreferrer");
+    if (key === "pro") el.textContent = "Unlock Pro";
+    if (key === "multi") el.textContent = "Get Pro Multi";
+  });
 })();
