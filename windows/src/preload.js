@@ -64,4 +64,5 @@ contextBridge.exposeInMainWorld('clutterDock', {
   deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
   checkForUpdates: (interactive) => ipcRenderer.invoke('check-for-updates', interactive),
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
+  copyDiagnostics: () => ipcRenderer.invoke('copy-diagnostics'),
 });

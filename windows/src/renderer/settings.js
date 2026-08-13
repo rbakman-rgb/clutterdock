@@ -160,6 +160,14 @@ $('wsAdd').onclick = () => wsCall(clutterDock.addWorkspace(`Workspace ${(snapsho
 
 $('coffee').onclick = () => clutterDock.openExternal('https://buymeacoffee.com/chidichidovsky');
 $('dataDir').onclick = () => clutterDock.openDataDir();
+if ($('copyDiagnostics')) {
+  $('copyDiagnostics').onclick = async () => {
+    const res = await clutterDock.copyDiagnostics();
+    $('status').textContent = res?.ok
+      ? 'Diagnostics copied — paste into a GitHub issue.'
+      : res?.error || 'Could not copy diagnostics.';
+  };
+}
 
 clutterDock.onSnapshot((data) => {
   snapshot = data;

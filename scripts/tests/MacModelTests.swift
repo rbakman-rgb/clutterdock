@@ -188,6 +188,34 @@ func run() {
     check(!LicenseManager.validate(""), "empty key rejected")
     check(!LicenseManager.validate("SDPRO-A1B2-0000-000"), "wrong-length key rejected")
 
+    print("DiagnosticsReport")
+    DiagnosticLog.resetForTests()
+    DiagnosticLog.record("sample warning")
+    let snap = DiagnosticsSnapshot(
+        appVersion: "1.4.7",
+        appBuild: "147",
+        osVersion: "Version 15.0 (Build x)",
+        architecture: "arm64",
+        tier: "Free",
+        maskedKey: "SDPRO-A1B2••••",
+        stackCount: 3,
+        itemCount: 12,
+        workspaceCount: 1,
+        historyCount: 4,
+        dataDirectory: "/tmp/cd",
+        corruptBackupExists: false,
+        preImportBackupExists: true,
+        lastUpdateCheck: "never checked",
+        hotkeyStatus: "ok (1 bound)",
+        recentErrors: DiagnosticLog.recent()
+    )
+    let text = DiagnosticsReport.render(snap)
+    check(text.contains("version: 1.4.7 (147)"), "renders version")
+    check(text.contains("key: SDPRO-A1B2••••"), "renders masked key")
+    check(!text.contains("SDPRO-A1B2-XXXX"), "does not invent a full key")
+    check(text.contains("pre-import.bak: yes"), "renders backup flags")
+    check(text.contains("sample warning"), "includes ring errors")
+
     try? FileManager.default.removeItem(at: dir)
     try? FileManager.default.removeItem(at: badDir)
 }

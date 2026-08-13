@@ -10,11 +10,14 @@ const {
   dialog,
   shell,
   screen,
+  clipboard,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { Store } = require('./store');
+const { Store, dataDir } = require('./store');
 const { setupUpdater } = require('./updater');
+const { extractProtocolUrls, parseAction } = require('./url-scheme');
+const { render: renderDiagnostics, recordError, recentErrors } = require('./diagnostics');
 
 /** @type {BrowserWindow | null} */
 let panel = null;
@@ -27,6 +30,9 @@ let store;
 /** @type {{ check: Function } | null} */
 let updater = null;
 let updateStatus = '';
+let lastHotkeyOk = false;
+/** @type {string[]} */
+let pendingProtocolUrls = [];
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -237,10 +243,15 @@ function registerHotkey() {
   let ok = false;
   try {
     ok = globalShortcut.register(accel, () => togglePanel());
-    if (!ok) console.warn('Hotkey registration failed:', accel);
+    if (!ok) {
+      console.warn('Hotkey registration failed:', accel);
+      recordError(`Hotkey registration failed: ${accel}`);
+    }
   } catch (e) {
     console.warn('Hotkey error', e);
+    recordError(`Hotkey error: ${e && e.message ? e.message : e}`);
   }
+  lastHotkeyOk = ok;
   // Pro: Ctrl+Shift+1..9 jumps straight to the Nth visible stack (Mac parity)
   if (store.isPro) {
     for (let n = 1; n <= 9; n++) {
@@ -678,20 +689,143 @@ function wireIpc() {
     status: updateStatus,
     version: app.getVersion(),
   }));
+
+  ipcMain.handle('copy-diagnostics', () => {
+    const snap = store.getSnapshot();
+    const dir = dataDir();
+    const text = renderDiagnostics({
+      appVersion: app.getVersion(),
+      osVersion: `${process.platform} ${osRelease()}`,
+      architecture: process.arch,
+      tier: snap.license?.isPro ? 'Pro' : 'Free',
+      maskedKey: snap.license?.display || '',
+      stackCount: (snap.state.folders || []).length,
+      itemCount: (snap.state.folders || []).reduce((n, f) => n + (f.items || []).length, 0),
+      workspaceCount: (snap.state.workspaces || []).length,
+      historyCount: (store.history.entries || []).length,
+      dataDirectory: dir,
+      corruptBackupExists: fs.existsSync(path.join(dir, 'folders.json.corrupt.bak')),
+      preImportBackupExists: fs.existsSync(path.join(dir, 'folders.json.pre-import.bak')),
+      lastUpdateCheck: updateStatus || 'never checked',
+      hotkeyStatus: lastHotkeyOk ? `ok (${store.prefs.hotkey || DEFAULT_HOTKEY})` : 'failed',
+      recentErrors: recentErrors(),
+    });
+    clipboard.writeText(text);
+    return { ok: true };
+  });
+}
+
+function osRelease() {
+  try {
+    return require('os').release();
+  } catch (_) {
+    return '';
+  }
+}
+
+async function confirmAndAdd(action) {
+  const lines = [];
+  if (action.path) lines.push(`File: ${action.path}`);
+  if (action.url) lines.push(`URL: ${action.url}`);
+  if (action.rejectedUrl) lines.push('URL: (blocked — only http, https, mailto are allowed)');
+  if (!action.path && !action.url) return;
+
+  const parent =
+    (settingsWin && !settingsWin.isDestroyed() && settingsWin) ||
+    (panel && !panel.isDestroyed() && panel.isVisible() && panel) ||
+    null;
+  const opts = {
+    type: 'warning',
+    buttons: ['Add', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    message: 'Add to ClutterDock?',
+    detail:
+      'Another app or link asked ClutterDock to add:\n\n' + lines.join('\n'),
+  };
+  const result = parent
+    ? await dialog.showMessageBox(parent, opts)
+    : await dialog.showMessageBox(opts);
+  if (result.response !== 0) return;
+
+  let changed = false;
+  if (action.path) {
+    const addResult = store.addPaths([action.path]);
+    changed = (addResult?.added || 0) > 0 || addResult?.hitLimit;
+  }
+  if (action.url) {
+    const addResult = store.addURL(action.url);
+    changed = (addResult?.added || 0) > 0 || addResult?.hitLimit || changed;
+  }
+  if (changed) showPanel();
+}
+
+async function applyProtocolAction(action) {
+  switch (action.kind) {
+    case 'open':
+      if (action.folder) {
+        const match = store.state.folders.find(
+          (f) => f.name.toLowerCase() === String(action.folder).toLowerCase()
+        );
+        if (match) store.selectFolder(match.id);
+      }
+      showPanel();
+      break;
+    case 'settings':
+      hidePanel();
+      createSettings();
+      break;
+    case 'workspace':
+      if (store.gate.canUseWorkspaces && action.workspace) {
+        const ws = store.state.workspaces.find(
+          (w) => w.name.toLowerCase() === String(action.workspace).toLowerCase()
+        );
+        if (ws) store.selectWorkspace(ws.id);
+      }
+      showPanel();
+      break;
+    case 'add':
+      await confirmAndAdd(action);
+      break;
+    default:
+      break;
+  }
+}
+
+async function handleProtocolArgv(argv) {
+  const urls = extractProtocolUrls(argv);
+  if (!urls.length) return;
+  if (!store) {
+    pendingProtocolUrls.push(...urls);
+    return;
+  }
+  for (const raw of urls) {
+    await applyProtocolAction(parseAction(raw));
+  }
 }
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (store) showPanel(); // a second launch can race app startup
+  app.on('second-instance', (_e, commandLine) => {
+    handleProtocolArgv(commandLine).then(() => {
+      if (store && !extractProtocolUrls(commandLine).length) showPanel();
+    });
   });
 
   app.whenReady().then(() => {
     // No app menu on Windows — the default one exposes devtools/reload in production.
     if (!isMac) Menu.setApplicationMenu(null);
+    if (isWin) {
+      app.setAsDefaultProtocolClient('clutterdock');
+    }
     store = new Store();
+    if (pendingProtocolUrls.length) {
+      const queued = pendingProtocolUrls.splice(0);
+      handleProtocolArgv(queued);
+    }
+    handleProtocolArgv(process.argv);
     // Sync login item from OS if possible
     try {
       const login = app.getLoginItemSettings();

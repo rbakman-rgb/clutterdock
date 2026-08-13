@@ -32,6 +32,9 @@ enum UpdateService {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
     }
 
+    /// Last check outcome for Copy diagnostics. No network is triggered by reading this.
+    static private(set) var lastCheckSummary = "never checked"
+
     // MARK: - Background-check state
 
     private static let skippedVersionKey = "clutterDock.skippedUpdateVersion"
@@ -84,6 +87,7 @@ enum UpdateService {
         URLSession.shared.dataTask(with: request) { data, response, error in
             Task { @MainActor in
                 if let error {
+                    lastCheckSummary = "failed: \(error.localizedDescription)"
                     completion(.failed(error.localizedDescription))
                     return
                 }
@@ -91,12 +95,14 @@ enum UpdateService {
                       let http = response as? HTTPURLResponse,
                       (200...299).contains(http.statusCode) else {
                     let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    lastCheckSummary = "failed: HTTP \(code)"
                     completion(.failed("Couldn’t reach update server (HTTP \(code))."))
                     return
                 }
 
                 guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let tag = json["tag_name"] as? String else {
+                    lastCheckSummary = "failed: unexpected GitHub response"
                     completion(.failed("Unexpected response from GitHub."))
                     return
                 }
@@ -125,8 +131,10 @@ enum UpdateService {
                 )
 
                 if isRemoteNewer(tag, than: currentVersion) {
+                    lastCheckSummary = "update available: \(tag)"
                     completion(.updateAvailable(info))
                 } else {
+                    lastCheckSummary = "up to date (\(currentVersion))"
                     completion(.upToDate(current: currentVersion))
                 }
             }

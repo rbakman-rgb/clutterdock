@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var statusMessage: String?
     @State private var licenseDraft = ""
     @State private var selectedTab: Tab = .stacks
+    @State private var diagnosticsCopied = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -592,6 +593,19 @@ struct SettingsView: View {
                 .background(Color.primary.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .padding(.horizontal, 24)
+
+            Button("Copy diagnostics") {
+                let text = DiagnosticsReport.render(DiagnosticsReport.capture(store: store, history: history))
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                diagnosticsCopied = true
+            }
+            .help("Copies a support paste — version, counts, data path. Never includes a full license key.")
+            if diagnosticsCopied {
+                Text("Copied — paste into a GitHub issue")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Button {
                 openBuyMeACoffee()

@@ -17,6 +17,9 @@ final class HotKeyService {
     private let signature: OSType = 0x534C5644 // 'SLVD'
     private var nextID: UInt32 = 1
 
+    /// Last bind result, for Copy diagnostics. Updated on every `setBindings`.
+    static private(set) var lastRegistrationSummary = "not yet registered"
+
     /// Replace all bindings.
     func setBindings(_ bindings: [(keyCode: UInt32, modifiers: UInt32, handler: () -> Void)]) {
         unregisterAll()
@@ -44,6 +47,16 @@ final class HotKeyService {
             list.append((code, fk.carbonModifiers, handler))
         }
         setBindings(list.map { (keyCode: $0.0, modifiers: $0.1, handler: $0.2) })
+        let wanted = list.count
+        let got = hotKeyRefs.count
+        if wanted == 0 {
+            Self.lastRegistrationSummary = "disabled (0 bound)"
+        } else if got == wanted {
+            Self.lastRegistrationSummary = "ok (\(got) bound)"
+        } else {
+            Self.lastRegistrationSummary = "partial (\(got)/\(wanted) bound)"
+            DiagnosticLog.record("hotkey bind partial \(got)/\(wanted)")
+        }
     }
 
     func unregister() {
@@ -107,6 +120,7 @@ final class HotKeyService {
         )
         if status != noErr {
             NSLog("ClutterDock: InstallEventHandler failed (\(status))")
+            DiagnosticLog.record("InstallEventHandler failed (\(status))")
         }
     }
 
@@ -126,6 +140,7 @@ final class HotKeyService {
             hotKeyRefs[id] = ref
         } else {
             NSLog("ClutterDock: RegisterEventHotKey failed id=\(id) status=\(status)")
+            DiagnosticLog.record("RegisterEventHotKey failed id=\(id) status=\(status)")
             handlers[id] = nil
         }
     }
