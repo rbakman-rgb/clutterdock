@@ -352,7 +352,7 @@
       { id: "slack", name: "Slack", kind: "app", stack: "Work", icon: "💬", sub: "Chat", run: true, color: "#fce7f3" },
       { id: "figma", name: "Figma", kind: "app", stack: "Work", icon: "🎨", sub: "Design", run: false, color: "#f3e8ff" },
       { id: "code", name: "VS Code", kind: "app", stack: "Work", icon: "⌨️", sub: "Editor", run: true, color: "#dbeafe" },
-      { id: "notes", name: "Notes", kind: "app", stack: "Apps", icon: "📝", sub: "Notes", run: false, color: "#fef3c7" },
+      { id: "notes", name: "Notes", kind: "app", stack: "Apps", icon: "📝", sub: "Quick notes", run: false, color: "#fef3c7" },
       { id: "site", name: "clutterdock.com", kind: "url", stack: "Apps", icon: "🔗", sub: "https://clutterdock.com", run: false, color: "#d1fae5" },
       { id: "docs", name: "Documents", kind: "folder", stack: "Apps", icon: "📁", sub: "~/Documents", run: false, color: "#e0e7ff" },
       { id: "photos", name: "Photos", kind: "app", stack: "Play", icon: "🖼️", sub: "Library", run: false, color: "#ffe4e6" },
@@ -401,9 +401,12 @@
       const all = ITEMS.concat(extra);
       const q = query.trim().toLowerCase();
       return all.filter((it) => {
-        const inStack = stack === "Recents" ? it.kind === "url" || it.run : it.stack === stack || (stack === "Apps" && it.stack === "Apps");
         const hit = !q || it.name.toLowerCase().includes(q) || it.sub.toLowerCase().includes(q);
-        return inStack && hit;
+        if (!hit) return false;
+        // Command palette: a query searches every stack; empty query uses the filter chips
+        if (design === 5 && q) return true;
+        if (stack === "Recents") return it.kind === "url" || it.run;
+        return it.stack === stack;
       });
     }
 
