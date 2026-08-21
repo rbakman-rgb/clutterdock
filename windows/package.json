@@ -1,7 +1,7 @@
 {
   "name": "clutterdock",
   "productName": "ClutterDock",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Free app folders for your Windows taskbar / tray — group apps, files, folders, and URLs.",
   "main": "src/main.js",
   "author": "Ronald",
@@ -56,14 +56,21 @@
         }
       ],
       "icon": "assets/icon.png",
-      "artifactName": "ClutterDock-${version}-${arch}.${ext}"
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": false,
       "createStartMenuShortcut": true,
-      "shortcutName": "ClutterDock"
+      "shortcutName": "ClutterDock",
+      "runAfterFinish": true,
+      "artifactName": "ClutterDock-${version}-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "ClutterDock-${version}-${arch}-portable.${ext}"
     }
   },
   "dependencies": {

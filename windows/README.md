@@ -46,8 +46,8 @@ npm run dist
 
 Outputs under `windows/dist/`:
 
-- `ClutterDock-<version>-x64.exe` — NSIS installer  
-- Portable build as well (`dist:portable` or full `dist`)
+- `ClutterDock-<version>-x64-setup.exe` — NSIS per-user installer (pin this to the taskbar)  
+- `ClutterDock-<version>-x64-portable.exe` — portable (runs from Temp; AV often flags it)
 
 From macOS, `electron-builder --win` may need extra tooling; prefer building on Windows/Parallels.
 

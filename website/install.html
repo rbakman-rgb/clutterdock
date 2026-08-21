@@ -111,36 +111,40 @@
       <div class="section-header" data-reveal>
         <p class="section-kicker">Windows 10 / 11</p>
         <h2>Windows install</h2>
-        <p>Electron tray launcher. Default hotkey: <strong>Ctrl+Shift+D</strong>.</p>
+        <p>Taskbar + tray launcher. Default hotkey: <strong>Ctrl+Shift+D</strong>.</p>
       </div>
       <div class="story-steps" data-reveal-stagger>
         <article class="story-step">
           <div class="step-num">1</div>
-          <h3>Download the .exe</h3>
-          <p>Get <code>ClutterDock-1.2.1-x64.exe</code> from the
-            <a href="index.html#download">download</a> section (unsigned beta).</p>
+          <h3>Download the installer</h3>
+          <p>Prefer <code>ClutterDock-*-setup.exe</code> (installs to a stable folder so you can pin it).
+            The older portable <code>ClutterDock-*-x64.exe</code> unpacks to Temp — antivirus often flags that, and it will not stay on the taskbar.</p>
         </article>
         <article class="story-step">
           <div class="step-num">2</div>
-          <h3>Run it</h3>
-          <p>If SmartScreen warns, choose <strong>More info</strong> → <strong>Run anyway</strong>.</p>
+          <h3>Install and allow if asked</h3>
+          <p>SmartScreen: <strong>More info</strong> → <strong>Run anyway</strong>.
+            Bitdefender / other AV: this build is <strong>unsigned</strong>, not malware — Restore/Allow the file, or add an exclusion for ClutterDock until we ship a signed build.</p>
         </article>
         <article class="story-step">
           <div class="step-num">3</div>
-          <h3>Find the tray</h3>
-          <p>ClutterDock lives in the system tray. Use the hotkey or tray menu to open stacks.</p>
+          <h3>Pin to the taskbar</h3>
+          <p>After it launches, right-click the ClutterDock icon on the taskbar → <strong>Pin to taskbar</strong>.
+            Then unpin the apps you now open from stacks — that’s how the taskbar gets smaller, same idea as the Mac Dock icon.</p>
         </article>
       </div>
 
       <div class="callout-panel" data-reveal style="margin-top: 2rem;">
-        <h3>SmartScreen: Windows protected your PC</h3>
+        <h3>SmartScreen / Bitdefender: “virus” or “untrusted”</h3>
         <p>
-          Windows shows this for apps without a paid code-signing certificate. Expected for this beta.
-          Only download from our official
-          <a href="index.html#download">download</a> page.
+          Windows and antivirus flag apps without a paid Authenticode certificate. ClutterDock is open source
+          (<a href="https://github.com/rbakman-rgb/clutterdock" rel="noopener">github.com/rbakman-rgb/clutterdock</a>)
+          and only distributed from that repo / this site. Expected for this beta.
         </p>
         <p>
-          <strong class="text-emphasis">Fix:</strong> Click <strong>More info</strong>, then <strong>Run anyway</strong>.
+          <strong class="text-emphasis">SmartScreen:</strong> More info → Run anyway.<br />
+          <strong class="text-emphasis">Bitdefender:</strong> Protection → Antivirus → Settings → Exclusions, or restore from Quarantine.
+          Do not use a portable exe from the Downloads Temp unpack if an installer is available.
         </p>
       </div>
     </section>

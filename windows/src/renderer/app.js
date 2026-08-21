@@ -420,7 +420,8 @@ function renderOnboarding() {
       <ol>
         <li>Create stacks (Coding, Work…) with a name &amp; symbol</li>
         <li>Drop apps, files, or URLs into each stack</li>
-        <li>Tray icon or <b>Ctrl+Shift+D</b> · right‑click a tab to customize</li>
+        <li>Pin ClutterDock to the <b>taskbar</b> (right‑click the icon → Pin) then unpin the apps you now launch from stacks</li>
+        <li>Click the taskbar / tray icon or press <b>Ctrl+Shift+D</b></li>
         <li>Free forever — tips optional via Buy Me a Coffee</li>
       </ol>
       <div class="row">

@@ -25,9 +25,10 @@
 
 ### Windows
 
-1. Download the installer or portable **`.exe`** from [Releases](https://github.com/rbakman-rgb/clutterdock/releases/latest)
-2. Run it and find **ClutterDock** in the system tray
-3. Hotkey default: **Ctrl+Shift+D**
+1. Download **`ClutterDock-*-setup.exe`** from [Releases](https://github.com/rbakman-rgb/clutterdock/releases/latest) (prefer the installer, not the portable)
+2. Run it. If SmartScreen / Bitdefender warns, allow this unsigned beta (see [install](https://clutterdock.com/install))
+3. Right-click the ClutterDock taskbar icon → **Pin to taskbar**, then unpin apps you launch from stacks
+4. Hotkey default: **Ctrl+Shift+D** (tray icon still works)
 
 ---
 

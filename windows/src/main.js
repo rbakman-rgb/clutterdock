@@ -30,6 +30,17 @@ let updateStatus = '';
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
+const APP_USER_MODEL_ID = 'com.ronald.ClutterDock';
+
+if (isWin) {
+  // Must match the Start Menu / taskbar shortcut or Windows treats each
+  // launch as a new unnamed app (can't pin, AV looks at a Temp path).
+  app.setAppUserModelId(APP_USER_MODEL_ID);
+}
+
+let taskbarHost = null;
+let isQuitting = false;
+let suppressTaskbarFocus = false;
 
 function asset(...parts) {
   return path.join(__dirname, '..', 'assets', ...parts);
@@ -142,10 +153,14 @@ function positionPanel() {
 function showPanel() {
   const win = createPanel();
   positionPanel();
+  suppressTaskbarFocus = true;
   win.show();
   win.focus();
   win.webContents.send('snapshot', store.getSnapshot());
   startRunningPoll();
+  setTimeout(() => {
+    suppressTaskbarFocus = false;
+  }, 400);
 }
 
 function hidePanel() {
@@ -188,6 +203,88 @@ function createSettings() {
   });
 }
 
+/**
+ * Invisible host window so ClutterDock stays on the taskbar while running —
+ * same job as the Mac Dock icon. Clicking it toggles the launcher. Pin the
+ * Start Menu shortcut to keep it there after quit.
+ */
+function createTaskbarHost() {
+  if (!isWin) return;
+  if (taskbarHost && !taskbarHost.isDestroyed()) return taskbarHost;
+
+  const iconPath = fs.existsSync(asset('icon.png')) ? asset('icon.png') : undefined;
+  taskbarHost = new BrowserWindow({
+    width: 1,
+    height: 1,
+    x: -32000,
+    y: -32000,
+    show: true,
+    frame: false,
+    skipTaskbar: false,
+    minimizable: true,
+    maximizable: false,
+    fullscreenable: false,
+    resizable: false,
+    focusable: true,
+    transparent: true,
+    backgroundColor: '#00000000',
+    title: 'ClutterDock',
+    icon: iconPath,
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  taskbarHost.setMenu(null);
+  taskbarHost.setSkipTaskbar(false);
+
+  taskbarHost.on('close', (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    togglePanel();
+  });
+  taskbarHost.on('minimize', () => {
+    hidePanel();
+  });
+  taskbarHost.on('restore', () => {
+    showPanel();
+  });
+  taskbarHost.on('focus', () => {
+    if (suppressTaskbarFocus) return;
+    togglePanel();
+  });
+
+  try {
+    app.setUserTasks([
+      {
+        program: process.execPath,
+        arguments: '--open',
+        iconPath: process.execPath,
+        iconIndex: 0,
+        title: 'Open launcher',
+        description: 'Show ClutterDock stacks',
+      },
+      {
+        program: process.execPath,
+        arguments: '--settings',
+        iconPath: process.execPath,
+        iconIndex: 0,
+        title: 'Settings',
+        description: 'ClutterDock Settings',
+      },
+    ]);
+  } catch (_) {
+    /* Jump Lists are Windows-only and may fail in portable Temp launches */
+  }
+
+  return taskbarHost;
+}
+
+function argvHas(flag) {
+  return process.argv.some((a) => a === flag || a.endsWith(flag));
+}
+
 function createTray() {
   let iconPath = asset('tray-icon.png');
   if (!fs.existsSync(iconPath)) iconPath = asset('icon.png');
@@ -207,7 +304,7 @@ function createTray() {
   else image = image.resize({ width: 16, height: 16 });
 
   tray = new Tray(image);
-  tray.setToolTip('ClutterDock');
+  tray.setToolTip('ClutterDock — click, or pin the taskbar icon');
   tray.on('click', () => togglePanel());
   tray.on('right-click', () => {
     const menu = Menu.buildFromTemplate([
@@ -684,8 +781,12 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (store) showPanel(); // a second launch can race app startup
+  app.on('second-instance', (_e, argv) => {
+    if (argv && argv.some((a) => a === '--settings' || String(a).endsWith('--settings'))) {
+      if (store) createSettings();
+      return;
+    }
+    if (store) showPanel();
   });
 
   app.whenReady().then(() => {
@@ -704,6 +805,7 @@ if (!gotLock) {
 
     wireIpc();
     createTray();
+    if (isWin) createTaskbarHost();
     createPanel();
     registerHotkey();
 
@@ -719,8 +821,9 @@ if (!gotLock) {
       },
     });
 
-    // First run: show panel
-    if (!store.prefs.hasCompletedOnboarding) {
+    if (argvHas('--settings')) {
+      setTimeout(() => createSettings(), 400);
+    } else if (!store.prefs.hasCompletedOnboarding || argvHas('--open')) {
       setTimeout(() => showPanel(), 400);
     }
 
@@ -734,6 +837,10 @@ if (!gotLock) {
     app.on('activate', () => showPanel());
   });
 }
+
+app.on('before-quit', () => {
+  isQuitting = true;
+});
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();

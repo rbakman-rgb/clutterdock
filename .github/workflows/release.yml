@@ -116,10 +116,11 @@ jobs:
             3. First open: right-click → **Open** (unsigned build until Developer ID notarization)
 
             ### Windows
-            1. Download the **NSIS** `.exe` installer (preferred for auto-updates)
-            2. Run and look for the tray icon
-            3. Default hotkey: **Ctrl+Shift+D**
-            4. Updates: Settings → **Check for Updates** (or automatic)
+            1. Download **`ClutterDock-*-setup.exe`** (installer — not the portable)
+            2. If SmartScreen / Bitdefender warns, allow this unsigned beta
+            3. Right-click the taskbar icon → **Pin to taskbar**, then unpin apps you open from stacks
+            4. Default hotkey: **Ctrl+Shift+D**
+            5. Updates: Settings → **Check for Updates** (or automatic)
 
             ### Updates
             - **Mac:** Settings → Check for Updates (opens new build from GitHub)
