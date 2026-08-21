@@ -34,3 +34,7 @@ If the Linear MCP is not authenticated, say so and continue working — Ronald c
 Dependencies: RON-360←359 · RON-361←360 · RON-365←364 · RON-366/367←365 · RON-374←363 · RON-376←361 · RON-413←361.  
 **RON-372** = re-enable site downloads when ready (assets already on Releases).  
 Full table: `docs/LINEAR_LIVE.md`.
+
+## Design explorations
+
+Launcher UI/UX directions (**RON-488**): `docs/design-options/` — local review gallery, not shipped to clutterdock.com. Serve with `python3 -m http.server 8765 --directory docs/design-options`.

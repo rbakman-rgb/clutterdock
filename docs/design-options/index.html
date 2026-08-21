@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClutterDock — 10 launcher directions</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --paper: #f8fafc;
+      --accent: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background: #0b1220;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100%;
+    }
+    aside {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-right: 1px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: sticky;
+      top: 0;
+    }
+    .brand { padding: 22px 20px 12px; }
+    .brand h1 { margin: 0; font-size: 15px; letter-spacing: -0.02em; }
+    .brand p { margin: 6px 0 0; font-size: 12px; color: #94a3b8; line-height: 1.4; }
+    .nav { padding: 8px 10px 20px; overflow: auto; flex: 1; }
+    .nav button {
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 10px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+    .nav button:hover { background: #1e293b; }
+    .nav button.active { background: #1d4ed8; color: #fff; border-color: #3b82f6; }
+    .nav .n { font-weight: 700; font-size: 12px; opacity: 0.7; padding-top: 1px; }
+    .nav .t { font-size: 13px; font-weight: 600; }
+    .nav .s { font-size: 11px; opacity: 0.8; margin-top: 2px; font-weight: 400; }
+    main { display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 22px; background: #111827; color: #f8fafc;
+      border-bottom: 1px solid #1f2937;
+    }
+    .topbar h2 { margin: 0; font-size: 18px; letter-spacing: -0.03em; }
+    .topbar .meta { font-size: 13px; color: #94a3b8; }
+    .topbar .spacer { flex: 1; }
+    .topbar button {
+      background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
+      border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px;
+    }
+    .stage {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 36px 24px 48px;
+      background:
+        radial-gradient(1200px 600px at 20% 10%, rgba(96,165,250,.18), transparent 50%),
+        radial-gradient(900px 500px at 90% 80%, rgba(244,114,182,.12), transparent 45%),
+        linear-gradient(160deg, #1e3a5f 0%, #0f172a 40%, #334155 100%);
+      position: relative;
+    }
+    .caption {
+      position: absolute; left: 24px; right: 24px; bottom: 16px;
+      color: #e2e8f0; font-size: 13px; line-height: 1.45;
+      max-width: 720px; text-shadow: 0 1px 8px rgba(0,0,0,.4);
+    }
+    .caption strong { color: #fff; }
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #0f172a; color: #fff; padding: 10px 14px;
+      border-radius: 10px; font-size: 13px; display: none; z-index: 50;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    /* Shared panel chrome */
+    .panel { overflow: hidden; display: flex; flex-direction: column; }
+    .hidden { display: none !important; }
+    .items { flex: 1; overflow: auto; }
+    button { font-family: inherit; }
+
+    /* ========== 1 Glass Current ========== */
+    .t1 { width: 480px; height: 520px; border-radius: 16px;
+      background: linear-gradient(160deg, #e8eefc, #f7f8fc 45%, #eef2ff);
+      color: #1a1d26; box-shadow: 0 24px 60px rgba(15,23,42,.35); }
+    .t1 .tabs { display: flex; gap: 6px; padding: 12px 14px 8px; align-items: center; }
+    .t1 .tab { border: 0; background: rgba(15,23,42,.05); border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+    .t1 .tab.on { background: rgba(59,130,246,.16); color: #1d4ed8; font-weight: 600; }
+    .t1 .grow { margin-left: auto; display: flex; gap: 4px; }
+    .t1 .ib { border: 0; background: transparent; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: #6b7280; }
+    .t1 .search { display: flex; gap: 8px; padding: 0 14px 10px; }
+    .t1 .search input { flex: 1; border: 1px solid rgba(15,23,42,.1); background: rgba(255,255,255,.7); border-radius: 10px; padding: 8px 12px; }
+    .t1 .all { border: 1px solid rgba(15,23,42,.1); background: #fff; border-radius: 8px; padding: 6px 10px; font-size: 11px; color: #6b7280; cursor: pointer; }
+    .t1 .all.on { background: rgba(59,130,246,.16); color: #1d4ed8; border-color: transparent; font-weight: 600; }
+    .t1 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; }
+    .t1 .tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
+    .t1 .tile:hover { background: rgba(15,23,42,.06); }
+    .t1 .ico { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+    .t1 .nm { font-size: 11px; text-align: center; max-width: 80px; }
+    .t1 .foot { display: flex; align-items: center; padding: 8px 12px; font-size: 11px; color: #6b7280; border-top: 1px solid rgba(15,23,42,.08); }
+    .t1 .foot .sp { flex: 1; }
+
+    /* ========== 2 Midnight Glass ========== */
+    .t2 { width: 500px; height: 540px; border-radius: 20px;
+      background: rgba(16,20,29,.88); color: #e8ecf4;
+      border: 1px solid rgba(255,255,255,.1);
+      box-shadow: 0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
+      backdrop-filter: blur(18px); }
+    .t2 .head { padding: 16px 18px 8px; display: flex; align-items: center; gap: 8px; }
+    .t2 .dot { width: 10px; height: 10px; border-radius: 50%; background: #334155; }
+    .t2 .dot.r { background: #f87171; } .t2 .dot.y { background: #fbbf24; } .t2 .dot.g { background: #34d399; }
+    .t2 .title { margin-left: 6px; font-size: 12px; color: #9aa4b4; letter-spacing: .08em; text-transform: uppercase; }
+    .t2 .tabs { display: flex; gap: 4px; padding: 4px 16px 10px; }
+    .t2 .tab { border: 0; background: transparent; color: #9aa4b4; padding: 7px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; }
+    .t2 .tab.on { background: rgba(96,165,250,.22); color: #93c5fd; }
+    .t2 .search { margin: 0 16px 12px; }
+    .t2 .search input { width: 100%; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: #e8ecf4; border-radius: 12px; padding: 10px 12px; }
+    .t2 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 8px 16px; }
+    .t2 .tile { text-align: center; cursor: pointer; padding: 10px 4px; border-radius: 14px; }
+    .t2 .tile:hover { background: rgba(255,255,255,.07); }
+    .t2 .ico { width: 52px; height: 52px; margin: 0 auto 8px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; background: rgba(255,255,255,.06); }
+    .t2 .nm { font-size: 11px; color: #cbd5e1; }
+    .t2 .foot { margin-top: auto; padding: 10px 16px; font-size: 11px; color: #9aa4b4; display: flex; border-top: 1px solid rgba(255,255,255,.08); }
+    .t2 .foot .sp { flex: 1; }
+
+    /* ========== 3 Compact Popover ========== */
+    .t3 { width: 340px; height: 400px; border-radius: 12px;
+      background: #fff; color: #111827; box-shadow: 0 18px 40px rgba(0,0,0,.28);
+      border: 1px solid #e5e7eb; }
+    .t3 .bar { display: flex; gap: 4px; padding: 8px; border-bottom: 1px solid #f1f5f9; overflow: auto; }
+    .t3 .tab { border: 0; background: #f1f5f9; font-size: 11px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+    .t3 .tab.on { background: #111827; color: #fff; }
+    .t3 .search { padding: 8px; }
+    .t3 .search input { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+    .t3 .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 4px 8px; }
+    .t3 .tile { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; border-radius: 8px; cursor: pointer; }
+    .t3 .tile:hover { background: #f8fafc; }
+    .t3 .ico { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 16px; background: #f1f5f9; }
+    .t3 .nm { font-size: 9px; text-align: center; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .t3 .foot { margin-top: auto; padding: 6px 8px; font-size: 10px; color: #64748b; display: flex; border-top: 1px solid #f1f5f9; }
+    .t3 .foot .sp { flex: 1; }
+
+    /* ========== 4 Fluent Mica ========== */
+    .t4 { width: 520px; height: 500px; border-radius: 8px;
+      background: linear-gradient(180deg, #f3f6fb 0%, #e8eef8 100%);
+      color: #1b1b1b; box-shadow: 0 16px 48px rgba(0,0,0,.25);
+      border: 1px solid #d0d7e2; font-family: "Segoe UI", system-ui, sans-serif; }
+    .t4 .cmd { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,.55); border-bottom: 1px solid #d0d7e2; }
+    .t4 .cmd button { border: 0; background: transparent; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .t4 .cmd button:hover { background: rgba(0,120,212,.1); }
+    .t4 .cmd input { flex: 1; border: 1px solid #c5cdd8; border-radius: 4px; padding: 6px 10px; }
+    .t4 .body { display: grid; grid-template-columns: 148px 1fr; flex: 1; min-height: 0; }
+    .t4 .rail { padding: 8px; border-right: 1px solid #d0d7e2; background: rgba(255,255,255,.35); }
+    .t4 .tab { width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .t4 .tab.on { background: #0078d4; color: #fff; }
+    .t4 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px; }
+    .t4 .tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border-radius: 4px; cursor: pointer; }
+    .t4 .tile:hover { background: rgba(0,120,212,.08); }
+    .t4 .ico { width: 44px; height: 44px; border-radius: 6px; display: grid; place-items: center; font-size: 20px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .t4 .nm { font-size: 12px; }
+    .t4 .foot { padding: 8px 12px; font-size: 11px; color: #5a6573; border-top: 1px solid #d0d7e2; display: flex; }
+    .t4 .foot .sp { flex: 1; }
+
+    /* ========== 5 Command Palette ========== */
+    .t5 { width: 640px; height: 460px; border-radius: 16px;
+      background: #18181b; color: #fafafa; box-shadow: 0 40px 90px rgba(0,0,0,.55);
+      border: 1px solid #3f3f46; }
+    .t5 .omni { padding: 14px 16px 10px; border-bottom: 1px solid #27272a; }
+    .t5 .omni input { width: 100%; background: transparent; border: 0; color: #fff; font-size: 18px; outline: none; }
+    .t5 .filters { display: flex; gap: 6px; padding: 10px 16px; }
+    .t5 .tab { border: 1px solid #3f3f46; background: transparent; color: #a1a1aa; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .t5 .tab.on { background: #fafafa; color: #18181b; border-color: #fafafa; }
+    .t5 .list { padding: 4px 8px 12px; }
+    .t5 .row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+    .t5 .row:hover, .t5 .row.sel { background: #27272a; }
+    .t5 .ico { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font-size: 18px; background: #27272a; }
+    .t5 .meta { flex: 1; min-width: 0; }
+    .t5 .name { font-size: 14px; font-weight: 500; }
+    .t5 .sub { font-size: 12px; color: #a1a1aa; }
+    .t5 .kbd { font-size: 11px; color: #71717a; font-family: ui-monospace, monospace; }
+    .t5 .foot { margin-top: auto; padding: 8px 16px; font-size: 11px; color: #71717a; border-top: 1px solid #27272a; display: flex; }
+    .t5 .foot .sp { flex: 1; }
+
+    /* ========== 6 Dock Shelf ========== */
+    .t6-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .t6 { width: 560px; min-height: 280px; border-radius: 22px;
+      background: rgba(255,255,255,.78); color: #111827;
+      box-shadow: 0 20px 50px rgba(0,0,0,.28); padding: 18px 18px 12px;
+      backdrop-filter: blur(16px); }
+    .t6 .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .t6 .tile { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+    .t6 .ico { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 26px;
+      background: #fff; box-shadow: 0 6px 16px rgba(15,23,42,.12); }
+    .t6 .nm { font-size: 11px; }
+    .t6-dock { display: flex; gap: 8px; padding: 10px 14px; background: rgba(15,23,42,.72); border-radius: 22px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+    .t6-dock .tab { width: 52px; height: 52px; border: 0; border-radius: 14px; cursor: pointer; font-size: 22px;
+      background: rgba(255,255,255,.12); color: #fff; }
+    .t6-dock .tab.on { background: #fff; color: #111; transform: translateY(-6px); }
+
+    /* ========== 7 Sidebar Stacks ========== */
+    .t7 { width: 560px; height: 480px; border-radius: 18px; display: grid; grid-template-columns: 168px 1fr;
+      background: #f4f1ea; color: #1c1917; box-shadow: 0 24px 60px rgba(0,0,0,.3); overflow: hidden; }
+    .t7 .rail { background: #1c1917; color: #f5f5f4; padding: 16px 10px; display: flex; flex-direction: column; gap: 4px; }
+    .t7 .brandish { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #a8a29e; padding: 0 8px 10px; }
+    .t7 .tab { border: 0; background: transparent; color: #e7e5e4; text-align: left; padding: 9px 10px; border-radius: 10px; cursor: pointer; font-size: 13px; }
+    .t7 .tab.on { background: #44403c; }
+    .t7 .main { display: flex; flex-direction: column; min-width: 0; }
+    .t7 .search { padding: 14px 14px 6px; }
+    .t7 .search input { width: 100%; border: 1px solid #d6d3d1; background: #fff; border-radius: 10px; padding: 8px 10px; }
+    .t7 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 14px; }
+    .t7 .tile { background: #fff; border-radius: 14px; padding: 14px 8px; text-align: center; cursor: pointer; box-shadow: 0 1px 0 #e7e5e4; }
+    .t7 .tile:hover { transform: translateY(-1px); }
+    .t7 .ico { font-size: 26px; margin-bottom: 6px; }
+    .t7 .nm { font-size: 12px; font-weight: 600; }
+    .t7 .foot { margin-top: auto; padding: 10px 14px; font-size: 11px; color: #78716c; display: flex; }
+    .t7 .foot .sp { flex: 1; }
+
+    /* ========== 8 Playful Burst ========== */
+    .t8 { width: 500px; height: 520px; border-radius: 28px;
+      background: linear-gradient(165deg, #fff7ed, #ffe4e6 55%, #e0f2fe);
+      color: #1e1b4b; box-shadow: 0 28px 70px rgba(244,63,94,.25); }
+    .t8 .hello { padding: 18px 20px 6px; }
+    .t8 .hello h3 { margin: 0; font-size: 22px; letter-spacing: -.03em; }
+    .t8 .hello p { margin: 4px 0 0; font-size: 12px; color: #7c3aed; }
+    .t8 .tabs { display: flex; gap: 8px; padding: 8px 16px; }
+    .t8 .tab { border: 0; background: #fff; border-radius: 16px; padding: 8px 12px; cursor: pointer; font-weight: 600; font-size: 12px; box-shadow: 0 4px 0 #fda4af; }
+    .t8 .tab.on { background: #fb7185; color: #fff; box-shadow: 0 4px 0 #be123c; }
+    .t8 .search { padding: 4px 16px 8px; }
+    .t8 .search input { width: 100%; border: 0; background: #fff; border-radius: 16px; padding: 10px 12px; }
+    .t8 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 16px; }
+    .t8 .tile { background: #fff; border-radius: 20px; padding: 14px 6px; text-align: center; cursor: pointer; box-shadow: 0 8px 0 rgba(15,23,42,.08); }
+    .t8 .ico { width: 56px; height: 56px; margin: 0 auto 8px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; }
+    .t8 .nm { font-size: 12px; font-weight: 700; }
+    .t8 .foot { margin-top: auto; padding: 12px 18px; font-size: 12px; display: flex; }
+    .t8 .foot .sp { flex: 1; }
+
+    /* ========== 9 Power List ========== */
+    .t9 { width: 580px; height: 520px; border-radius: 10px;
+      background: #0a0a0a; color: #e5e5e5; border: 1px solid #262626;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+    .t9 .top { display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid #262626; }
+    .t9 .tab { border: 1px solid #262626; background: transparent; color: #a3a3a3; padding: 4px 8px; font-size: 11px; cursor: pointer; }
+    .t9 .tab.on { border-color: #22c55e; color: #22c55e; }
+    .t9 .search { padding: 8px 10px; }
+    .t9 .search input { width: 100%; background: #171717; border: 1px solid #262626; color: #e5e5e5; padding: 7px 8px; font-family: inherit; }
+    .t9 .list { padding: 0 6px 8px; }
+    .t9 .row { display: grid; grid-template-columns: 28px 1fr 90px 70px; gap: 8px; align-items: center; padding: 7px 8px; cursor: pointer; font-size: 12px; }
+    .t9 .row:hover, .t9 .row.sel { background: #171717; }
+    .t9 .row .sub { color: #737373; }
+    .t9 .run { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; display: inline-block; }
+    .t9 .idle { width: 7px; height: 7px; border-radius: 50%; background: #404040; display: inline-block; }
+    .t9 .foot { margin-top: auto; padding: 8px 10px; font-size: 10px; color: #737373; border-top: 1px solid #262626; display: flex; }
+    .t9 .foot .sp { flex: 1; }
+
+    /* ========== 10 Editorial Quiet ========== */
+    .t10 { width: 520px; height: 540px; border-radius: 4px;
+      background: #faf8f4; color: #1f1a14; box-shadow: 0 20px 50px rgba(60,40,20,.22);
+      border: 1px solid #e7e0d4; }
+    .t10 .mast { padding: 22px 24px 8px; }
+    .t10 .mast .kicker { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #8a7a62; }
+    .t10 .mast h3 { margin: 6px 0 0; font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif; font-size: 32px; font-weight: 400; }
+    .t10 .tabs { display: flex; gap: 16px; padding: 4px 24px 12px; border-bottom: 1px solid #e7e0d4; }
+    .t10 .tab { border: 0; background: none; padding: 0 0 8px; font-size: 13px; color: #8a7a62; cursor: pointer; border-bottom: 2px solid transparent; }
+    .t10 .tab.on { color: #1f1a14; border-bottom-color: #1f1a14; }
+    .t10 .search { padding: 14px 24px 0; }
+    .t10 .search input { width: 100%; border: 0; border-bottom: 1px solid #e7e0d4; background: transparent; padding: 8px 0; font-size: 15px; }
+    .t10 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 24px; }
+    .t10 .tile { cursor: pointer; }
+    .t10 .ico { width: 100%; aspect-ratio: 1.4; background: #efe8dc; display: grid; place-items: center; font-size: 28px; margin-bottom: 8px; }
+    .t10 .nm { font-size: 14px; }
+    .t10 .sub { font-size: 12px; color: #8a7a62; }
+    .t10 .foot { margin-top: auto; padding: 12px 24px; font-size: 11px; color: #8a7a62; display: flex; border-top: 1px solid #e7e0d4; }
+    .t10 .foot .sp { flex: 1; }
+
+    /* Modal */
+    .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; place-items: center; z-index: 40; }
+    .modal-back.show { display: grid; }
+    .modal { background: #fff; color: #111; width: 320px; border-radius: 12px; padding: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+    .modal h4 { margin: 0 0 10px; }
+    .modal input { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; }
+    .modal .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .modal button { border: 0; border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+    .modal .ok { background: #2563eb; color: #fff; }
+    .modal .no { background: #f1f5f9; }
+
+    @media (max-width: 900px) {
+      body { grid-template-columns: 1fr; }
+      aside { position: relative; min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      <h1>ClutterDock directions</h1>
+      <p>10 launcher UI/UX options. Click to preview. Search, switch stacks, and add a URL in each mockup.</p>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+  <main>
+    <div class="topbar">
+      <button type="button" id="prev">← Prev</button>
+      <div>
+        <h2 id="title">Glass Current</h2>
+        <div class="meta" id="best">Best for: staying close to shipping UI</div>
+      </div>
+      <div class="spacer"></div>
+      <button type="button" id="addUrl">Add URL…</button>
+      <button type="button" id="next">Next →</button>
+    </div>
+    <div class="stage">
+      <div id="stage"></div>
+      <div class="caption" id="caption"></div>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+  <div class="modal-back" id="modal">
+    <div class="modal">
+      <h4>Add URL</h4>
+      <input id="urlInput" type="url" placeholder="https://clutterdock.com" />
+      <div class="row">
+        <button class="no" type="button" id="urlCancel">Cancel</button>
+        <button class="ok" type="button" id="urlAdd">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ITEMS = [
+      { id: "safari", name: "Safari", kind: "app", stack: "Apps", icon: "🧭", sub: "Browser", run: true, color: "#dbeafe" },
+      { id: "slack", name: "Slack", kind: "app", stack: "Work", icon: "💬", sub: "Chat", run: true, color: "#fce7f3" },
+      { id: "figma", name: "Figma", kind: "app", stack: "Work", icon: "🎨", sub: "Design", run: false, color: "#f3e8ff" },
+      { id: "code", name: "VS Code", kind: "app", stack: "Work", icon: "⌨️", sub: "Editor", run: true, color: "#dbeafe" },
+      { id: "notes", name: "Notes", kind: "app", stack: "Apps", icon: "📝", sub: "Quick notes", run: false, color: "#fef3c7" },
+      { id: "site", name: "clutterdock.com", kind: "url", stack: "Apps", icon: "🔗", sub: "https://clutterdock.com", run: false, color: "#d1fae5" },
+      { id: "docs", name: "Documents", kind: "folder", stack: "Apps", icon: "📁", sub: "~/Documents", run: false, color: "#e0e7ff" },
+      { id: "photos", name: "Photos", kind: "app", stack: "Play", icon: "🖼️", sub: "Library", run: false, color: "#ffe4e6" },
+      { id: "music", name: "Music", kind: "app", stack: "Play", icon: "🎵", sub: "Player", run: false, color: "#fce7f3" },
+      { id: "mail", name: "Mail", kind: "app", stack: "Work", icon: "✉️", sub: "Inbox", run: false, color: "#e0f2fe" },
+    ];
+    const STACKS = ["Apps", "Work", "Play", "Recents"];
+
+    const DESIGNS = [
+      { id: 1, name: "Glass Current", best: "Best for: shipping a polish pass on what you already have",
+        blurb: "Today’s light glass panel, tightened. Pill tabs, 4-column grid, familiar chrome. Lowest implementation risk." },
+      { id: 2, name: "Midnight Glass", best: "Best for: a darker, more premium night-default",
+        blurb: "Frosted dark panel with hairline borders and a traffic-light nod. Feels like a macOS Sequoia utility." },
+      { id: 3, name: "Compact Popover", best: "Best for: staying out of the way, menu-bar / tray first",
+        blurb: "Smaller, denser, 5-up icons. Reads as a system popover instead of a floating app window." },
+      { id: 4, name: "Fluent Mica", best: "Best for: Windows-native feel (and Mac users who like Fluent)",
+        blurb: "Command bar + left navigation. Segoe, mica wash, 4px radii. The launcher as a tiny Explorer." },
+      { id: 5, name: "Command Palette", best: "Best for: keyboard-first power users (Raycast / Spotlight energy)",
+        blurb: "Search is the product. Stacks become filters; results are a ranked list with shortcuts." },
+      { id: 6, name: "Dock Shelf", best: "Best for: leaning into the Dock metaphor without replacing it",
+        blurb: "Stacks live on a mini-dock. The selected stack fans items up above it. Spatial, playful, very “folders of apps.”" },
+      { id: 7, name: "Sidebar Stacks", best: "Best for: many stacks — names stay visible",
+        blurb: "Dark rail of stacks, warm paper content. Scales past 5 folders without horizontal tab overflow." },
+      { id: 8, name: "Playful Burst", best: "Best for: matching the hanging-apps brand and marketing site energy",
+        blurb: "Chunky tiles, coral/sky palette, stamped shadows. More personality, less utility-chrome." },
+      { id: 9, name: "Power List", best: "Best for: density, running indicators, and path metadata",
+        blurb: "Always a list. Monospace, status dots, kind + last-used columns. A launcher for people who hate grids." },
+      { id: 10, name: "Editorial Quiet", best: "Best for: a calmer, more distinctive identity",
+        blurb: "Serif masthead, two large tiles, lots of air. Treats stacks like sections of a magazine, not tabs." },
+    ];
+
+    let design = 1;
+    let stack = "Apps";
+    let query = "";
+    let extra = [];
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.style.display = "block";
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.style.display = "none"; }, 1600);
+    }
+
+    function visibleItems() {
+      const all = ITEMS.concat(extra);
+      const q = query.trim().toLowerCase();
+      return all.filter((it) => {
+        const hit = !q || it.name.toLowerCase().includes(q) || it.sub.toLowerCase().includes(q);
+        if (!hit) return false;
+        // Command palette: a query searches every stack; empty query uses the filter chips
+        if (design === 5 && q) return true;
+        if (stack === "Recents") return it.kind === "url" || it.run;
+        return it.stack === stack;
+      });
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function tabsHtml(cls) {
+      return STACKS.map((s) => `<button type="button" class="tab ${s === stack ? "on" : ""}" data-stack="${esc(s)}">${esc(s)}</button>`).join("");
+    }
+
+    function tileClick(it) {
+      return `data-open="${esc(it.id)}"`;
+    }
+
+    function render() {
+      const d = DESIGNS[design - 1];
+      document.getElementById("title").textContent = d.name;
+      document.getElementById("best").textContent = d.best;
+      document.getElementById("caption").innerHTML = `<strong>${esc(d.name)}.</strong> ${esc(d.blurb)}`;
+      document.querySelectorAll(".nav button").forEach((b) => b.classList.toggle("active", Number(b.dataset.id) === design));
+
+      const items = visibleItems();
+      const stage = document.getElementById("stage");
+
+      if (design === 1) {
+        stage.innerHTML = `<div class="panel t1">
+          <div class="tabs">${tabsHtml()}<div class="grow"><button class="ib" data-add>+</button><button class="ib" data-settings>⚙️</button></div></div>
+          <div class="search"><input data-search placeholder="Search…" value="${esc(query)}" /><button class="all" data-all>All</button></div>
+          <div class="items grid">${items.map((it) => `<div class="tile" ${tileClick(it)}><div class="ico" style="background:${it.color}">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`).join("")}</div>
+          <div class="foot"><span>${items.length} items</span><span class="sp"></span><span>⌘⇧D toggle · Free</span></div>
+        </div>`;
+      } else if (design === 2) {
+        stage.innerHTML = `<div class="panel t2">
+          <div class="head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="title">ClutterDock</span></div>
+          <div class="tabs">${tabsHtml()}</div>
+          <div class="search"><input data-search placeholder="Search stacks…" value="${esc(query)}" /></div>
+          <div class="items grid">${items.map((it) => `<div class="tile" ${tileClick(it)}><div class="ico">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`).join("")}</div>
+          <div class="foot"><span>${items.length} items</span><span class="sp"></span><span>Dark glass · Free</span></div>
+        </div>`;
+      } else if (design === 3) {
+        stage.innerHTML = `<div class="panel t3">
+          <div class="bar">${tabsHtml()}<button class="tab" data-add>+</button></div>
+          <div class="search"><input data-search placeholder="Filter" value="${esc(query)}" /></div>
+          <div class="items grid">${items.map((it) => `<div class="tile" ${tileClick(it)}><div class="ico">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`).join("")}</div>
+          <div class="foot"><span>${items.length}</span><span class="sp"></span><span>Compact</span></div>
+        </div>`;
+      } else if (design === 4) {
+        stage.innerHTML = `<div class="panel t4">
+          <div class="cmd">
+            <button type="button" data-add>＋ Add</button>
+            <input data-search placeholder="Search" value="${esc(query)}" />
+            <button type="button" data-settings>Settings</button>
+          </div>
+          <div class="body">
+            <div class="rail">${tabsHtml()}</div>
+            <div class="items grid">${items.map((it) => `<div class="tile" ${tileClick(it)}><div class="ico">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`).join("")}</div>
+          </div>
+          <div class="foot"><span>${items.length} items</span><span class="sp"></span><span>Fluent · Free</span></div>
+        </div>`;
+      } else if (design === 5) {
+        const rows = items.map((it, i) => `<div class="row ${i === 0 ? "sel" : ""}" ${tileClick(it)}>
+          <div class="ico">${it.icon}</div>
+          <div class="meta"><div class="name">${esc(it.name)}</div><div class="sub">${esc(it.sub)} · ${esc(it.stack)}</div></div>
+          <div class="kbd">${i === 0 ? "↵" : "⌘" + (i + 1)}</div>
+        </div>`).join("");
+        stage.innerHTML = `<div class="panel t5">
+          <div class="omni"><input data-search placeholder="Launch or search…" value="${esc(query)}" autofocus /></div>
+          <div class="filters">${tabsHtml()}</div>
+          <div class="items list">${rows || `<div class="row"><div class="meta"><div class="name">No matches</div></div></div>`}</div>
+          <div class="foot"><span>↑↓ select · ↵ open</span><span class="sp"></span><span>Palette</span></div>
+        </div>`;
+      } else if (design === 6) {
+        stage.innerHTML = `<div class="t6-wrap">
+          <div class="panel t6">
+            <div class="items grid">${items.map((it) => `<div class="tile" ${tileClick(it)}><div class="ico">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`).join("")}</div>
+          </div>
+          <div class="t6-dock">
+            ${STACKS.map((s) => `<button type="button" class="tab ${s === stack ? "on" : ""}" data-stack="${esc(s)}" title="${esc(s)}">${s === "Apps" ? "📱" : s === "Work" ? "💼" : s === "Play" ? "🎮" : "🕐"}</button>`).join("")}
+            <button type="button" class="tab" data-add title="Add">＋</button>
+          </div>
+        </div>`;
+      } else if (design === 7) {
+        stage.innerHTML = `<div class="panel t7">
+          <div class="rail">
+            <div class="brandish">Stacks</div>
+            ${tabsHtml()}
+            <button class="tab" data-add>+ New stack</button>
+          </div>
+          <div class="main">
+            <div class="search"><input data-search placeholder="Search ${esc(stack)}…" value="${esc(query)}" /></div>
+            <div class="items grid">${items.map((it) => `<div class="tile" ${tileClick(it)}><div class="ico">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`).join("")}</div>
+            <div class="foot"><span>${items.length} in ${esc(stack)}</span><span class="sp"></span><span>Sidebar</span></div>
+          </div>
+        </div>`;
+      } else if (design === 8) {
+        const colors = ["#fecdd3", "#bae6fd", "#fde68a", "#c4b5fd", "#bbf7d0"];
+        stage.innerHTML = `<div class="panel t8">
+          <div class="hello"><h3>${esc(stack)}</h3><p>Your stuff, hanging out together.</p></div>
+          <div class="tabs">${tabsHtml()}</div>
+          <div class="search"><input data-search placeholder="Find anything" value="${esc(query)}" /></div>
+          <div class="items grid">${items.map((it, i) => `<div class="tile" ${tileClick(it)}><div class="ico" style="background:${colors[i % colors.length]}">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`).join("")}</div>
+          <div class="foot"><span>${items.length} items</span><span class="sp"></span><button type="button" data-add style="border:0;background:#111;color:#fff;border-radius:999px;padding:6px 12px;cursor:pointer">Add</button></div>
+        </div>`;
+      } else if (design === 9) {
+        stage.innerHTML = `<div class="panel t9">
+          <div class="top">${tabsHtml()}<button class="tab" data-add>+url</button></div>
+          <div class="search"><input data-search placeholder="filter: name | kind | path" value="${esc(query)}" /></div>
+          <div class="items list">
+            ${items.map((it, i) => `<div class="row ${i === 0 ? "sel" : ""}" ${tileClick(it)}>
+              <span>${it.run ? '<span class="run"></span>' : '<span class="idle"></span>'}</span>
+              <span>${it.icon} ${esc(it.name)}</span>
+              <span class="sub">${esc(it.kind)}</span>
+              <span class="sub">${it.run ? "running" : "idle"}</span>
+            </div>`).join("")}
+          </div>
+          <div class="foot"><span>j/k move · x remove · ↵ open</span><span class="sp"></span><span>${items.length} rows</span></div>
+        </div>`;
+      } else {
+        stage.innerHTML = `<div class="panel t10">
+          <div class="mast"><div class="kicker">ClutterDock · ${esc(stack)}</div><h3>${esc(stack === "Recents" ? "Lately" : stack)}</h3></div>
+          <div class="tabs">${tabsHtml()}</div>
+          <div class="search"><input data-search placeholder="Search this stack" value="${esc(query)}" /></div>
+          <div class="items grid">${items.map((it) => `<div class="tile" ${tileClick(it)}><div class="ico">${it.icon}</div><div class="nm">${esc(it.name)}</div><div class="sub">${esc(it.sub)}</div></div>`).join("")}</div>
+          <div class="foot"><span>${items.length} pieces</span><span class="sp"></span><button type="button" data-add style="border:0;background:none;cursor:pointer;color:#8a7a62">＋ Add a URL</button></div>
+        </div>`;
+      }
+
+      const input = stage.querySelector("[data-search]");
+      if (input) {
+        input.addEventListener("input", (e) => { query = e.target.value; render(); const n = document.querySelector("[data-search]"); if (n) { n.focus(); n.setSelectionRange(query.length, query.length); } });
+      }
+    }
+
+    function buildNav() {
+      document.getElementById("nav").innerHTML = DESIGNS.map((d) =>
+        `<button type="button" data-id="${d.id}"><span class="n">${String(d.id).padStart(2,"0")}</span><span><div class="t">${esc(d.name)}</div><div class="s">${esc(d.best.replace("Best for: ", ""))}</div></span></button>`
+      ).join("");
+    }
+
+    function setDesign(n) {
+      design = ((n - 1 + 10) % 10) + 1;
+      query = "";
+      render();
+    }
+
+    document.getElementById("nav").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-id]");
+      if (b) setDesign(Number(b.dataset.id));
+    });
+    document.getElementById("prev").onclick = () => setDesign(design - 1);
+    document.getElementById("next").onclick = () => setDesign(design + 1);
+    document.getElementById("addUrl").onclick = () => openModal();
+
+    document.getElementById("stage").addEventListener("click", (e) => {
+      const stackBtn = e.target.closest("[data-stack]");
+      if (stackBtn) { stack = stackBtn.dataset.stack; render(); return; }
+      if (e.target.closest("[data-add]")) { openModal(); return; }
+      if (e.target.closest("[data-settings]")) { toast("Settings would open"); return; }
+      const open = e.target.closest("[data-open]");
+      if (open) {
+        const it = ITEMS.concat(extra).find((x) => x.id === open.dataset.open);
+        toast("Would launch " + (it ? it.name : "item"));
+      }
+    });
+
+    function openModal() {
+      document.getElementById("modal").classList.add("show");
+      const inp = document.getElementById("urlInput");
+      inp.value = "https://clutterdock.com";
+      inp.focus();
+      inp.select();
+    }
+    function closeModal() { document.getElementById("modal").classList.remove("show"); }
+    document.getElementById("urlCancel").onclick = closeModal;
+    document.getElementById("urlAdd").onclick = () => {
+      const raw = document.getElementById("urlInput").value.trim();
+      if (!raw) return;
+      let host = raw;
+      try { host = new URL(raw).hostname || raw; } catch (_) {}
+      extra.push({ id: "extra-" + extra.length, name: host, kind: "url", stack, icon: "🔗", sub: raw, run: false, color: "#d1fae5" });
+      closeModal();
+      render();
+      toast("Added " + host + " to " + stack);
+    };
+    document.getElementById("modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" && !e.target.matches("input")) setDesign(design + 1);
+      if (e.key === "ArrowLeft" && !e.target.matches("input")) setDesign(design - 1);
+      if (e.key === "Escape") closeModal();
+    });
+
+    buildNav();
+    render();
+  </script>
+</body>
+</html>
