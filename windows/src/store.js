@@ -79,6 +79,10 @@ function defaultPrefs() {
     launchAtLogin: false,
     licenseKey: '',
     themeAccent: 'system',
+    launcherShape: 'rounded',
+    launcherMotion: 'fan',
+    launcherColor: 'automatic',
+    launcherSize: 'regular',
     checkForUpdatesAutomatically: true,
   };
 }

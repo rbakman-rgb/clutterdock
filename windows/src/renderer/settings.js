@@ -9,6 +9,10 @@ document.addEventListener('drop', (e) => e.preventDefault());
 
 async function load() {
   snapshot = await clutterDock.getSnapshot();
+  if ($('launcherShape')) $('launcherShape').value = snapshot.prefs.launcherShape || 'rounded';
+  if ($('launcherMotion')) $('launcherMotion').value = snapshot.prefs.launcherMotion || 'fan';
+  if ($('launcherColor')) $('launcherColor').value = snapshot.prefs.launcherColor || 'automatic';
+  if ($('launcherSize')) $('launcherSize').value = snapshot.prefs.launcherSize || 'regular';
   $('closeAfter').checked = !!snapshot.prefs.closeAfterLaunch;
   $('hints').checked = !!snapshot.prefs.showKeyboardHints;
   $('login').checked = !!snapshot.prefs.launchAtLogin;
@@ -93,6 +97,10 @@ async function savePrefs(partial) {
   await load();
 }
 
+if ($('launcherShape')) $('launcherShape').onchange = (e) => savePrefs({ launcherShape: e.target.value });
+if ($('launcherMotion')) $('launcherMotion').onchange = (e) => savePrefs({ launcherMotion: e.target.value });
+if ($('launcherColor')) $('launcherColor').onchange = (e) => savePrefs({ launcherColor: e.target.value });
+if ($('launcherSize')) $('launcherSize').onchange = (e) => savePrefs({ launcherSize: e.target.value });
 $('closeAfter').onchange = (e) => savePrefs({ closeAfterLaunch: e.target.checked });
 $('hints').onchange = (e) => savePrefs({ showKeyboardHints: e.target.checked });
 $('login').onchange = (e) => savePrefs({ launchAtLogin: e.target.checked });

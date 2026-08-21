@@ -429,6 +429,53 @@ struct SettingsView: View {
     private var generalTab: some View {
         Form {
             Section("Appearance") {
+                Picker("Shape", selection: $preferences.launcherShape) {
+                    ForEach(LauncherShape.allCases) { s in
+                        Text(s.displayName).tag(s)
+                    }
+                }
+                Picker("Motion", selection: $preferences.launcherMotion) {
+                    ForEach(LauncherMotion.allCases) { m in
+                        Text(m.displayName).tag(m)
+                    }
+                }
+                .help("Fan, orbit, and pulse are most visible on the Circle shape.")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Color")
+                    HStack(spacing: 8) {
+                        ForEach(LauncherColor.allCases) { color in
+                            Button {
+                                preferences.launcherColor = color
+                            } label: {
+                                Circle()
+                                    .fill(color.swatch)
+                                    .overlay {
+                                        if color == .transparent {
+                                            Image(systemName: "cube.transparent")
+                                                .font(.system(size: 9, weight: .semibold))
+                                        }
+                                    }
+                                    .overlay(Circle().strokeBorder(color == .light ? Color.primary.opacity(0.25) : .clear, lineWidth: 0.8))
+                                    .overlay(Circle().strokeBorder(preferences.launcherColor == color ? Color.accentColor : .clear, lineWidth: 2))
+                                    .frame(width: 22, height: 22)
+                            }
+                            .buttonStyle(.plain)
+                            .help(color.displayName)
+                            .accessibilityLabel(color.displayName)
+                        }
+                    }
+                    Text(preferences.launcherColor.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Picker("Size", selection: Binding(
+                    get: { preferences.launcherSize },
+                    set: { preferences.applySize($0) }
+                )) {
+                    ForEach(LauncherSize.allCases) { s in
+                        Text(s.displayName).tag(s)
+                    }
+                }
                 HStack {
                     Text("Icon size")
                     Spacer()

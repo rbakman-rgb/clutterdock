@@ -539,14 +539,53 @@ function wireIpc() {
     showKeyboardHints: 'boolean',
     launchAtLogin: 'boolean',
     checkForUpdatesAutomatically: 'boolean',
+    launcherShape: 'string',
+    launcherMotion: 'string',
+    launcherColor: 'string',
+    launcherSize: 'string',
   };
+
+  const SHAPES = new Set(['rounded', 'square', 'circle']);
+  const MOTIONS = new Set(['calm', 'fan', 'orbit', 'pulse']);
+  const COLORS = new Set(['automatic', 'light', 'dark', 'blue', 'purple', 'mint', 'orange', 'transparent']);
+  const SIZES = new Set(['compact', 'regular', 'large']);
+
+  function applyPanelLook() {
+    if (!panel || panel.isDestroyed()) return;
+    const size = store.prefs.launcherSize || 'regular';
+    const shape = store.prefs.launcherShape || 'rounded';
+    const box = { compact: [380, 420], regular: [480, 520], large: [580, 640] };
+    const circle = { compact: 440, regular: 540, large: 660 };
+    let w, h;
+    if (shape === 'circle') {
+      w = h = circle[size] || 540;
+    } else {
+      [w, h] = box[size] || box.regular;
+    }
+    panel.setSize(w, h);
+    if (typeof panel.setHasShadow === 'function') {
+      panel.setHasShadow(store.prefs.launcherColor !== 'transparent');
+    }
+    if (panel.isVisible()) {
+      try {
+        panel.webContents.send('snapshot', store.getSnapshot());
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
 
   ipcMain.handle('update-prefs', (_e, partial) => {
     const clean = {};
     for (const [key, type] of Object.entries(PREF_TYPES)) {
       if (partial && typeof partial[key] === type) clean[key] = partial[key];
     }
+    if (clean.launcherShape && !SHAPES.has(clean.launcherShape)) delete clean.launcherShape;
+    if (clean.launcherMotion && !MOTIONS.has(clean.launcherMotion)) delete clean.launcherMotion;
+    if (clean.launcherColor && !COLORS.has(clean.launcherColor)) delete clean.launcherColor;
+    if (clean.launcherSize && !SIZES.has(clean.launcherSize)) delete clean.launcherSize;
     store.updatePrefs(clean);
+    if (clean.launcherShape || clean.launcherSize || clean.launcherColor) applyPanelLook();
     let hotkeyError = null;
     if (clean.hotkey !== undefined) {
       // A typo'd accelerator would silently leave the app with no hotkey at all

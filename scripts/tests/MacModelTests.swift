@@ -188,6 +188,22 @@ func run() {
     check(!LicenseManager.validate(""), "empty key rejected")
     check(!LicenseManager.validate("SDPRO-A1B2-0000-000"), "wrong-length key rejected")
 
+    print("AppPreferences shapes")
+    let suiteName = "clutterdock-shape-tests-\(UUID().uuidString)"
+    let suite = UserDefaults(suiteName: suiteName)!
+    suite.removePersistentDomain(forName: suiteName)
+    let prefs = AppPreferences(defaults: suite)
+    check(prefs.launcherShape == .rounded, "default shape rounded")
+    check(prefs.launcherMotion == .fan, "default motion fan")
+    prefs.launcherShape = .circle
+    prefs.launcherMotion = .orbit
+    prefs.applySize(.large)
+    check(prefs.panelWidth == prefs.panelHeight, "circle panel is square")
+    let again = AppPreferences(defaults: suite)
+    check(again.launcherShape == .circle, "shape persists")
+    check(again.launcherMotion == .orbit, "motion persists")
+    suite.removePersistentDomain(forName: suiteName)
+
     try? FileManager.default.removeItem(at: dir)
     try? FileManager.default.removeItem(at: badDir)
 }

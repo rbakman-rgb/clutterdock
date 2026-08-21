@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 enum HotkeyPreset: String, CaseIterable, Identifiable, Codable {
     case commandShiftD
@@ -28,10 +29,172 @@ enum HotkeyPreset: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum LauncherShape: String, CaseIterable, Identifiable, Codable {
+    case rounded
+    case square
+    case circle
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .rounded: return "Rounded"
+        case .square: return "Square"
+        case .circle: return "Circle"
+        }
+    }
+}
+
+enum LauncherMotion: String, CaseIterable, Identifiable, Codable {
+    case calm
+    case fan
+    case orbit
+    case pulse
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .calm: return "Calm"
+        case .fan: return "Fan"
+        case .orbit: return "Orbit"
+        case .pulse: return "Pulse"
+        }
+    }
+}
+
+enum LauncherColor: String, CaseIterable, Identifiable, Codable {
+    case automatic, light, dark, blue, purple, mint, orange, transparent
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .automatic: return "Automatic"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        case .blue: return "Blue"
+        case .purple: return "Purple"
+        case .mint: return "Mint"
+        case .orange: return "Orange"
+        case .transparent: return "Transparent"
+        }
+    }
+
+    var preferredScheme: ColorScheme? {
+        switch self {
+        case .light: return .light
+        case .dark: return .dark
+        default: return nil
+        }
+    }
+
+    var isTransparent: Bool { self == .transparent }
+
+    var usesMaterial: Bool {
+        switch self {
+        case .transparent, .light, .dark: return false
+        default: return true
+        }
+    }
+
+    var tintOverlay: Color? {
+        switch self {
+        case .blue: return Color(red: 0.32, green: 0.52, blue: 0.96)
+        case .purple: return Color(red: 0.55, green: 0.38, blue: 0.92)
+        case .mint: return Color(red: 0.28, green: 0.74, blue: 0.64)
+        case .orange: return Color(red: 0.96, green: 0.54, blue: 0.24)
+        default: return nil
+        }
+    }
+
+    var swatch: Color {
+        switch self {
+        case .automatic: return Color.primary.opacity(0.18)
+        case .light: return Color.white
+        case .dark: return Color(white: 0.16)
+        case .blue: return Color(red: 0.22, green: 0.48, blue: 0.96)
+        case .purple: return Color(red: 0.56, green: 0.35, blue: 0.97)
+        case .mint: return Color(red: 0.18, green: 0.72, blue: 0.62)
+        case .orange: return Color(red: 0.96, green: 0.52, blue: 0.18)
+        case .transparent: return Color.clear
+        }
+    }
+}
+
+enum LauncherSize: String, CaseIterable, Identifiable, Codable {
+    case compact, regular, large
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .compact: return "Compact"
+        case .regular: return "Regular"
+        case .large: return "Large"
+        }
+    }
+
+    var panelWidth: CGFloat {
+        switch self {
+        case .compact: return 360
+        case .regular: return 440
+        case .large: return 560
+        }
+    }
+
+    var circleDiameter: CGFloat {
+        switch self {
+        case .compact: return 420
+        case .regular: return 520
+        case .large: return 640
+        }
+    }
+
+    var defaultIconSize: Double {
+        switch self {
+        case .compact: return 44
+        case .regular: return 56
+        case .large: return 72
+        }
+    }
+}
+
 @MainActor
 final class AppPreferences: ObservableObject {
-    @Published var iconSize: Double {
-        didSet { defaults.set(iconSize, forKey: Keys.iconSize) }
+    @Published var iconSize: Double = 56 {
+        didSet {
+            defaults.set(iconSize, forKey: Keys.iconSize)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.iconSize)
+        }
+    }
+
+    @Published var launcherShape: LauncherShape = .rounded {
+        didSet {
+            defaults.set(launcherShape.rawValue, forKey: Keys.launcherShape)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.launcherShape)
+        }
+    }
+
+    @Published var launcherMotion: LauncherMotion = .fan {
+        didSet {
+            defaults.set(launcherMotion.rawValue, forKey: Keys.launcherMotion)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.launcherMotion)
+        }
+    }
+
+    @Published var launcherColor: LauncherColor = .automatic {
+        didSet {
+            defaults.set(launcherColor.rawValue, forKey: Keys.launcherColor)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.launcherColor)
+        }
+    }
+
+    @Published var launcherSize: LauncherSize = .regular {
+        didSet {
+            defaults.set(launcherSize.rawValue, forKey: Keys.launcherSize)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.launcherSize)
+        }
     }
 
     @Published var showMenuBarIcon: Bool {
@@ -93,6 +256,10 @@ final class AppPreferences: ObservableObject {
 
     enum Keys {
         static let iconSize = "iconSize"
+        static let launcherShape = "launcherShape"
+        static let launcherMotion = "launcherMotion"
+        static let launcherColor = "launcherColor"
+        static let launcherSize = "launcherSize"
         static let showMenuBarIcon = "showMenuBarIcon"
         static let launchAtLogin = "launchAtLogin"
         static let hotkeyEnabled = "hotkeyEnabled"
@@ -109,8 +276,29 @@ final class AppPreferences: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
+        let initialSize: LauncherSize
+        if let raw = defaults.string(forKey: Keys.launcherSize),
+           let size = LauncherSize(rawValue: raw) {
+            initialSize = size
+        } else {
+            initialSize = .regular
+        }
+        launcherSize = initialSize
         let storedSize = defaults.object(forKey: Keys.iconSize) as? Double
-        iconSize = min(80, max(40, storedSize ?? 56))
+        iconSize = min(80, max(40, storedSize ?? initialSize.defaultIconSize))
+
+        if let raw = defaults.string(forKey: Keys.launcherShape),
+           let shape = LauncherShape(rawValue: raw) {
+            launcherShape = shape
+        }
+        if let raw = defaults.string(forKey: Keys.launcherMotion),
+           let motion = LauncherMotion(rawValue: raw) {
+            launcherMotion = motion
+        }
+        if let raw = defaults.string(forKey: Keys.launcherColor),
+           let color = LauncherColor(rawValue: raw) {
+            launcherColor = color
+        }
 
         showMenuBarIcon = defaults.object(forKey: Keys.showMenuBarIcon) as? Bool ?? true
         launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
@@ -132,6 +320,11 @@ final class AppPreferences: ObservableObject {
         checkForUpdatesAutomatically = defaults.object(forKey: Keys.checkForUpdatesAutomatically) as? Bool ?? true
     }
 
+    func applySize(_ size: LauncherSize) {
+        launcherSize = size
+        iconSize = size.defaultIconSize
+    }
+
     func resetOnboarding() {
         hasCompletedOnboarding = false
     }
@@ -142,12 +335,23 @@ final class AppPreferences: ObservableObject {
         launchAtLogin = enabled
     }
 
-    var panelWidth: CGFloat { 440 }
-    /// Compact chrome + ~2 icon rows (less empty dead space under a short stack)
+    var panelWidth: CGFloat {
+        launcherShape == .circle ? launcherSize.circleDiameter : launcherSize.panelWidth
+    }
+
     var panelHeight: CGFloat {
+        if launcherShape == .circle { return launcherSize.circleDiameter }
         let chrome: CGFloat = 168
         let row: CGFloat = iconSize + 48
-        return min(520, max(300, chrome + row * 2))
+        return min(launcherSize.circleDiameter, max(300, chrome + row * 2))
+    }
+
+    var panelCornerRadius: CGFloat {
+        switch launcherShape {
+        case .rounded: return 20
+        case .square: return 4
+        case .circle: return panelWidth / 2
+        }
     }
 
     var tileWidth: CGFloat { iconSize + 22 }

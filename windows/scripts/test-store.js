@@ -159,4 +159,14 @@ assert.strictEqual(
 reopened2.relockFolder(priv.id);
 assert.ok(store.isLocked(reopened2.state.folders.find((f) => f.id === priv.id)), 'relocks');
 
+dir = freshDir();
+store = freshStore();
+assert.strictEqual(store.prefs.launcherShape, 'rounded', 'default shape rounded');
+assert.strictEqual(store.prefs.launcherMotion, 'fan', 'default motion fan');
+store.updatePrefs({ launcherShape: 'circle', launcherMotion: 'orbit', launcherColor: 'blue' });
+reloaded = freshStore();
+assert.strictEqual(reloaded.prefs.launcherShape, 'circle', 'shape persists');
+assert.strictEqual(reloaded.prefs.launcherMotion, 'orbit', 'motion persists');
+assert.strictEqual(reloaded.prefs.launcherColor, 'blue', 'color persists');
+
 console.log('store tests passed');
