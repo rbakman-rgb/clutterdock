@@ -490,6 +490,9 @@ struct SettingsView: View {
                     statusMessage = "Open the launcher to see tips."
                 }
             }
+            Section("Install register (optional)") {
+                InstallRegisterSection(preferences: preferences)
+            }
             Section("Updates") {
                 Toggle("Check for updates automatically", isOn: $preferences.checkForUpdatesAutomatically)
                 Text("Current version \(appVersion) (\(appBuild))")
@@ -753,6 +756,57 @@ private struct FlowCheckboxes: View {
                     Text(folder.name)
                 }
                 .toggleStyle(.checkbox)
+            }
+        }
+    }
+}
+
+/// Settings → General rows for the opt-in install register (RON-507).
+/// Registering again with the same install ID updates the one record
+/// server-side, so "Update email" reuses the same call.
+private struct InstallRegisterSection: View {
+    @ObservedObject var preferences: AppPreferences
+    @State private var email = ""
+    @State private var busy = false
+    @State private var status: String?
+
+    var body: some View {
+        if preferences.installRegisterChoice == .registered {
+            Text(preferences.registeredEmail.isEmpty
+                ? "This install is counted — thank you!"
+                : "This install is counted — release news goes to \(preferences.registeredEmail).")
+        }
+        Text("Send a one-time ping (Mac + app version + a random ID) so the developer knows this copy is in use. Add an email only if you want release news. Never your stacks, files, or machine name.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        HStack {
+            TextField("Email (optional)", text: $email)
+                .textFieldStyle(.roundedBorder)
+            Button(busy ? "Sending…" : (preferences.installRegisterChoice == .registered ? "Update email" : "Count this install")) {
+                submit()
+            }
+            .disabled(busy)
+        }
+        if let status {
+            Text(status)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func submit() {
+        busy = true
+        status = nil
+        let entered = email
+        InstallRegisterService.register(email: entered, installId: preferences.installId) { ok in
+            busy = false
+            if ok {
+                preferences.installRegisterChoice = .registered
+                let trimmed = entered.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { preferences.registeredEmail = trimmed }
+                status = "Thanks — this install is counted."
+            } else {
+                status = "Couldn't reach clutterdock.com — check your connection and try again."
             }
         }
     }

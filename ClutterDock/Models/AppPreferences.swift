@@ -28,6 +28,14 @@ enum HotkeyPreset: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// Opt-in "count this install" state — RON-507. `.undecided` shows the offer
+/// once (welcome card); any skip locks it to `.skipped` so it never nags again.
+enum InstallRegisterChoice: String {
+    case undecided
+    case skipped
+    case registered
+}
+
 @MainActor
 final class AppPreferences: ObservableObject {
     @Published var iconSize: Double {
@@ -89,6 +97,18 @@ final class AppPreferences: ObservableObject {
         didSet { defaults.set(checkForUpdatesAutomatically, forKey: Keys.checkForUpdatesAutomatically) }
     }
 
+    @Published var installRegisterChoice: InstallRegisterChoice {
+        didSet { defaults.set(installRegisterChoice.rawValue, forKey: Keys.installRegisterChoice) }
+    }
+
+    @Published var registeredEmail: String {
+        didSet { defaults.set(registeredEmail, forKey: Keys.registeredEmail) }
+    }
+
+    /// Random UUID minted on first read, stable across launches. The only
+    /// identifier the optional install register ever sends.
+    let installId: String
+
     private let defaults: UserDefaults
 
     enum Keys {
@@ -104,6 +124,9 @@ final class AppPreferences: ObservableObject {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let showKeyboardHints = "showKeyboardHints"
         static let checkForUpdatesAutomatically = "checkForUpdatesAutomatically"
+        static let installRegisterChoice = "installRegisterChoice"
+        static let registeredEmail = "registeredEmail"
+        static let installId = "installId"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -130,6 +153,24 @@ final class AppPreferences: ObservableObject {
         hasCompletedOnboarding = defaults.bool(forKey: Keys.hasCompletedOnboarding)
         showKeyboardHints = defaults.object(forKey: Keys.showKeyboardHints) as? Bool ?? true
         checkForUpdatesAutomatically = defaults.object(forKey: Keys.checkForUpdatesAutomatically) as? Bool ?? true
+
+        installRegisterChoice = defaults.string(forKey: Keys.installRegisterChoice)
+            .flatMap(InstallRegisterChoice.init(rawValue:)) ?? .undecided
+        registeredEmail = defaults.string(forKey: Keys.registeredEmail) ?? ""
+        if let stored = defaults.string(forKey: Keys.installId), !stored.isEmpty {
+            installId = stored
+        } else {
+            let fresh = UUID().uuidString
+            defaults.set(fresh, forKey: Keys.installId)
+            installId = fresh
+        }
+    }
+
+    /// Dismissing the welcome card counts as skip — the offer never reappears.
+    func markInstallRegisterSkippedIfUndecided() {
+        if installRegisterChoice == .undecided {
+            installRegisterChoice = .skipped
+        }
     }
 
     func resetOnboarding() {

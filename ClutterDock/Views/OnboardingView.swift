@@ -2,9 +2,14 @@ import SwiftUI
 
 /// First-run coach card shown inside the launcher until dismissed.
 struct OnboardingCard: View {
+    @ObservedObject var preferences: AppPreferences
     var onDismiss: () -> Void
     var onAddApps: () -> Void
     var onOpenSettings: () -> Void
+
+    @State private var registerEmail = ""
+    @State private var registerBusy = false
+    @State private var registerStatus: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -15,7 +20,7 @@ struct OnboardingCard: View {
                     .font(.headline)
                 Spacer()
                 Button {
-                    onDismiss()
+                    dismiss(onDismiss)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -34,13 +39,36 @@ struct OnboardingCard: View {
             }
             .font(.callout)
 
+            if preferences.installRegisterChoice == .undecided {
+                Divider()
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Optional: count this install")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Send a one-time ping (Mac + version + a random ID) so the developer knows this copy launched. Add your email only if you want release news. Skipping sends nothing.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 8) {
+                        TextField("Email (optional)", text: $registerEmail)
+                            .textFieldStyle(.roundedBorder)
+                        Button(registerBusy ? "Sending…" : "Count me in") { submitRegister() }
+                            .disabled(registerBusy)
+                    }
+                    if let registerStatus {
+                        Text(registerStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             HStack(spacing: 10) {
-                Button("Add apps…") { onAddApps() }
+                Button("Add apps…") { dismiss(onAddApps) }
                     .buttonStyle(.borderedProminent)
-                Button("Settings") { onOpenSettings() }
+                Button("Settings") { dismiss(onOpenSettings) }
                     .buttonStyle(.bordered)
                 Spacer()
-                Button("Got it") { onDismiss() }
+                Button("Got it") { dismiss(onDismiss) }
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -53,6 +81,28 @@ struct OnboardingCard: View {
         )
         .padding(14)
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+
+    /// Any way out of the card counts as skip if the user didn't opt in —
+    /// the register offer must never be shown again.
+    private func dismiss(_ action: () -> Void) {
+        preferences.markInstallRegisterSkippedIfUndecided()
+        action()
+    }
+
+    private func submitRegister() {
+        registerBusy = true
+        registerStatus = nil
+        let email = registerEmail
+        InstallRegisterService.register(email: email, installId: preferences.installId) { ok in
+            registerBusy = false
+            if ok {
+                preferences.installRegisterChoice = .registered
+                preferences.registeredEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                registerStatus = "Couldn't reach clutterdock.com — you can try again later in Settings → General."
+            }
+        }
     }
 
     private func tipRow(_ num: String, _ text: String) -> some View {

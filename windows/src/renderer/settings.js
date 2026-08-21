@@ -24,7 +24,20 @@ async function load() {
     ? `You’re on Pro (${snapshot.license.display || 'active'})`
     : 'ClutterDock Free — upgrade anytime';
   $('exportBtn').textContent = snapshot.gate?.canExportPack ? 'Export pack…' : 'Export pack… (Pro)';
+  renderRegister();
   renderWorkspaces();
+}
+
+function renderRegister() {
+  const registered = snapshot.prefs.installRegisterChoice === 'registered';
+  const email = snapshot.prefs.registeredEmail || '';
+  $('regLine').textContent = registered
+    ? email
+      ? `This install is counted — release news goes to ${email}.`
+      : 'This install is counted — thank you!'
+    : 'Not registered — nothing has been sent.';
+  if (!$('regEmail').value) $('regEmail').value = email;
+  $('regSend').textContent = registered ? 'Update email' : 'Count this install';
 }
 
 function escapeHtml(s) {
@@ -157,6 +170,20 @@ $('importReplace').onclick = () => runImport(false);
 $('importMerge').onclick = () => runImport(true);
 
 $('wsAdd').onclick = () => wsCall(clutterDock.addWorkspace(`Workspace ${(snapshot?.state?.workspaces?.length || 0) + 1}`));
+
+$('regSend').onclick = async () => {
+  $('regSend').disabled = true;
+  $('regStatus').textContent = 'Sending…';
+  const res = await clutterDock.registerInstall($('regEmail').value);
+  $('regSend').disabled = false;
+  if (res?.ok) {
+    snapshot = res.snapshot || snapshot;
+    $('regStatus').textContent = 'Thanks — this install is counted.';
+    renderRegister();
+  } else {
+    $('regStatus').textContent = res?.error || 'Could not send — check your connection.';
+  }
+};
 
 $('coffee').onclick = () => clutterDock.openExternal('https://buymeacoffee.com/chidichidovsky');
 $('dataDir').onclick = () => clutterDock.openDataDir();

@@ -40,6 +40,7 @@
 | RON-369 | Real Mac screenshots on site (`website/assets/screenshots/`) |
 | RON-415 | Manual SDPRO key ops — `docs/KEY_OPS.md` |
 | RON-363 | Mac smoke from GitHub Release (Win still needs a Windows machine) |
+| RON-507 | G3-35 Optional install register + download hops (site `/dl/*` live; app UI on PR branch `ron-507-install-register`) |
 
 ---
 

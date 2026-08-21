@@ -80,6 +80,10 @@ function defaultPrefs() {
     licenseKey: '',
     themeAccent: 'system',
     checkForUpdatesAutomatically: true,
+    // Opt-in install register (RON-507): '' = not asked, 'skipped', 'registered'.
+    installRegisterChoice: '',
+    registeredEmail: '',
+    installId: '',
   };
 }
 
@@ -139,6 +143,12 @@ class Store {
     this.history = loadJSON(historyPath(), { entries: [] });
     if (!Array.isArray(this.history.entries)) this.history.entries = [];
     this.prefs = { ...defaultPrefs(), ...loadJSON(prefsPath(), {}) };
+    if (!this.prefs.installId) {
+      // Random, stable across launches; the only identifier the optional
+      // install register ever sends (RON-507).
+      this.prefs.installId = randomUUID();
+      this.persistPrefs();
+    }
     if (!Array.isArray(this.state.workspaces) || !this.state.workspaces.length) {
       this.state.workspaces = [{ id: randomUUID(), name: 'All', folderIDs: [] }];
     }
