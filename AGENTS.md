@@ -34,3 +34,17 @@ If the Linear MCP is not authenticated, say so and continue working — Ronald c
 Dependencies: RON-360←359 · RON-361←360 · RON-365←364 · RON-366/367←365 · RON-374←363 · RON-376←361 · RON-413←361.  
 **RON-372** = re-enable site downloads when ready (assets already on Releases).  
 Full table: `docs/LINEAR_LIVE.md`.
+
+## Cursor Cloud specific instructions
+
+This repo has three products; the cloud VM is **Linux**, so scope differs by product:
+
+- **macOS app** (`ClutterDock/`, Swift/SwiftUI) — **cannot be built or run on Linux** (needs macOS + Xcode; CI builds it on `macos-15`). Skip it here.
+- **Windows app** (`windows/`, Electron) — runs on Linux for dev. Deps are npm (`windows/package.json`); the startup update script installs them.
+- **Website** (`website/` static assets + root `wrangler.toml` Cloudflare Worker, entry `scripts/site-worker.mjs`) — runs via Wrangler. There is **no root `package.json`**; run Wrangler with `npx` (it downloads on first use).
+
+Run commands (all standard commands live in `README.md`, `windows/README.md`, and `windows/package.json` scripts / `.github/workflows/ci.yml`):
+
+- Windows app dev: `cd windows && DISPLAY=:1 CLUTTER_DOCK_NO_UPDATE=1 npm start -- --no-sandbox`. It is a tray app that auto-opens the launcher panel on first run. On Linux, `--no-sandbox` is required and the `bus.cc`/DBus and `viz_main_impl`/GPU errors in the log are **benign** (no system tray/GPU in the container); the app still works. `CLUTTER_DOCK_NO_UPDATE=1` skips the background auto-update check. Local dev data persists to `~/.config/ClutterDock/ClutterDock/folders.json`.
+- Windows tests/lint: `cd windows && npm test` (license + store unit tests) and syntax lint via `for f in src/*.js src/renderer/*.js scripts/*.js; do node --check "$f"; done`. `npm test` does **not** need a license secret (a dev fallback is used); the "corrupt folders.json" load error printed during `test-store.js` is an intentional test case, not a failure.
+- Website dev: from repo root `npx --yes wrangler@latest dev --port 8787 --local`, then browse `http://localhost:8787`. On localhost the worker serves assets directly (200); the non-canonical-host → `clutterdock.com` 301 redirect only fires for real hosts. Cloudflare Assets 307-redirects `/page.html` → `/page` (extensionless), which is expected. Website "tests" are the link-check in `.github/workflows/ci.yml` (`site` job).
