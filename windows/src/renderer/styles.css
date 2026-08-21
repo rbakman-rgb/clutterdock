@@ -304,6 +304,33 @@ html, body {
 .card ol { margin: 0 0 14px; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--text-body); }
 .card .row { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* Opt-in install register block on the welcome card (RON-507) */
+.ob-register {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+}
+.ob-register b { font-size: 12.5px; }
+.ob-register p { margin: 6px 0 8px; color: var(--muted); line-height: 1.45; }
+.ob-register input[type='email'] {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid var(--border);
+  background: var(--surface-input);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--text);
+  outline: none;
+}
+.ob-register input[type='email']:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.ob-register-status { min-height: 1em; }
+
 /* In-panel dialogs */
 .dialog-sub { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
 .dialog input[type="text"] {

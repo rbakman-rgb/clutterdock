@@ -39,6 +39,17 @@ assert.strictEqual(
   'items persisted'
 );
 
+// --- Install register prefs (RON-507)
+assert.match(store.prefs.installId, /^[0-9a-f-]{36}$/i, 'installId is a UUID');
+assert.strictEqual(reloaded.prefs.installId, store.prefs.installId, 'installId stable across reloads');
+assert.strictEqual(store.prefs.installRegisterChoice, '', 'register choice defaults to unset');
+reloaded.updatePrefs({ installRegisterChoice: 'skipped' });
+assert.strictEqual(
+  freshStore().prefs.installRegisterChoice,
+  'skipped',
+  'register choice persists across reloads'
+);
+
 // --- Free folder cap (5 normal folders)
 store = reloaded;
 for (const name of ['A', 'B', 'C', 'D', 'E', 'F']) store.addFolder(name);

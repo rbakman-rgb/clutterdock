@@ -245,6 +245,7 @@ struct LauncherView: View {
                 Color.black.opacity(0.18)
                     .ignoresSafeArea()
                 OnboardingCard(
+                    preferences: preferences,
                     onDismiss: { preferences.hasCompletedOnboarding = true },
                     onAddApps: {
                         preferences.hasCompletedOnboarding = true

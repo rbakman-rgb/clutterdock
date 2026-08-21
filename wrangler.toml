@@ -9,6 +9,12 @@ not_found_handling = "404-page"
 # Worker must run first so non-canonical hosts redirect instead of serving assets.
 run_worker_first = true
 
+# Download counts + optional install register (RON-507). Namespace IDs are not
+# secrets; the admin endpoint is gated by the ADMIN_TOKEN worker secret.
+[[kv_namespaces]]
+binding = "CLUTTERDOCK_STATS"
+id = "0f861eac1a134625b76bced3f285f83b"
+
 [[routes]]
 pattern = "clutterdock.com"
 custom_domain = true

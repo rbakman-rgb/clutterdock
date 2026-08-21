@@ -56,6 +56,16 @@ func run() {
     check(!UpdateService.isRemoteNewer("v1.4.5", than: "1.4.5"), "same version is not newer")
     check(!UpdateService.isRemoteNewer("v1.3.0", than: "1.4.5"), "older is not newer")
 
+    print("InstallRegisterService.payload")
+    let anon = InstallRegisterService.payload(email: nil, os: "mac", appVersion: "1.4.7", installId: "ABC-123")
+    check(anon == ["os": "mac", "appVersion": "1.4.7", "installId": "ABC-123"],
+          "anonymous ping sends exactly os + version + installId")
+    check(InstallRegisterService.payload(email: "  ", os: "mac", appVersion: "1", installId: "x")["email"] == nil,
+          "whitespace-only email is dropped")
+    let withEmail = InstallRegisterService.payload(email: " a@b.com ", os: "mac", appVersion: "1", installId: "x")
+    check(withEmail["email"] == "a@b.com", "email is trimmed")
+    check(withEmail.count == 4, "no extra fields ever")
+
     print("FolderStore persistence")
     let dir = tempDir()
     let store = FolderStore(directory: dir)

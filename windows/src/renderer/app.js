@@ -414,6 +414,7 @@ function renderOnboarding() {
   }
   overlay.hidden = false;
   overlay.className = 'overlay';
+  const showRegister = !snapshot.prefs.installRegisterChoice;
   overlay.innerHTML = `
     <div class="card">
       <h2>✨ Welcome to ClutterDock</h2>
@@ -424,23 +425,58 @@ function renderOnboarding() {
         <li>Click the taskbar / tray icon or press <b>Ctrl+Shift+D</b></li>
         <li>Free forever — tips optional via Buy Me a Coffee</li>
       </ol>
+      ${
+        showRegister
+          ? `<div class="ob-register">
+        <b>Optional: count this install</b>
+        <p>Send a one-time ping (Windows + version + a random ID) so the developer knows this copy launched. Email only if you want release news. Skipping sends nothing.</p>
+        <div class="row">
+          <input id="obEmail" type="email" placeholder="Email (optional)" aria-label="Email for release news (optional)" />
+          <button class="btn secondary" id="obCount">Count me in</button>
+        </div>
+        <p class="ob-register-status" id="obRegStatus" aria-live="polite"></p>
+      </div>`
+          : ''
+      }
       <div class="row">
         <button class="btn primary" id="obAdd">Add apps…</button>
         <button class="btn secondary" id="obSettings">Settings</button>
         <button class="btn secondary" id="obGot">Got it</button>
       </div>
     </div>`;
+  // Any way out of the card counts as skip if the user didn't opt in —
+  // the register offer must never be shown again (RON-507).
+  const dismissPrefs = () => ({
+    hasCompletedOnboarding: true,
+    ...(snapshot.prefs.installRegisterChoice ? {} : { installRegisterChoice: 'skipped' }),
+  });
   $('obGot').onclick = async () => {
-    await call(clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
+    await call(clutterDock.updatePrefs(dismissPrefs()));
   };
   $('obAdd').onclick = async () => {
-    await clutterDock.updatePrefs({ hasCompletedOnboarding: true });
+    await clutterDock.updatePrefs(dismissPrefs());
     await call(clutterDock.pickAndAdd());
   };
   $('obSettings').onclick = async () => {
-    await clutterDock.updatePrefs({ hasCompletedOnboarding: true });
+    await clutterDock.updatePrefs(dismissPrefs());
     await clutterDock.openSettings();
   };
+  if (showRegister) {
+    $('obCount').onclick = async () => {
+      const btn = $('obCount');
+      btn.disabled = true;
+      $('obRegStatus').textContent = 'Sending…';
+      const res = await clutterDock.registerInstall($('obEmail').value);
+      if (res?.ok) {
+        snapshot = res.snapshot || snapshot;
+        $('obRegStatus').textContent = 'Thanks — this install is counted!';
+        $('obEmail').disabled = true;
+      } else {
+        btn.disabled = false;
+        $('obRegStatus').textContent = res?.error || 'Could not send — try later in Settings.';
+      }
+    };
+  }
 }
 
 // ---- In-panel dialogs (Electron does not implement window.prompt) ----
@@ -859,7 +895,12 @@ document.addEventListener('keydown', async (e) => {
   }
   if (e.key === 'Escape') {
     if (!snapshot?.prefs?.hasCompletedOnboarding) {
-      await call(clutterDock.updatePrefs({ hasCompletedOnboarding: true }));
+      // Esc dismisses the welcome card — that skip also declines the
+      // register offer for good (RON-507).
+      await call(clutterDock.updatePrefs({
+        hasCompletedOnboarding: true,
+        ...(snapshot.prefs.installRegisterChoice ? {} : { installRegisterChoice: 'skipped' }),
+      }));
       return;
     }
     await clutterDock.hidePanel();

@@ -61,6 +61,8 @@ jobs:
               ref="${ref%\"}"
               case "$ref" in
                 http*|mailto:*|\#*|//*) continue ;;
+                # Worker routes, not files: download hops live in scripts/site-worker.mjs (RON-507)
+                /dl/*) continue ;;
               esac
               path="${ref%%#*}"
               path="${path%%\?*}"

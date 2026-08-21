@@ -539,12 +539,18 @@ function wireIpc() {
     showKeyboardHints: 'boolean',
     launchAtLogin: 'boolean',
     checkForUpdatesAutomatically: 'boolean',
+    installRegisterChoice: 'string',
   };
 
   ipcMain.handle('update-prefs', (_e, partial) => {
     const clean = {};
     for (const [key, type] of Object.entries(PREF_TYPES)) {
       if (partial && typeof partial[key] === type) clean[key] = partial[key];
+    }
+    // The renderer may only mark the register offer as skipped; 'registered'
+    // is set by the register-install handler after a successful POST.
+    if ('installRegisterChoice' in clean && clean.installRegisterChoice !== 'skipped') {
+      delete clean.installRegisterChoice;
     }
     store.updatePrefs(clean);
     let hotkeyError = null;
@@ -560,6 +566,35 @@ function wireIpc() {
       app.setLoginItemSettings({ openAtLogin: clean.launchAtLogin });
     }
     return okSnap(hotkeyError ? { hotkeyError } : {});
+  });
+
+  // Opt-in install register (RON-507). Sends exactly: platform, app version,
+  // the random installId, and an email the user typed. Never stacks or paths.
+  ipcMain.handle('register-install', async (_e, email) => {
+    const cleanEmail = typeof email === 'string' ? email.trim().slice(0, 254) : '';
+    const payload = {
+      os: 'windows',
+      appVersion: app.getVersion(),
+      installId: store.prefs.installId,
+    };
+    if (cleanEmail) payload.email = cleanEmail;
+    try {
+      const res = await fetch('https://clutterdock.com/api/register', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      store.updatePrefs({
+        installRegisterChoice: 'registered',
+        ...(cleanEmail ? { registeredEmail: cleanEmail } : {}),
+      });
+      return okSnap();
+    } catch (err) {
+      console.warn('register-install failed:', String(err).slice(0, 200));
+      return failSnap("Couldn't reach clutterdock.com — try again later.");
+    }
   });
 
   ipcMain.handle('activate-license', (_e, key) => {
