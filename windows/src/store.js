@@ -84,6 +84,7 @@ function defaultPrefs() {
     installRegisterChoice: '',
     registeredEmail: '',
     installId: '',
+    launcherAnchor: 'dock',
   };
 }
 

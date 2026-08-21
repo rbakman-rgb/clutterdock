@@ -198,6 +198,94 @@ func run() {
     check(!LicenseManager.validate(""), "empty key rejected")
     check(!LicenseManager.validate("SDPRO-A1B2-0000-000"), "wrong-length key rejected")
 
+    print("LauncherPlacement")
+    let full = CGRect(x: 0, y: 0, width: 1440, height: 900)
+    let visibleBottomDock = CGRect(x: 0, y: 80, width: 1440, height: 820)
+    let panel = CGSize(width: 440, height: 400)
+    check(LauncherPlacement.dockEdge(visible: visibleBottomDock, full: full) == .bottom, "bottom Dock inferred")
+    let atIcon = LauncherPlacement.origin(
+        panelSize: panel,
+        visibleFrame: visibleBottomDock,
+        fullFrame: full,
+        mode: .dock,
+        showOrigin: .dock,
+        mouse: CGPoint(x: 520, y: 40),
+        statusItemFrame: nil,
+        savedOrigin: nil,
+        lastDockPoint: nil
+    )
+    check(abs(atIcon.x - (520 - 220)) < 1, "Dock click centers horizontally on the icon")
+    check(abs(atIcon.y - (80 + 12)) < 1, "Dock click sits just above the Dock")
+
+    let hotkey = LauncherPlacement.origin(
+        panelSize: panel,
+        visibleFrame: visibleBottomDock,
+        fullFrame: full,
+        mode: .dock,
+        showOrigin: .hotkey,
+        mouse: CGPoint(x: 900, y: 500),
+        statusItemFrame: nil,
+        savedOrigin: nil,
+        lastDockPoint: CGPoint(x: 520, y: 40)
+    )
+    check(abs(hotkey.x - atIcon.x) < 1, "hotkey reuses last Dock icon x")
+    check(abs(hotkey.y - atIcon.y) < 1, "hotkey reuses Dock edge")
+
+    let saved = CGPoint(x: 200, y: 300)
+    let custom = LauncherPlacement.origin(
+        panelSize: panel,
+        visibleFrame: visibleBottomDock,
+        fullFrame: full,
+        mode: .custom,
+        showOrigin: .hotkey,
+        mouse: CGPoint(x: 10, y: 10),
+        statusItemFrame: nil,
+        savedOrigin: saved,
+        lastDockPoint: nil
+    )
+    check(abs(custom.x - 200) < 1 && abs(custom.y - 300) < 1, "custom mode restores saved origin")
+
+    let status = CGRect(x: 1100, y: 870, width: 28, height: 24)
+    let menuBar = LauncherPlacement.origin(
+        panelSize: panel,
+        visibleFrame: visibleBottomDock,
+        fullFrame: full,
+        mode: .dock,
+        showOrigin: .menuBar,
+        mouse: CGPoint(x: 1114, y: 882),
+        statusItemFrame: status,
+        savedOrigin: nil,
+        lastDockPoint: nil
+    )
+    check(abs(menuBar.x - (status.midX - 220)) < 1, "menu bar click centers on the status item")
+    check(menuBar.y + panel.height <= status.minY, "menu bar panel sits under the status item")
+
+    let offscreen = LauncherPlacement.origin(
+        panelSize: panel,
+        visibleFrame: visibleBottomDock,
+        fullFrame: full,
+        mode: .custom,
+        showOrigin: .other,
+        mouse: .zero,
+        statusItemFrame: nil,
+        savedOrigin: CGPoint(x: -400, y: 5000),
+        lastDockPoint: nil
+    )
+    check(offscreen.x >= visibleBottomDock.minX, "custom origin is clamped on screen")
+    check(offscreen.y + panel.height <= visibleBottomDock.maxY + 1, "custom origin stays in visible frame")
+
+    print("AppPreferences launcher anchor")
+    let suite = UserDefaults(suiteName: "clutterdock-test-\(UUID().uuidString)")!
+    let prefs = AppPreferences(defaults: suite)
+    check(prefs.launcherAnchor == .dock, "default follow Dock")
+    check(prefs.customOrigin == nil, "no saved spot yet")
+    prefs.customOrigin = CGPoint(x: 12, y: 34)
+    check(prefs.customOrigin?.x == 12 && prefs.customOrigin?.y == 34, "custom origin round-trips")
+    prefs.launcherAnchor = .custom
+    let prefs2 = AppPreferences(defaults: suite)
+    check(prefs2.launcherAnchor == .custom, "anchor persists")
+    check(prefs2.customOrigin?.x == 12, "custom origin persists")
+
     try? FileManager.default.removeItem(at: dir)
     try? FileManager.default.removeItem(at: badDir)
 }
