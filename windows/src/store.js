@@ -79,6 +79,10 @@ function defaultPrefs() {
     launchAtLogin: false,
     licenseKey: '',
     themeAccent: 'system',
+    launcherShape: 'rounded',
+    launcherMotion: 'fan',
+    launcherColor: 'automatic',
+    launcherSize: 'regular',
     checkForUpdatesAutomatically: true,
     // Opt-in install register (RON-507): '' = not asked, 'skipped', 'registered'.
     installRegisterChoice: '',
