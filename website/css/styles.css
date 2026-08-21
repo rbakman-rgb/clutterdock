@@ -1058,8 +1058,7 @@ button {
   margin: 0;
 }
 
-/* Download cards: intentionally unreferenced while downloads are hidden — the
-   markup returns with RON-372 (re-enable site download buttons). */
+/* Download cards */
 .download-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

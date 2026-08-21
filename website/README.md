@@ -65,9 +65,9 @@ Use real captures of the launcher/settings when ready (Linear G3-01).
 ## Launch polish checklist
 
 - [x] Why / how / who story on home
-- [x] Coming soon (no public downloads yet)
+- [x] Public downloads (Mac zip + Windows exe on GitHub Releases)
 - [x] Accessibility: skip link, focus styles, mobile nav
 - [x] SEO: meta, OG, canonical, sitemap, schema
 - [x] Custom domain DNS + HTTPS (Cloudflare Workers, both domains, .app + www → 301 clutterdock.com)
 - [x] Real product screenshots (launcher + settings)
-- [ ] Enable public downloads after release
+- [x] Enable public downloads after release

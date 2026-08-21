@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ClutterDock — Your Dock, finally under control</title>
-  <meta name="description" content="Stop scanning a crowded Dock. ClutterDock turns apps, files, folders, and links into calm stacks you open with one hotkey — without replacing macOS or Windows. Free forever core. Coming soon." />
+  <meta name="description" content="Stop scanning a crowded Dock. ClutterDock turns apps, files, folders, and links into calm stacks you open with one hotkey — without replacing macOS or Windows. Free forever core. Download for Mac and Windows." />
   <meta name="theme-color" content="#070a10" />
   <link rel="canonical" href="https://clutterdock.com/" />
   <link rel="icon" href="assets/icon-256.png" type="image/png" />
@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260806e" />
+  <link rel="stylesheet" href="css/styles.css?v=20260821a" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -36,6 +36,7 @@
     "operatingSystem": "macOS 14+, Windows 10+",
     "description": "Clean stacks of apps, files, folders, and URLs for Mac Dock and Windows tray. Local-first. Free forever core.",
     "url": "https://clutterdock.com/",
+    "downloadUrl": "https://github.com/rbakman-rgb/clutterdock/releases/latest",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free forever core" }
   }
   </script>
@@ -56,7 +57,7 @@
         <a href="#solution">The fix</a>
         <a href="#different">Why us</a>
         <a href="pricing.html">Pricing</a>
-        <a class="nav-cta" href="#coming-soon">Coming soon</a>
+        <a class="nav-cta" href="#download">Download</a>
       </nav>
     </div>
   </header>
@@ -77,7 +78,7 @@
           Your system Dock stays. The chaos doesn’t.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#problem">See the cost of clutter</a>
+          <a class="btn btn-primary" href="#download">Download free</a>
           <a class="btn btn-secondary" href="#solution">How ClutterDock works</a>
         </div>
 
@@ -449,27 +450,47 @@
           themes, and pack export — planned as a single purchase on Mac and Windows.
         </p>
         <div class="cta-actions">
-          <a class="btn btn-primary" href="pricing.html">See planned pricing</a>
-          <a class="btn btn-secondary" href="#coming-soon">Coming soon</a>
+          <a class="btn btn-primary" href="pricing.html">See pricing</a>
+          <a class="btn btn-secondary" href="#download">Download free</a>
         </div>
       </div>
     </section>
 
-    <!-- COMING SOON -->
-    <section class="section container" id="coming-soon">
-      <div class="cta-band coming-soon-band" data-reveal>
-        <div class="eyebrow">Public launch</div>
-        <h2>Coming soon</h2>
+    <!-- DOWNLOAD -->
+    <section class="section container" id="download">
+      <div class="section-header" data-reveal>
+        <p class="section-kicker">Public beta</p>
+        <h2>Download ClutterDock</h2>
         <p>
-          ClutterDock is finishing for Mac and Windows.
-          When downloads open, the free core will be ready for daily stacks — Pro optional.
+          Free forever core. Builds are <strong>unsigned beta</strong> —
+          first launch needs an extra click on Mac (Gatekeeper) and Windows (SmartScreen).
+          See the <a href="install.html">install guide</a>.
         </p>
-        <div class="cta-actions">
-          <a class="btn btn-secondary" href="pricing.html">Planned pricing</a>
-          <a class="btn btn-ghost" href="#problem">Why it exists</a>
-        </div>
-        <p class="note" style="margin-top: 1.25rem;">clutterdock.com · clutterdock.app</p>
       </div>
+      <div class="download-grid" data-reveal-stagger>
+        <article class="download-card recommended">
+          <h3>macOS 14+</h3>
+          <p>Native Swift · universal (Apple Silicon + Intel) · v1.4.7</p>
+          <a class="btn btn-primary" href="https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.7/ClutterDock-1.4.7-mac.zip">Download Mac zip</a>
+          <p class="note" style="margin-top: 0.85rem; text-align: left;">
+            Unzip → Applications → right-click → <strong>Open</strong> the first time.
+          </p>
+        </article>
+        <article class="download-card">
+          <h3>Windows 10 / 11</h3>
+          <p>Tray launcher · installer / portable · v1.2.1</p>
+          <a class="btn btn-secondary" href="https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.7/ClutterDock-1.2.1-x64.exe">Download Windows exe</a>
+          <p class="note" style="margin-top: 0.85rem; text-align: left;">
+            If SmartScreen appears: More info → <strong>Run anyway</strong>.
+          </p>
+        </article>
+      </div>
+      <p class="note" data-reveal>
+        All assets and checksums:
+        <a href="https://github.com/rbakman-rgb/clutterdock/releases/latest" rel="noopener">GitHub Releases</a>
+        · Help: <a href="install.html">Install FAQ</a>
+        · Bugs: <a href="https://github.com/rbakman-rgb/clutterdock/issues" rel="noopener">Issues</a>
+      </p>
     </section>
 
   </main>
@@ -492,7 +513,8 @@
           <a href="#different">Why us</a>
           <a href="#features">Features</a>
           <a href="pricing.html">Pricing</a>
-          <a href="#coming-soon">Coming soon</a>
+          <a href="#download">Download</a>
+          <a href="install.html">Install help</a>
         </div>
         <div class="footer-col">
           <h4>Support</h4>
@@ -508,6 +530,6 @@
     </div>
   </footer>
 
-  <script src="js/main.js?v=20260806e"></script>
+  <script src="js/main.js?v=20260821a"></script>
 </body>
 </html>
