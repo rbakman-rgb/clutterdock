@@ -21,6 +21,7 @@ function freshStore() {
 let dir = freshDir();
 let store = freshStore();
 assert.ok(store.state.folders.length >= 2, 'default folders exist');
+assert.strictEqual(store.prefs.launcherAnchor, 'dock', 'default launcher follows taskbar/tray');
 assert.ok(store.state.folders.some((f) => f.smartKind === 'recents'), 'Recents exists');
 
 const added = store.addFolder('Coding', 'coding');

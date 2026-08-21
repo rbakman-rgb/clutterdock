@@ -73,6 +73,7 @@
 | RON-382 | Backlog | Win UX parity |
 | RON-413 | Backlog | Sparkle (after 361) |
 | RON-414 | Backlog | Hotkey recorder |
+| RON-506 | In Progress | Launcher next to Dock/taskbar; Settings saved spot |
 
 ### G4 Growth
 | ID | State | Notes |

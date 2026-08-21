@@ -89,6 +89,14 @@ final class AppPreferences: ObservableObject {
         didSet { defaults.set(checkForUpdatesAutomatically, forKey: Keys.checkForUpdatesAutomatically) }
     }
 
+    /// Default: sit next to the Dock (or menu-bar) icon. Custom: restore a dragged origin.
+    @Published var launcherAnchor: LauncherAnchorMode {
+        didSet {
+            defaults.set(launcherAnchor.rawValue, forKey: Keys.launcherAnchor)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.launcherAnchor)
+        }
+    }
+
     private let defaults: UserDefaults
 
     enum Keys {
@@ -104,6 +112,11 @@ final class AppPreferences: ObservableObject {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let showKeyboardHints = "showKeyboardHints"
         static let checkForUpdatesAutomatically = "checkForUpdatesAutomatically"
+        static let launcherAnchor = "launcherAnchor"
+        static let launcherCustomX = "launcherCustomX"
+        static let launcherCustomY = "launcherCustomY"
+        static let lastDockIconX = "lastDockIconX"
+        static let lastDockIconY = "lastDockIconY"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -130,6 +143,54 @@ final class AppPreferences: ObservableObject {
         hasCompletedOnboarding = defaults.bool(forKey: Keys.hasCompletedOnboarding)
         showKeyboardHints = defaults.object(forKey: Keys.showKeyboardHints) as? Bool ?? true
         checkForUpdatesAutomatically = defaults.object(forKey: Keys.checkForUpdatesAutomatically) as? Bool ?? true
+
+        if let raw = defaults.string(forKey: Keys.launcherAnchor),
+           let mode = LauncherAnchorMode(rawValue: raw) {
+            launcherAnchor = mode
+        } else {
+            launcherAnchor = .dock
+        }
+    }
+
+    var customOrigin: CGPoint? {
+        get {
+            guard defaults.object(forKey: Keys.launcherCustomX) != nil,
+                  defaults.object(forKey: Keys.launcherCustomY) != nil else { return nil }
+            return CGPoint(
+                x: defaults.double(forKey: Keys.launcherCustomX),
+                y: defaults.double(forKey: Keys.launcherCustomY)
+            )
+        }
+        set {
+            if let point = newValue {
+                defaults.set(point.x, forKey: Keys.launcherCustomX)
+                defaults.set(point.y, forKey: Keys.launcherCustomY)
+            } else {
+                defaults.removeObject(forKey: Keys.launcherCustomX)
+                defaults.removeObject(forKey: Keys.launcherCustomY)
+            }
+            objectWillChange.send()
+        }
+    }
+
+    var lastDockPoint: CGPoint? {
+        get {
+            guard defaults.object(forKey: Keys.lastDockIconX) != nil,
+                  defaults.object(forKey: Keys.lastDockIconY) != nil else { return nil }
+            return CGPoint(
+                x: defaults.double(forKey: Keys.lastDockIconX),
+                y: defaults.double(forKey: Keys.lastDockIconY)
+            )
+        }
+        set {
+            if let point = newValue {
+                defaults.set(point.x, forKey: Keys.lastDockIconX)
+                defaults.set(point.y, forKey: Keys.lastDockIconY)
+            } else {
+                defaults.removeObject(forKey: Keys.lastDockIconX)
+                defaults.removeObject(forKey: Keys.lastDockIconY)
+            }
+        }
     }
 
     func resetOnboarding() {

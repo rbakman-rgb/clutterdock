@@ -26,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runningApps: runningApps,
             history: history
         )
+        panelController?.menuBarAnchorFrame = { [weak self] in
+            self?.statusItem?.button?.window?.frame
+        }
 
         NSApp.setActivationPolicy(.regular)
         NSApp.servicesProvider = self
@@ -151,7 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        panelController?.toggle()
+        panelController?.toggle(from: .dock)
         return false
     }
 
@@ -230,7 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             mainEnabled: preferences.hotkeyEnabled,
             mainPreset: preferences.hotkeyPreset,
             mainHandler: { [weak self] in
-                Task { @MainActor in self?.panelController?.toggle() }
+                Task { @MainActor in self?.panelController?.toggle(from: .hotkey) }
             },
             folderBindings: folderBindings
         )
@@ -286,7 +289,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Actions
 
-    @objc private func showLauncher() { panelController?.show() }
+    @objc private func showLauncher() { panelController?.show(from: .dock) }
     @objc private func showSettings() { panelController?.showSettings() }
 
     @objc private func checkForUpdates() {
@@ -298,7 +301,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
            let id = UUID(uuidString: idString) {
             store.selectFolder(id: id)
         }
-        panelController?.show()
+        panelController?.show(from: .dock)
     }
 
     @objc private func selectWorkspace(_ sender: NSMenuItem) {
@@ -306,12 +309,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
            let id = UUID(uuidString: idString) {
             store.selectWorkspace(id: id)
         }
-        panelController?.show()
+        panelController?.show(from: .dock)
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else {
-            panelController?.toggle()
+            panelController?.toggle(from: .menuBar)
             return
         }
         if event.type == .rightMouseUp {
@@ -324,7 +327,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             statusItem?.button?.performClick(nil)
             DispatchQueue.main.async { [weak self] in self?.statusItem?.menu = nil }
         } else {
-            panelController?.toggle()
+            panelController?.toggle(from: .menuBar)
         }
     }
 }

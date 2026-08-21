@@ -15,7 +15,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "test": "node scripts/test-license.js && node scripts/test-store.js",
+    "test": "node scripts/test-license.js && node scripts/test-store.js && node scripts/test-placement.js",
     "pack": "electron-builder --dir",
     "predist": "node scripts/write-license-secret.js --require && npm test",
     "dist": "electron-builder --win --publish never",

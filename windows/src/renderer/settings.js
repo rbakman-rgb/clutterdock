@@ -10,6 +10,15 @@ document.addEventListener('drop', (e) => e.preventDefault());
 async function load() {
   snapshot = await clutterDock.getSnapshot();
   $('closeAfter').checked = !!snapshot.prefs.closeAfterLaunch;
+  if ($('anchor')) {
+    $('anchor').value = snapshot.prefs.launcherAnchor === 'custom' ? 'custom' : 'dock';
+    if ($('anchorHint')) {
+      $('anchorHint').textContent =
+        $('anchor').value === 'custom'
+          ? 'Open the launcher and drag the top strip. ClutterDock remembers that spot.'
+          : 'Opens next to the taskbar or tray icon';
+    }
+  }
   $('hints').checked = !!snapshot.prefs.showKeyboardHints;
   $('login').checked = !!snapshot.prefs.launchAtLogin;
   $('hotkey').value = snapshot.prefs.hotkey || 'CommandOrControl+Shift+D';
@@ -94,6 +103,9 @@ async function savePrefs(partial) {
 }
 
 $('closeAfter').onchange = (e) => savePrefs({ closeAfterLaunch: e.target.checked });
+if ($('anchor')) {
+  $('anchor').onchange = (e) => savePrefs({ launcherAnchor: e.target.value });
+}
 $('hints').onchange = (e) => savePrefs({ showKeyboardHints: e.target.checked });
 $('login').onchange = (e) => savePrefs({ launchAtLogin: e.target.checked });
 $('hotkey').onchange = (e) => savePrefs({ hotkey: e.target.value.trim() || 'CommandOrControl+Shift+D' });

@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const { Store } = require('./store');
 const { setupUpdater } = require('./updater');
+const placement = require('./placement');
 
 /** @type {BrowserWindow | null} */
 let panel = null;
@@ -128,31 +129,86 @@ function createPanel() {
     }, 400);
   });
 
+  let moveTimer = null;
+  let isPositioning = false;
+  panel.on('moved', () => {
+    if (isPositioning) return;
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(() => {
+      if (!panel || panel.isDestroyed()) return;
+      if (store.prefs.launcherAnchor !== 'custom') return;
+      const b = panel.getBounds();
+      store.updatePrefs({ launcherCustomX: b.x, launcherCustomY: b.y });
+    }, 200);
+  });
+  panel._setPositioning = (v) => {
+    isPositioning = v;
+  };
+
   return panel;
 }
 
-function positionPanel() {
+function trayBoundsOrNull() {
+  if (!tray) return null;
+  try {
+    const b = tray.getBounds();
+    if (b && b.width > 0 && b.height > 0) return b;
+  } catch (_) {
+    /* getBounds can throw before the tray is on a display */
+  }
+  return null;
+}
+
+function lastIconPoint() {
+  const x = store.prefs.lastIconX;
+  const y = store.prefs.lastIconY;
+  if (Number.isFinite(x) && Number.isFinite(y)) return { x, y };
+  return null;
+}
+
+function savedOrigin() {
+  const x = store.prefs.launcherCustomX;
+  const y = store.prefs.launcherCustomY;
+  if (Number.isFinite(x) && Number.isFinite(y)) return { x, y };
+  return null;
+}
+
+/**
+ * @param {'tray'|'taskbar'|'hotkey'|'other'} source
+ */
+function positionPanel(source = 'other') {
   if (!panel) return;
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
   const { width, height } = panel.getBounds();
+  const trayB = trayBoundsOrNull();
   const wa = display.workArea;
-  let x = Math.round(cursor.x - width / 2);
-  let y = Math.round(cursor.y - height - 16);
-  // Prefer above taskbar if cursor near bottom
-  if (cursor.y > wa.y + wa.height - 80) {
-    y = Math.round(cursor.y - height - 12);
-  } else if (y < wa.y + 8) {
-    y = cursor.y + 16;
+  const bounds = display.bounds;
+
+  if (placement.shouldCacheIcon(source, cursor, wa, bounds)) {
+    store.updatePrefs({ lastIconX: cursor.x, lastIconY: cursor.y });
   }
-  x = Math.min(Math.max(x, wa.x + 8), wa.x + wa.width - width - 8);
-  y = Math.min(Math.max(y, wa.y + 8), wa.y + wa.height - height - 8);
-  panel.setPosition(x, y, false);
+
+  const pos = placement.origin({
+    panelWidth: width,
+    panelHeight: height,
+    workArea: wa,
+    displayBounds: bounds,
+    mode: store.prefs.launcherAnchor === 'custom' ? 'custom' : 'dock',
+    source,
+    mouse: cursor,
+    trayBounds: trayB,
+    savedOrigin: savedOrigin(),
+    lastIcon: lastIconPoint(),
+  });
+  if (typeof panel._setPositioning === 'function') panel._setPositioning(true);
+  panel.setPosition(pos.x, pos.y, false);
+  if (typeof panel._setPositioning === 'function') panel._setPositioning(false);
 }
 
-function showPanel() {
+function showPanel(source = 'other') {
   const win = createPanel();
-  positionPanel();
+  positionPanel(source);
   suppressTaskbarFocus = true;
   win.show();
   win.focus();
@@ -168,9 +224,9 @@ function hidePanel() {
   stopRunningPoll();
 }
 
-function togglePanel() {
+function togglePanel(source = 'other') {
   if (panel && panel.isVisible()) hidePanel();
-  else showPanel();
+  else showPanel(source);
 }
 
 function createSettings() {
@@ -242,17 +298,17 @@ function createTaskbarHost() {
   taskbarHost.on('close', (e) => {
     if (isQuitting) return;
     e.preventDefault();
-    togglePanel();
+    togglePanel('taskbar');
   });
   taskbarHost.on('minimize', () => {
     hidePanel();
   });
   taskbarHost.on('restore', () => {
-    showPanel();
+    showPanel('taskbar');
   });
   taskbarHost.on('focus', () => {
     if (suppressTaskbarFocus) return;
-    togglePanel();
+    togglePanel('taskbar');
   });
 
   try {
@@ -305,10 +361,10 @@ function createTray() {
 
   tray = new Tray(image);
   tray.setToolTip('ClutterDock — click, or pin the taskbar icon');
-  tray.on('click', () => togglePanel());
+  tray.on('click', () => togglePanel('tray'));
   tray.on('right-click', () => {
     const menu = Menu.buildFromTemplate([
-      { label: 'Open Launcher', click: () => showPanel() },
+      { label: 'Open Launcher', click: () => showPanel('tray') },
       { label: 'Settings…', click: () => createSettings() },
       {
         label: 'Check for Updates…',
@@ -333,7 +389,7 @@ function registerHotkey() {
   const accel = store.prefs.hotkey || DEFAULT_HOTKEY;
   let ok = false;
   try {
-    ok = globalShortcut.register(accel, () => togglePanel());
+    ok = globalShortcut.register(accel, () => togglePanel('hotkey'));
     if (!ok) console.warn('Hotkey registration failed:', accel);
   } catch (e) {
     console.warn('Hotkey error', e);
@@ -346,7 +402,7 @@ function registerHotkey() {
           const target = store.visibleFolders()[n - 1];
           if (target) {
             store.selectFolder(target.id);
-            showPanel();
+            showPanel('hotkey');
           }
         });
       } catch (_) {
@@ -539,12 +595,21 @@ function wireIpc() {
     showKeyboardHints: 'boolean',
     launchAtLogin: 'boolean',
     checkForUpdatesAutomatically: 'boolean',
+    launcherAnchor: 'string',
   };
 
   ipcMain.handle('update-prefs', (_e, partial) => {
     const clean = {};
     for (const [key, type] of Object.entries(PREF_TYPES)) {
       if (partial && typeof partial[key] === type) clean[key] = partial[key];
+    }
+    if (clean.launcherAnchor && clean.launcherAnchor !== 'dock' && clean.launcherAnchor !== 'custom') {
+      delete clean.launcherAnchor;
+    }
+    if (clean.launcherAnchor === 'custom' && panel && !panel.isDestroyed()) {
+      const b = panel.getBounds();
+      clean.launcherCustomX = b.x;
+      clean.launcherCustomY = b.y;
     }
     store.updatePrefs(clean);
     let hotkeyError = null;

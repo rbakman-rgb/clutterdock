@@ -80,6 +80,7 @@ function defaultPrefs() {
     licenseKey: '',
     themeAccent: 'system',
     checkForUpdatesAutomatically: true,
+    launcherAnchor: 'dock',
   };
 }
 
