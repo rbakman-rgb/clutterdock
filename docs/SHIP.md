@@ -79,7 +79,7 @@ gh repo edit rbakman-rgb/clutterdock --visibility public
 | **Pro checkout** (RON-364→367) | No merchant | Lemon Squeezy / Gumroad / Paddle product + auto key email; wire Unlock Pro |
 | **Real screenshots** (RON-369) | Done 2026-08-07 | `website/assets/screenshots/launcher.png` + `settings.png` on site |
 | **Clean-machine smoke** (RON-363) | Partial / Mac | Smoke from GitHub Release zip on this Mac; Windows needs a Win machine |
-| **Soft launch posts** (RON-374) | After smoke | Social / forums |
+| **Soft launch posts** (RON-374) | Kit 2026-08-21 | `docs/CAMPAIGN.md` — not posted yet |
 | **Homebrew cask** (RON-376) | After notarization | |
 | **Sparkle auto-update** | Not ticketed | After notarization |
 | **Linear sync** | MCP OAuth | Mark RON-379/370/372 Done in Linear UI |
