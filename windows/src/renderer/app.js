@@ -113,8 +113,17 @@ function hydrateIcon(container, item) {
 
 let dataWarningShown = false;
 
+function applyAppearance() {
+  const root = document.documentElement;
+  root.dataset.shape = snapshot?.prefs?.launcherShape || 'rounded';
+  root.dataset.motion = snapshot?.prefs?.launcherMotion || 'fan';
+  root.dataset.color = snapshot?.prefs?.launcherColor || 'automatic';
+  root.dataset.size = snapshot?.prefs?.launcherSize || 'regular';
+}
+
 function render() {
   if (!snapshot) return;
+  applyAppearance();
   if (snapshot.dataWarning && !dataWarningShown) {
     dataWarningShown = true;
     alert(snapshot.dataWarning);
@@ -321,9 +330,11 @@ function renderContent() {
       list.appendChild(row);
     }
   } else {
-    content.innerHTML = `<div class="grid" id="grid"></div>`;
+    const circle = (snapshot.prefs?.launcherShape || 'rounded') === 'circle';
+    content.innerHTML = `<div class="${circle ? 'ring' : 'grid'}" id="grid"></div>`;
     const grid = $('grid');
-    for (const item of items) {
+    const n = items.length;
+    items.forEach((item, i) => {
       const tile = document.createElement('div');
       tile.className = 'tile' + (item.id === selectedId ? ' selected' : '');
       tile.draggable = folder?.smartKind === 'none';
@@ -331,6 +342,11 @@ function renderContent() {
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
         ${isRunning(item) ? '<span class="run-dot" aria-hidden="true"></span>' : ''}
         <div class="tile-name">${escapeHtml(item.name)}</div>`;
+      if (circle) {
+        const angle = (i / Math.max(n, 1)) * 360 - 90;
+        tile.style.setProperty('--ring-angle', `${angle}deg`);
+        tile.style.setProperty('--ring-i', String(i));
+      }
       wireItem(tile, item, folder);
       hydrateIcon(tile.querySelector('.tile-icon'), item);
       if (folder?.smartKind === 'none') {
@@ -355,7 +371,7 @@ function renderContent() {
         });
       }
       grid.appendChild(tile);
-    }
+    });
   }
 }
 

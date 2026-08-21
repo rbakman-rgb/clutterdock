@@ -286,6 +286,22 @@ func run() {
     check(prefs2.launcherAnchor == .custom, "anchor persists")
     check(prefs2.customOrigin?.x == 12, "custom origin persists")
 
+    print("AppPreferences shapes")
+    let shapeSuiteName = "clutterdock-shape-tests-\(UUID().uuidString)"
+    let shapeSuite = UserDefaults(suiteName: shapeSuiteName)!
+    shapeSuite.removePersistentDomain(forName: shapeSuiteName)
+    let shapePrefs = AppPreferences(defaults: shapeSuite)
+    check(shapePrefs.launcherShape == .rounded, "default shape rounded")
+    check(shapePrefs.launcherMotion == .fan, "default motion fan")
+    shapePrefs.launcherShape = .circle
+    shapePrefs.launcherMotion = .orbit
+    shapePrefs.applySize(.large)
+    check(shapePrefs.panelWidth == shapePrefs.panelHeight, "circle panel is square")
+    let again = AppPreferences(defaults: shapeSuite)
+    check(again.launcherShape == .circle, "shape persists")
+    check(again.launcherMotion == .orbit, "motion persists")
+    shapeSuite.removePersistentDomain(forName: shapeSuiteName)
+
     try? FileManager.default.removeItem(at: dir)
     try? FileManager.default.removeItem(at: badDir)
 }

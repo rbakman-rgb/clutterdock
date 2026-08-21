@@ -27,6 +27,7 @@ struct LauncherView: View {
     @FocusState private var searchFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var ringReady = false
 
     private var columns: [GridItem] {
         [GridItem(.adaptive(minimum: preferences.tileWidth, maximum: preferences.tileWidth + 12), spacing: 10)]
@@ -60,15 +61,28 @@ struct LauncherView: View {
                 if reduceMotion { t.animation = nil }
             }
             .frame(width: preferences.panelWidth, height: preferences.panelHeight)
-            .background {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.ultraThinMaterial)
+            .background { panelFill }
+            .clipShape(panelClip)
+            .overlay {
+                panelClip
+                    .stroke(
+                        isTargeted
+                            ? Color.accentColor.opacity(0.85)
+                            : (preferences.launcherColor.isTransparent
+                               ? Color.primary.opacity(0.28)
+                               : Color(nsColor: .separatorColor)),
+                        lineWidth: isTargeted ? 1.5 : 0.75
+                    )
+                    .animation(.easeOut(duration: 0.12), value: isTargeted)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(panelBorder)
-            // Soft ambient shadow only — no system blue key-window ring
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.45 : 0.22), radius: 32, y: 16)
+            .shadow(
+                color: .black.opacity(preferences.launcherColor.isTransparent ? 0.16 : (colorScheme == .dark ? 0.45 : 0.22)),
+                radius: preferences.launcherShape == .circle ? 24 : 32,
+                y: 16
+            )
             .compositingGroup()
+            .preferredColorScheme(preferences.launcherColor.preferredScheme)
+            .onChange(of: store.selectedFolderID) { ringReady = false }
             .onDrop(
                 of: DropImport.allAcceptedTypes,
                 isTargeted: $isTargeted,
@@ -260,18 +274,37 @@ struct LauncherView: View {
         }
     }
 
-    @ViewBuilder
-    private var panelBorder: some View {
-        // Hairline glass edge only — never system/accent blue unless dropping files
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .strokeBorder(
-                isTargeted
-                    ? Color.accentColor.opacity(0.85)
-                    : Color(nsColor: .separatorColor), // visible in light AND dark mode
-                lineWidth: isTargeted ? 1.5 : 0.75
-            )
-            .animation(.easeOut(duration: 0.12), value: isTargeted)
+    private var panelClip: AnyShape {
+        switch preferences.launcherShape {
+        case .circle: AnyShape(Circle())
+        case .square: AnyShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        case .rounded: AnyShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
     }
+
+    @ViewBuilder
+    private var panelFill: some View {
+        let shape = panelClip
+        let color = preferences.launcherColor
+        ZStack {
+            if color.usesMaterial {
+                shape.fill(.ultraThinMaterial)
+                if let tint = color.tintOverlay {
+                    shape.fill(tint.opacity(0.28))
+                }
+            } else if color == .light {
+                shape.fill(Color.white.opacity(0.94))
+            } else if color == .dark {
+                shape.fill(Color(red: 0.11, green: 0.12, blue: 0.15).opacity(0.94))
+            } else if color == .transparent {
+                shape.fill(Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.08))
+            } else {
+                shape.fill(.ultraThinMaterial)
+            }
+        }
+    }
+
+    // Border is drawn in body overlay — AnyShape is not InsettableShape.
 
     private func handleLeftRight(delta: Int) -> KeyPress.Result {
         // Option+arrow reorders; plain arrow moves selection
@@ -537,6 +570,8 @@ struct LauncherView: View {
                         emptyState(folder: folder)
                     } else if folder.viewMode == .list {
                         listContent(items: items, folder: folder)
+                    } else if preferences.launcherShape == .circle {
+                        circleRing(items: items, folder: folder)
                     } else {
                         gridContent(items: items, folder: folder)
                     }
@@ -727,6 +762,72 @@ struct LauncherView: View {
         case .running: return "Regular apps you open will list here while they’re running"
         default: return "Drag items from Finder, or use + for a new stack (Coding, Work…) and apps"
         }
+    }
+
+    @ViewBuilder
+    private func circleRing(items: [DockItem], folder: AppFolder) -> some View {
+        let motion = reduceMotion ? LauncherMotion.calm : preferences.launcherMotion
+        GeometryReader { geo in
+            Group {
+                if motion == .orbit {
+                    TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { timeline in
+                        circleRingStack(
+                            items: items,
+                            folder: folder,
+                            size: geo.size,
+                            spin: timeline.date.timeIntervalSinceReferenceDate * 14,
+                            motion: motion
+                        )
+                    }
+                } else {
+                    circleRingStack(items: items, folder: folder, size: geo.size, spin: 0, motion: motion)
+                }
+            }
+            .onAppear {
+                ringReady = false
+                DispatchQueue.main.async { ringReady = true }
+            }
+        }
+    }
+
+    private func circleRingStack(
+        items: [DockItem],
+        folder: AppFolder,
+        size: CGSize,
+        spin: Double,
+        motion: LauncherMotion
+    ) -> some View {
+        let count = max(items.count, 1)
+        let radius = min(size.width, size.height) * (items.count > 10 ? 0.30 : 0.34)
+        let reach = (motion == .fan && !ringReady) ? 8 : radius
+        return ZStack {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                let angle = (Double(index) / Double(count)) * 360.0 - 90 + spin
+                let rad = angle * .pi / 180
+                ItemTile(
+                    item: item,
+                    iconSize: preferences.iconSize,
+                    tileWidth: min(preferences.tileWidth, 86),
+                    isSelected: selectedItemID == item.id,
+                    isRunning: preferences.showRunningIndicator && runningApps.isRunning(item),
+                    canReorder: false
+                ) {
+                    open(item)
+                } onRemove: {
+                    store.removeItem(id: item.id)
+                }
+                .scaleEffect(motion == .fan && !ringReady ? 0.2 : 1)
+                .offset(x: cos(rad) * reach, y: sin(rad) * reach)
+                .modifier(PulseIfNeeded(enabled: motion == .pulse && ringReady, delay: Double(index) * 0.05))
+                .animation(
+                    motion == .fan
+                        ? .spring(response: 0.55, dampingFraction: 0.7).delay(Double(index) * 0.03)
+                        : .easeOut(duration: 0.2),
+                    value: ringReady
+                )
+            }
+        }
+        .frame(width: size.width, height: size.height)
     }
 
     private func gridContent(items: [DockItem], folder: AppFolder) -> some View {
@@ -1231,6 +1332,23 @@ private struct LauncherKeyHandler: ViewModifier {
             .onKeyPress(characters: CharacterSet(charactersIn: "/")) { press in
                 guard press.modifiers.contains(.command) else { return .ignored }
                 return onHelp()
+            }
+    }
+}
+
+private struct PulseIfNeeded: ViewModifier {
+    let enabled: Bool
+    let delay: Double
+    @State private var on = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(enabled && on ? 1.07 : 1)
+            .onAppear {
+                guard enabled else { return }
+                withAnimation(.easeInOut(duration: 1.05).repeatForever(autoreverses: true).delay(delay)) {
+                    on = true
+                }
             }
     }
 }
