@@ -66,6 +66,23 @@ html, body {
   height: 100%;
   background: linear-gradient(160deg, var(--app-grad-1) 0%, var(--app-grad-2) 45%, var(--app-grad-3) 100%);
 }
+#dragHandle {
+  height: 8px;
+  flex-shrink: 0;
+  cursor: grab;
+  -webkit-app-region: drag;
+  background: transparent;
+}
+.search-row,
+.tabs,
+.wsbar,
+.content,
+.footer,
+.hints,
+button,
+input {
+  -webkit-app-region: no-drag;
+}
 
 .tabs {
   display: flex;

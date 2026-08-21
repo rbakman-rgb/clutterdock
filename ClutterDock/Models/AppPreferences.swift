@@ -109,6 +109,14 @@ final class AppPreferences: ObservableObject {
     /// identifier the optional install register ever sends.
     let installId: String
 
+    /// Default: sit next to the Dock (or menu-bar) icon. Custom: restore a dragged origin.
+    @Published var launcherAnchor: LauncherAnchorMode {
+        didSet {
+            defaults.set(launcherAnchor.rawValue, forKey: Keys.launcherAnchor)
+            NotificationCenter.default.post(name: .clutterDockPreferencesChanged, object: Keys.launcherAnchor)
+        }
+    }
+
     private let defaults: UserDefaults
 
     enum Keys {
@@ -127,6 +135,11 @@ final class AppPreferences: ObservableObject {
         static let installRegisterChoice = "installRegisterChoice"
         static let registeredEmail = "registeredEmail"
         static let installId = "installId"
+        static let launcherAnchor = "launcherAnchor"
+        static let launcherCustomX = "launcherCustomX"
+        static let launcherCustomY = "launcherCustomY"
+        static let lastDockIconX = "lastDockIconX"
+        static let lastDockIconY = "lastDockIconY"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -164,12 +177,60 @@ final class AppPreferences: ObservableObject {
             defaults.set(fresh, forKey: Keys.installId)
             installId = fresh
         }
+
+        if let raw = defaults.string(forKey: Keys.launcherAnchor),
+           let mode = LauncherAnchorMode(rawValue: raw) {
+            launcherAnchor = mode
+        } else {
+            launcherAnchor = .dock
+        }
     }
 
     /// Dismissing the welcome card counts as skip — the offer never reappears.
     func markInstallRegisterSkippedIfUndecided() {
         if installRegisterChoice == .undecided {
             installRegisterChoice = .skipped
+        }
+    }
+
+    var customOrigin: CGPoint? {
+        get {
+            guard defaults.object(forKey: Keys.launcherCustomX) != nil,
+                  defaults.object(forKey: Keys.launcherCustomY) != nil else { return nil }
+            return CGPoint(
+                x: defaults.double(forKey: Keys.launcherCustomX),
+                y: defaults.double(forKey: Keys.launcherCustomY)
+            )
+        }
+        set {
+            if let point = newValue {
+                defaults.set(point.x, forKey: Keys.launcherCustomX)
+                defaults.set(point.y, forKey: Keys.launcherCustomY)
+            } else {
+                defaults.removeObject(forKey: Keys.launcherCustomX)
+                defaults.removeObject(forKey: Keys.launcherCustomY)
+            }
+            objectWillChange.send()
+        }
+    }
+
+    var lastDockPoint: CGPoint? {
+        get {
+            guard defaults.object(forKey: Keys.lastDockIconX) != nil,
+                  defaults.object(forKey: Keys.lastDockIconY) != nil else { return nil }
+            return CGPoint(
+                x: defaults.double(forKey: Keys.lastDockIconX),
+                y: defaults.double(forKey: Keys.lastDockIconY)
+            )
+        }
+        set {
+            if let point = newValue {
+                defaults.set(point.x, forKey: Keys.lastDockIconX)
+                defaults.set(point.y, forKey: Keys.lastDockIconY)
+            } else {
+                defaults.removeObject(forKey: Keys.lastDockIconX)
+                defaults.removeObject(forKey: Keys.lastDockIconY)
+            }
         }
     }
 

@@ -435,6 +435,16 @@ struct SettingsView: View {
                     Text("\(Int(preferences.iconSize)) pt").foregroundStyle(.secondary).monospacedDigit()
                 }
                 Slider(value: $preferences.iconSize, in: 40...80, step: 4)
+                Picker("Launcher position", selection: $preferences.launcherAnchor) {
+                    ForEach(LauncherAnchorMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                Text(preferences.launcherAnchor == .dock
+                     ? "Opens next to the Dock icon (or the menu bar icon if you click that)."
+                     : "Open the launcher and drag it. ClutterDock remembers that spot.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Toggle("Show running-app indicator", isOn: $preferences.showRunningIndicator)
                 Toggle("Close launcher after opening", isOn: $preferences.closeAfterLaunch)
                 Toggle(isOn: Binding(

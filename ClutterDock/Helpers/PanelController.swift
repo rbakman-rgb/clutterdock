@@ -18,6 +18,11 @@ final class PanelController {
     /// True while the fade-out animation is running (panel still “visible”).
     private var isHiding = false
     nonisolated(unsafe) private var resignObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var moveObserver: NSObjectProtocol?
+    /// Skip persisting origin while we are programmatically placing the panel.
+    private var isPositioning = false
+    /// Screen frame of the menu-bar status item, if present.
+    var menuBarAnchorFrame: (() -> NSRect?)?
 
     init(
         store: FolderStore,
@@ -34,8 +39,16 @@ final class PanelController {
             forName: .clutterDockPreferencesChanged,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
-            DispatchQueue.main.async { [weak self] in self?.syncPanelSize() }
+        ) { [weak self] note in
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.syncPanelSize()
+                if (note.object as? String) == AppPreferences.Keys.launcherAnchor,
+                   self.preferences.launcherAnchor == .custom,
+                   let panel = self.panel, panel.isVisible {
+                    self.preferences.customOrigin = panel.frame.origin
+                }
+            }
         }
     }
 
@@ -46,6 +59,9 @@ final class PanelController {
         if let resignObserver {
             NotificationCenter.default.removeObserver(resignObserver)
         }
+        if let moveObserver {
+            NotificationCenter.default.removeObserver(moveObserver)
+        }
     }
 
     var isVisible: Bool {
@@ -53,20 +69,20 @@ final class PanelController {
         return panel.isVisible && !isHiding
     }
 
-    func toggle() {
+    func toggle(from origin: LauncherShowOrigin = .other) {
         if isHiding {
             // User re-opened mid close — cancel hide and show again
-            show()
+            show(from: origin)
             return
         }
-        if isVisible { hide() } else { show() }
+        if isVisible { hide() } else { show(from: origin) }
     }
 
-    func show() {
+    func show(from origin: LauncherShowOrigin = .other) {
         let panel = ensurePanel()
         isHiding = false
         syncPanelSize()
-        position(panel)
+        position(panel, from: origin)
         runningApps.refresh()
         NSApp.activate(ignoringOtherApps: true)
 
@@ -215,6 +231,18 @@ final class PanelController {
             }
         }
 
+        moveObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification,
+            object: panel,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.async { [weak self] in
+                guard let self, !self.isPositioning, self.preferences.launcherAnchor == .custom else { return }
+                guard let panel = self.panel else { return }
+                self.preferences.customOrigin = panel.frame.origin
+            }
+        }
+
         self.panel = panel
         return panel
     }
@@ -228,8 +256,8 @@ final class PanelController {
         panel.setFrame(frame, display: true)
     }
 
-    /// Prefer a stable, Dock-friendly placement: above the Dock / near the pointer.
-    private func position(_ panel: NSPanel) {
+    /// Sit next to the Dock / menu-bar icon, or restore a saved origin.
+    private func position(_ panel: NSPanel, from origin: LauncherShowOrigin) {
         panel.layoutIfNeeded()
         let size = panel.frame.size
         let mouse = NSEvent.mouseLocation
@@ -241,49 +269,28 @@ final class PanelController {
             return
         }
 
-        let visible = screen.visibleFrame
-        let full = screen.frame
-        // Infer Dock edge from the difference between frame and visibleFrame
-        let dockBottom = visible.minY - full.minY
-        let dockLeft = visible.minX - full.minX
-        let dockRight = full.maxX - visible.maxX
-        let dockTop = full.maxY - visible.maxY
-
-        var x = mouse.x - size.width / 2
-        var y: CGFloat
-
-        // Near bottom Dock (most common)
-        if dockBottom > 8 && mouse.y < visible.minY + 120 {
-            x = mouse.x - size.width / 2
-            y = visible.minY + 16
-        }
-        // Near left Dock
-        else if dockLeft > 8 && mouse.x < visible.minX + 120 {
-            x = visible.minX + 16
-            y = mouse.y - size.height / 2
-        }
-        // Near right Dock
-        else if dockRight > 8 && mouse.x > visible.maxX - 120 {
-            x = visible.maxX - size.width - 16
-            y = mouse.y - size.height / 2
-        }
-        // Near top (rare)
-        else if dockTop > 8 && mouse.y > visible.maxY - 80 {
-            x = mouse.x - size.width / 2
-            y = visible.maxY - size.height - 16
-        }
-        // Default: near cursor, prefer below unless near bottom of screen
-        else {
-            x = mouse.x - size.width / 2
-            if mouse.y - size.height - 16 < visible.minY + 8 {
-                y = mouse.y + 20
-            } else {
-                y = mouse.y - size.height - 16
-            }
+        if LauncherPlacement.shouldCacheDockPoint(
+            showOrigin: origin,
+            mouse: mouse,
+            visible: screen.visibleFrame,
+            full: screen.frame
+        ) {
+            preferences.lastDockPoint = mouse
         }
 
-        x = min(max(x, visible.minX + 10), visible.maxX - size.width - 10)
-        y = min(max(y, visible.minY + 10), visible.maxY - size.height - 10)
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        let point = LauncherPlacement.origin(
+            panelSize: size,
+            visibleFrame: screen.visibleFrame,
+            fullFrame: screen.frame,
+            mode: preferences.launcherAnchor,
+            showOrigin: origin,
+            mouse: mouse,
+            statusItemFrame: origin == .menuBar ? menuBarAnchorFrame?() : nil,
+            savedOrigin: preferences.customOrigin,
+            lastDockPoint: preferences.lastDockPoint
+        )
+        isPositioning = true
+        panel.setFrameOrigin(point)
+        isPositioning = false
     }
 }
