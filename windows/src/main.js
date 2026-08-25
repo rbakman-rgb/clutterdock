@@ -41,6 +41,30 @@ if (isWin) {
 let taskbarHost = null;
 let isQuitting = false;
 let suppressTaskbarFocus = false;
+let lastPanelHideAt = 0;
+
+// Native dialogs steal focus from the always-on-top panel. Without a guard the
+// panel's blur handler hides it mid-dialog; without a parent the dialog can
+// open *behind* the panel. Every dialog.show* call must go through here.
+let nativeDialogDepth = 0;
+
+function dialogParent() {
+  if (settingsWin && !settingsWin.isDestroyed() && settingsWin.isFocused()) return settingsWin;
+  if (panel && !panel.isDestroyed() && panel.isVisible()) return panel;
+  if (settingsWin && !settingsWin.isDestroyed()) return settingsWin;
+  return null;
+}
+
+async function showNativeDialog(fn, opts) {
+  nativeDialogDepth += 1;
+  const parent = dialogParent();
+  try {
+    return await (parent ? fn.call(dialog, parent, opts) : fn.call(dialog, opts));
+  } finally {
+    nativeDialogDepth -= 1;
+    if (parent && !parent.isDestroyed() && parent.isVisible()) parent.focus();
+  }
+}
 
 function asset(...parts) {
   return path.join(__dirname, '..', 'assets', ...parts);
@@ -102,10 +126,16 @@ function createPanel() {
 
   panel.on('blur', () => {
     // Don't hide while a native dialog is open
-    if (panel && !panel.webContents.isDevToolsOpened()) {
+    if (panel && !panel.webContents.isDevToolsOpened() && nativeDialogDepth === 0) {
       // Small delay so clicks on dialogs register
       setTimeout(() => {
-        if (panel && !panel.isDestroyed() && !panel.isFocused() && !settingsWin?.isFocused()) {
+        if (
+          panel &&
+          !panel.isDestroyed() &&
+          !panel.isFocused() &&
+          !settingsWin?.isFocused() &&
+          nativeDialogDepth === 0
+        ) {
           hidePanel();
         }
       }, 150);
@@ -152,7 +182,9 @@ function positionPanel() {
 
 function showPanel() {
   const win = createPanel();
-  positionPanel();
+  // Reposition only when actually appearing — repositioning a visible panel
+  // (Pro stack hotkeys, re-shows) makes it jump to wherever the cursor is.
+  if (!win.isVisible()) positionPanel();
   suppressTaskbarFocus = true;
   win.show();
   win.focus();
@@ -164,7 +196,10 @@ function showPanel() {
 }
 
 function hidePanel() {
-  if (panel && !panel.isDestroyed()) panel.hide();
+  if (panel && !panel.isDestroyed() && panel.isVisible()) {
+    lastPanelHideAt = Date.now();
+    panel.hide();
+  }
   stopRunningPoll();
 }
 
@@ -184,6 +219,7 @@ function createSettings() {
     title: 'ClutterDock Settings',
     show: true,
     autoHideMenuBar: true,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#10141d' : '#f8fafc',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -252,6 +288,10 @@ function createTaskbarHost() {
   });
   taskbarHost.on('focus', () => {
     if (suppressTaskbarFocus) return;
+    // A taskbar click on an open panel often blurs the panel (which hides it)
+    // before this focus event lands — toggling then would instantly reopen the
+    // launcher the user just dismissed.
+    if (Date.now() - lastPanelHideAt < 350) return;
     togglePanel();
   });
 
@@ -445,8 +485,10 @@ function wireIpc() {
   });
 
   ipcMain.handle('pick-and-add', async () => {
-    hidePanel();
-    const result = await dialog.showOpenDialog({
+    // The panel stays visible: the dialog is parented (modal) so it can't hide
+    // behind the always-on-top panel, and re-showing used to teleport the panel
+    // to wherever the cursor ended up.
+    const result = await showNativeDialog(dialog.showOpenDialog, {
       title: 'Add to ClutterDock',
       properties: ['openFile', 'openDirectory', 'multiSelections'],
       filters: isWin
@@ -460,7 +502,6 @@ function wireIpc() {
     if (!result.canceled && result.filePaths.length) {
       addResult = store.addPaths(result.filePaths);
     }
-    showPanel();
     return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
   });
 
@@ -614,7 +655,7 @@ function wireIpc() {
     if (!store.gate.canExportPack) {
       return { ok: false, error: 'Pack export requires ClutterDock Pro.' };
     }
-    const result = await dialog.showSaveDialog({
+    const result = await showNativeDialog(dialog.showSaveDialog, {
       title: 'Export ClutterDock pack',
       defaultPath: 'ClutterDock-pack.clutterdock',
       filters: [{ name: 'ClutterDock pack', extensions: ['clutterdock', 'slavedock', 'json'] }],
@@ -629,7 +670,7 @@ function wireIpc() {
   });
 
   ipcMain.handle('import-pack', async (_e, merge) => {
-    const result = await dialog.showOpenDialog({
+    const result = await showNativeDialog(dialog.showOpenDialog, {
       title: 'Import ClutterDock pack',
       properties: ['openFile'],
       filters: [{ name: 'ClutterDock pack', extensions: ['clutterdock', 'slavedock', 'json'] }],
@@ -638,7 +679,7 @@ function wireIpc() {
       return { ok: false, canceled: true, snapshot: store.getSnapshot() };
     }
     if (!merge) {
-      const confirm = await dialog.showMessageBox({
+      const confirm = await showNativeDialog(dialog.showMessageBox, {
         type: 'warning',
         buttons: ['Replace All Stacks', 'Cancel'],
         defaultId: 1,
@@ -743,7 +784,7 @@ function wireIpc() {
         limitMessage: 'Custom stack images are a ClutterDock Pro feature.',
       });
     }
-    const result = await dialog.showOpenDialog({
+    const result = await showNativeDialog(dialog.showOpenDialog, {
       title: 'Choose a stack image',
       properties: ['openFile'],
       filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'] }],
@@ -843,6 +884,16 @@ if (!gotLock) {
     if (isWin) createTaskbarHost();
     createPanel();
     registerHotkey();
+
+    // Follow OS theme switches — a stale backgroundColor flashes the old
+    // theme's color on every resize/show.
+    nativeTheme.on('updated', () => {
+      const dark = nativeTheme.shouldUseDarkColors;
+      if (panel && !panel.isDestroyed()) panel.setBackgroundColor(dark ? '#10141d' : '#f4f6fb');
+      if (settingsWin && !settingsWin.isDestroyed()) {
+        settingsWin.setBackgroundColor(dark ? '#10141d' : '#f8fafc');
+      }
+    });
 
     updater = setupUpdater({
       onStatus: (msg) => {

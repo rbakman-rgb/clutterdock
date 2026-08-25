@@ -87,7 +87,7 @@ async function call(promise) {
   const snap = res && res.snapshot ? res.snapshot : res;
   await refresh(snap);
   if (res && res.limitMessage) upsellDialog(res.limitMessage);
-  else if (res && res.ok === false && res.error) alert(res.error);
+  else if (res && res.ok === false && res.error) infoDialog(res.error);
   return res;
 }
 
@@ -117,7 +117,7 @@ function render() {
   if (!snapshot) return;
   if (snapshot.dataWarning && !dataWarningShown) {
     dataWarningShown = true;
-    alert(snapshot.dataWarning);
+    infoDialog(snapshot.dataWarning, 'Heads up');
   }
   renderWorkspaceBar();
   renderTabs();
@@ -182,7 +182,8 @@ let runningPathSet = new Set();
 if (clutterDock.onRunningPaths) {
   clutterDock.onRunningPaths((paths) => {
     runningPathSet = new Set(paths || []);
-    renderContent();
+    // Rebuilding the DOM mid-drag kills the drag in progress
+    if (!dragId) renderContent();
   });
 }
 
@@ -194,6 +195,10 @@ function renderTabs() {
   const tabs = $('tabs');
   const folders = visibleFolders();
   tabs.innerHTML = '';
+  // Tabs scroll in their own strip; the actions + tier badge stay pinned in
+  // view (inside one scroller they'd be pushed off-screen by enough stacks).
+  const scroller = document.createElement('div');
+  scroller.className = 'tab-scroll';
   for (const f of folders) {
     const b = document.createElement('button');
     b.className = 'tab' + (f.id === snapshot.state.selectedFolderID ? ' active' : '');
@@ -241,13 +246,19 @@ function renderTabs() {
         await call(clutterDock.addPaths(files, f.id));
       }
     });
-    tabs.appendChild(b);
+    scroller.appendChild(b);
   }
+  tabs.appendChild(scroller);
+  scroller.querySelector('.tab.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   const actions = document.createElement('div');
   actions.className = 'tab-actions';
   actions.innerHTML = `
-    <button class="icon-btn" id="addFolderBtn" title="New stack" aria-label="New stack">📁+</button>
-    <button class="icon-btn" id="addItemsBtn" title="Add items" aria-label="Add items">＋</button>
+    <button class="icon-btn" id="addFolderBtn" title="New stack" aria-label="New stack">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+    </button>
+    <button class="icon-btn" id="addItemsBtn" title="Add items" aria-label="Add items">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
   `;
   tabs.appendChild(actions);
   $('addFolderBtn').onclick = async () => {
@@ -339,6 +350,11 @@ function renderContent() {
           e.dataTransfer.setData('text/plain', item.id);
           e.dataTransfer.effectAllowed = 'move';
         });
+        tile.addEventListener('dragend', () => {
+          // Also fires after a cancelled drag — without this the running-paths
+          // render guard would stay stuck on
+          dragId = null;
+        });
         tile.addEventListener('dragover', (e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -367,7 +383,7 @@ function wireItem(el, item, folder) {
     selectedId = item.id;
     renderContent();
     const res = await clutterDock.openItem(item);
-    if (!res?.ok && res?.error) alert(res.error);
+    if (!res?.ok && res?.error) infoDialog(res.error);
     else await refresh();
   };
   el.onkeydown = (e) => {
@@ -674,6 +690,23 @@ async function unlockStack(folder) {
     sub: 'Enter the password for this stack.',
   });
   if (password) await call(clutterDock.unlockFolder(folder.id, password));
+}
+
+/* window.alert() in a frameless Electron window leaves inputs unfocusable on
+   Windows until the window is refocused — errors go through the in-panel modal. */
+function infoDialog(message, title = 'ClutterDock') {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>${escapeHtml(title)}</h2>
+        <p class="dialog-sub">${escapeHtml(message).replace(/\n/g, '<br/>')}</p>
+        <div class="row">
+          <button class="btn primary" id="dlgOk">OK</button>
+        </div>
+      </div>`;
+    $('dlgOk').onclick = () => closeModal(null);
+    $('dlgOk').focus();
+  });
 }
 
 function upsellDialog(message) {
