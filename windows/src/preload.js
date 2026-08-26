@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld('clutterDock', {
   setFolderColor: (folderID, color) => ipcRenderer.invoke('set-folder-color', folderID, color),
   openItemAdmin: (itemID) => ipcRenderer.invoke('open-item-admin', itemID),
   scanImportSources: () => ipcRenderer.invoke('scan-import-sources'),
+  getAppIndex: () => ipcRenderer.invoke('get-app-index'),
+  getAppIcon: (target) => ipcRenderer.invoke('get-app-icon', target),
   importShortcuts: (entries, folderID) => ipcRenderer.invoke('import-shortcuts', entries, folderID),
   pasteAdd: (folderID) => ipcRenderer.invoke('paste-add', folderID),
   copyItems: (itemIDs) => ipcRenderer.invoke('copy-items', itemIDs),

@@ -389,6 +389,85 @@ function renderTabs() {
   tabs.appendChild(badge);
 }
 
+// ---- Search-to-add: every installed app is searchable before it's added ----
+
+let appIndexCache = null;
+let appIndexCacheAt = 0;
+let appIndexFetching = false;
+
+function ensureAppIndexCache() {
+  if (appIndexFetching || !clutterDock.getAppIndex) return;
+  if (appIndexCache && Date.now() - appIndexCacheAt < 5 * 60 * 1000) return;
+  appIndexFetching = true;
+  clutterDock
+    .getAppIndex()
+    .then((list) => {
+      appIndexFetching = false;
+      appIndexCache = Array.isArray(list) ? list : [];
+      appIndexCacheAt = Date.now();
+      if (searchText.trim()) renderContent(); // results arrived mid-search
+    })
+    .catch(() => {
+      appIndexFetching = false;
+      appIndexCache = appIndexCache || [];
+    });
+}
+
+function addTargetFolder() {
+  const f = selectedFolder();
+  if (f && f.smartKind === 'none') return f;
+  return visibleFolders().find((x) => x.smartKind === 'none') || null;
+}
+
+function hydrateAppIcon(container, target) {
+  const cached = iconMemo.get(target);
+  if (cached === null) return;
+  if (typeof cached === 'string') {
+    container.innerHTML = `<img src="${cached}" alt="" draggable="false" />`;
+    return;
+  }
+  clutterDock.getAppIcon(target).then((url) => {
+    iconMemo.set(target, url);
+    if (url && container.isConnected) {
+      container.innerHTML = `<img src="${url}" alt="" draggable="false" />`;
+    }
+  });
+}
+
+function renderAppIndexSection(content, folder, q) {
+  if (!q || isLockedFolder(folder)) return;
+  ensureAppIndexCache();
+  const target = addTargetFolder();
+  if (!target || !appIndexCache || !appIndexCache.length) return;
+  const inTarget = new Set((target.items || []).map((i) => String(i.path).toLowerCase()));
+  const hist = frecencyMap();
+  const hits = appIndexCache
+    .filter((a) => !inTarget.has(String(a.target).toLowerCase()))
+    .map((a) => ({ a, score: itemScore({ name: a.name, path: a.target, kind: 'app' }, q, hist) }))
+    .filter((x) => x.score > 0)
+    .sort((x, y) => y.score - x.score)
+    .slice(0, 8);
+  if (!hits.length) return;
+  const section = document.createElement('div');
+  section.className = 'appidx';
+  section.innerHTML = `<div class="appidx-head">Add from installed apps</div>`;
+  for (const { a } of hits) {
+    const row = document.createElement('button');
+    row.className = 'appidx-row';
+    row.title = `Add "${a.name}" to ${target.name}\n${displayPath(a.target)}`;
+    row.innerHTML = `
+      <span class="tile-icon app appidx-icon">${ICON.app}</span>
+      <span class="appidx-name">${highlightName(a.name, q)}</span>
+      <span class="appidx-src">${escapeHtml(a.source)}</span>
+      <span class="appidx-add">＋ Add</span>`;
+    row.onclick = () =>
+      call(clutterDock.importShortcuts([{ target: a.target, name: a.name }], target.id));
+    hydrateAppIcon(row.querySelector('.appidx-icon'), a.target);
+    section.appendChild(row);
+  }
+  content.appendChild(section);
+}
+
 let lastContentKey = null;
 
 function renderContent() {
@@ -413,7 +492,15 @@ function renderContent() {
     return;
   }
 
+  const q = searchText.trim().toLowerCase();
   if (!items.length) {
+    // A search with no stack matches still offers the installed-app index —
+    // the "fresh install, type an app name, click add" path
+    if (q) {
+      content.innerHTML = `<div class="empty-search"><p>No matches${searchGlobal ? '' : ' in this stack'}.</p></div>`;
+      renderAppIndexSection(content, folder, q);
+      return;
+    }
     const isSmart = folder && folder.smartKind !== 'none';
     content.innerHTML = `
       <div class="empty">
@@ -439,7 +526,6 @@ function renderContent() {
   }
 
   const viewMode = folder?.viewMode || 'grid';
-  const q = searchText.trim().toLowerCase();
   if (viewMode === 'list' || (searchGlobal && searchText.trim())) {
     content.innerHTML = `<div class="list" id="list"></div>`;
     const list = $('list');
@@ -506,6 +592,8 @@ function renderContent() {
       grid.appendChild(tile);
     }
   }
+  // Below the stack's own matches: installed apps that could be added
+  renderAppIndexSection(content, folder, q);
 }
 
 function wireItem(el, item, folder) {

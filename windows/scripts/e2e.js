@@ -432,6 +432,24 @@ const rpc = (script, arg) => page.evaluate(script, arg);
     await rpc(({ i, fid }) => clutterDock.removeItem(i, fid), { i: imported.id, fid: target.id });
   });
 
+  await check('search-to-add: app index served, icons gated, rows render', async () => {
+    const idx = await rpc(() => clutterDock.getAppIndex());
+    assert(Array.isArray(idx), 'app index is not an array');
+    // The icon endpoint must refuse paths that aren't in the index
+    const leaked = await rpc((p) => clutterDock.getAppIcon(p), testFiles[0]);
+    assert(leaked === null, 'icon endpoint served a non-indexed path');
+    if (idx.length) {
+      // Real machine: searching an installed app's name offers a one-click add
+      const probe = idx[0].name.slice(0, 4);
+      await page.fill('#search', probe);
+      await page.waitForTimeout(600);
+      const rows = await rpc(() => document.querySelectorAll('.appidx-row').length);
+      assert(rows > 0, `no installed-app rows for "${probe}"`);
+      await page.fill('#search', '');
+      await page.waitForTimeout(300);
+    }
+  });
+
   await check('switcher: chevron appears once stacks outgrow the strip', async () => {
     await page.reload();
     await page.waitForSelector('#addFolderBtn', { timeout: 15000 });

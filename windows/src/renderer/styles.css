@@ -751,6 +751,74 @@ body.acrylic #app {
     transparent, black 14px, black calc(100% - 18px), transparent);
 }
 
+/* Search-to-add: installed apps offered under search results */
+.appidx {
+  margin: 10px 4px 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.appidx-head {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 0 8px 6px;
+}
+.appidx-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 12.5px;
+  text-align: left;
+}
+.appidx-row:hover { background: var(--tile-hover); }
+.appidx-row .appidx-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.appidx-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appidx-name b { font-weight: 700; color: var(--tab-active-text); }
+.appidx-src {
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.appidx-add {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tab-active-text);
+  background: var(--accent-soft);
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.appidx-row:hover .appidx-add { filter: brightness(1.08); }
+
+/* Search-with-no-stack-matches state (the app index renders below it) */
+.empty-search {
+  padding: 14px 12px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.empty-search p { margin: 0; }
+
 /* Hotkey recorder armed state */
 #hotkeyRecord.recording {
   border-color: var(--accent);

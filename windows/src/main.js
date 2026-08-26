@@ -765,6 +765,35 @@ function scanImportSources() {
   return out;
 }
 
+// Installed-app index: lets search offer every app on the machine with a
+// one-click add, before the user has put anything in a stack. Built lazily
+// from the same shortcut scan the import wizard uses; refreshed when stale.
+let appIndex = [];
+let appIndexBuiltAt = 0;
+let appIndexBuilding = null;
+const APP_INDEX_TTL = 15 * 60 * 1000;
+
+function ensureAppIndex() {
+  if (Date.now() - appIndexBuiltAt < APP_INDEX_TTL && appIndex.length) {
+    return Promise.resolve(appIndex);
+  }
+  if (appIndexBuilding) return appIndexBuilding;
+  appIndexBuilding = new Promise((resolve) => {
+    // The scan is a bounded sync walk (~50-200ms) — keep it off the show path
+    setTimeout(() => {
+      try {
+        appIndex = scanImportSources();
+        appIndexBuiltAt = Date.now();
+      } catch (e) {
+        console.warn('app index build failed', e);
+      }
+      appIndexBuilding = null;
+      resolve(appIndex);
+    }, 0);
+  });
+  return appIndexBuilding;
+}
+
 // "Send to → ClutterDock" in Explorer's right-click menu (packaged builds only —
 // in dev the target would be a bare electron.exe)
 function sendToShortcutPath() {
@@ -986,6 +1015,27 @@ function wireIpc() {
       console.warn('shortcut scan failed', e);
       return [];
     }
+  });
+
+  // Installed-app index for search-to-add
+  ipcMain.handle('get-app-index', () => ensureAppIndex());
+
+  // Icon for an INDEXED app only — the renderer must not be able to probe
+  // arbitrary paths through the icon extractor
+  ipcMain.handle('get-app-icon', async (_e, target) => {
+    if (typeof target !== 'string') return null;
+    const entry = appIndex.find((x) => x.target === target);
+    if (!entry || !fs.existsSync(entry.target)) return null;
+    if (iconCache.has(entry.target)) return iconCache.get(entry.target);
+    let url = null;
+    try {
+      const icon = await app.getFileIcon(entry.target, { size: 'large' });
+      if (icon && !icon.isEmpty()) url = icon.toDataURL();
+    } catch (_) {
+      /* fall through to null */
+    }
+    iconCache.set(entry.target, url);
+    return url;
   });
 
   ipcMain.handle('import-shortcuts', async (_e, entries, folderID) => {
@@ -1528,6 +1578,7 @@ if (!gotLock) {
     registerHotkey();
     syncSendToShortcut();
     refreshJumpList();
+    setTimeout(() => ensureAppIndex(), 2500); // warm the search-to-add index off the boot path
 
     // Follow OS theme switches — a stale backgroundColor flashes the old
     // theme's color on every resize/show.
