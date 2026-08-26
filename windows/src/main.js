@@ -47,6 +47,14 @@ let taskbarHost = null;
 let isQuitting = false;
 let suppressTaskbarFocus = false;
 let lastPanelHideAt = 0;
+let lastPanelShowAt = 0;
+let showFocusRetries = 0;
+
+// Event tracing for the taskbar-click interaction (CLUTTER_DOCK_DEBUG=1)
+const DEBUG_EVENTS = !!process.env.CLUTTER_DOCK_DEBUG;
+function dlog(msg) {
+  if (DEBUG_EVENTS) console.log(`[${new Date().toISOString().slice(11, 23)}] ${msg}`);
+}
 // A drag hovering the panel must never trigger the blur auto-hide — the drop
 // target would vanish mid-drag (renderer reports via 'set-drag-active').
 let panelDragActiveUntil = 0;
@@ -111,7 +119,10 @@ function safeOpenExternal(rawUrl) {
 function createPanel() {
   if (panel && !panel.isDestroyed()) return panel;
 
-  const useAcrylic = acrylicSupported && store?.prefs?.transparencyEffects !== false;
+  const useAcrylic =
+    !process.env.CLUTTER_DOCK_NO_ACRYLIC && // A/B kill switch for diagnosing show-flicker
+    acrylicSupported &&
+    store?.prefs?.transparencyEffects !== false;
   panel = new BrowserWindow({
     width: store?.prefs?.panelWidth || 480,
     height: store?.prefs?.panelHeight || 520,
@@ -143,6 +154,23 @@ function createPanel() {
   panel.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   panel.on('blur', () => {
+    dlog('panel:blur');
+    // Focus stolen by Windows' own processing of the click that just showed
+    // the panel — take it back IMMEDIATELY. Repairing it in the 150ms timer
+    // left the panel visibly inactive (dimmed acrylic) and then re-activating,
+    // which read as an open→flicker→reopen.
+    if (
+      panel &&
+      !panel.isDestroyed() &&
+      panel.isVisible() &&
+      Date.now() - lastPanelShowAt < 400 &&
+      showFocusRetries < 2
+    ) {
+      showFocusRetries += 1;
+      dlog(`panel:blur within show grace → instant refocus (retry ${showFocusRetries})`);
+      panel.focus();
+      return;
+    }
     // Don't hide while a native dialog is open, the user pinned the panel
     // open, or a drag from Explorer is in flight (starting that drag blurs us)
     if (
@@ -163,11 +191,27 @@ function createPanel() {
           !store?.prefs?.keepOpen &&
           Date.now() > panelDragActiveUntil
         ) {
+          // A taskbar click that shows the panel ends with Windows activating
+          // some other window (the host on focus/restore clicks, the next
+          // z-order window on minimize clicks) ~1ms after we focus the panel.
+          // Within the show grace window that stolen focus is part of the same
+          // gesture, not the user leaving — take focus back (capped, so a
+          // genuine instant departure still wins).
+          if (Date.now() - lastPanelShowAt < 800 && showFocusRetries < 2) {
+            showFocusRetries += 1;
+            dlog(`panel:blur-timer → focus stolen right after show; re-asserting (retry ${showFocusRetries})`);
+            panel.focus();
+            return;
+          }
+          dlog('panel:blur-timer → hide');
           hidePanel();
+        } else {
+          dlog('panel:blur-timer → kept (refocused or guarded)');
         }
       }, 150);
     }
   });
+  panel.on('focus', () => dlog('panel:focus'));
 
   panel.on('closed', () => {
     panel = null;
@@ -241,11 +285,16 @@ function positionPanel() {
 
 function showPanel() {
   const win = createPanel();
+  dlog(`showPanel (wasVisible=${win.isVisible()})`);
   // Reposition only when actually appearing — repositioning a visible panel
   // (Pro stack hotkeys, re-shows) makes it jump to wherever the cursor is.
   if (!win.isVisible()) positionPanel();
   suppressTaskbarFocus = true;
   const wasHidden = !win.isVisible();
+  if (wasHidden) {
+    lastPanelShowAt = Date.now();
+    showFocusRetries = 0;
+  }
   win.show();
   win.focus();
   win.webContents.send('snapshot', store.getSnapshot());
@@ -259,8 +308,11 @@ function showPanel() {
 
 function hidePanel() {
   if (panel && !panel.isDestroyed() && panel.isVisible()) {
+    dlog('hidePanel → hiding');
     lastPanelHideAt = Date.now();
     panel.hide();
+  } else {
+    dlog('hidePanel (already hidden)');
   }
   stopRunningPoll();
 }
@@ -348,10 +400,19 @@ function createTaskbarHost() {
   // visibility changes now go through a single debounced gate, and anything
   // arriving shortly after a hide is treated as the same gesture.
   let lastHostActionAt = 0;
-  const hostAction = (fn) => {
+  const hostAction = (label, fn) => {
     const now = Date.now();
-    if (now - lastHostActionAt < 450) return; // trailing events of the same click
-    if (now - lastPanelHideAt < 500) return; // the click that hid it, or Windows refocusing us after a hide
+    const sinceAction = now - lastHostActionAt;
+    const sinceHide = now - lastPanelHideAt;
+    if (sinceAction < 450) {
+      dlog(`host:${label} SWALLOWED (same-click, ${sinceAction}ms since last action)`);
+      return;
+    }
+    if (sinceHide < 500) {
+      dlog(`host:${label} SWALLOWED (post-hide, ${sinceHide}ms since hide)`);
+      return;
+    }
+    dlog(`host:${label} ACTING (sinceAction=${sinceAction}ms sinceHide=${sinceHide}ms)`);
     lastHostActionAt = now;
     fn();
   };
@@ -359,22 +420,31 @@ function createTaskbarHost() {
   taskbarHost.on('close', (e) => {
     if (isQuitting) return;
     e.preventDefault();
-    hostAction(togglePanel);
+    hostAction('close', togglePanel);
   });
+  // Windows maps a taskbar click to focus, minimize, OR restore depending on
+  // the host's current state — the user means the same thing by all of them:
+  // "toggle the launcher". Treat them identically; the gate dedupes the
+  // multiple events one click produces.
   taskbarHost.on('minimize', () => {
-    // Taskbar-click minimize of the host means "dismiss" — no debounce needed
-    // to hide, but it must count as a host action so restore/focus from the
-    // same click don't instantly reopen.
-    lastHostActionAt = Date.now();
-    hidePanel();
+    hostAction('minimize', togglePanel);
   });
   taskbarHost.on('restore', () => {
-    hostAction(showPanel);
+    hostAction('restore', togglePanel);
   });
   taskbarHost.on('focus', () => {
-    if (suppressTaskbarFocus) return;
-    hostAction(togglePanel);
+    if (suppressTaskbarFocus) {
+      // The click that opened the panel ends by activating the host — give
+      // focus straight back so the blur auto-hide never sees an orphan panel
+      dlog('host:focus during show → bouncing focus back to panel');
+      if (panel && !panel.isDestroyed() && panel.isVisible()) panel.focus();
+      return;
+    }
+    hostAction('focus', togglePanel);
   });
+  taskbarHost.on('blur', () => dlog('host:blur'));
+  taskbarHost.on('show', () => dlog('host:show'));
+  taskbarHost.on('hide', () => dlog('host:hide'));
 
   try {
     app.setUserTasks([

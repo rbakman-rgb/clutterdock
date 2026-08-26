@@ -140,7 +140,9 @@ function defaultPrefs() {
     panelPlacement: 'cursor',
     panelX: null,
     panelY: null,
-    transparencyEffects: true,
+    // Off by default: Windows re-composites the acrylic backdrop AFTER a hidden
+    // window re-shows, which flashes visibly on every open (seen on video).
+    transparencyEffects: false,
     sendToShortcut: true,
     licenseKey: '',
     themeAccent: 'system',

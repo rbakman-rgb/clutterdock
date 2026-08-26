@@ -92,6 +92,10 @@ const rpc = (script, arg) => page.evaluate(script, arg);
     assert(s.prefs.installRegisterChoice === 'skipped', `choice: ${s.prefs.installRegisterChoice}`);
     const hidden = await rpc(() => document.getElementById('overlay').hidden);
     assert(hidden, 'overlay still visible');
+    // Pin the panel open for the rest of the suite: a human using the machine
+    // during a run steals focus, the blur auto-hide fires, and every
+    // subsequent page.click times out on a hidden window.
+    await rpc(() => clutterDock.updatePrefs({ keepOpen: true }));
   });
 
   // ---- Stacks: free tier ----
@@ -337,14 +341,17 @@ const rpc = (script, arg) => page.evaluate(script, arg);
 
   // ---- New feature coverage (pin, theme, rename, colors, paste, smart stacks) ----
   await check('pin: 📌 toggles keepOpen and survives in prefs', async () => {
+    // keepOpen is already true (suite-wide anti-interference pin) — assert
+    // the button INVERTS it each click, then restore the pinned state.
+    const before = (await snap()).prefs.keepOpen;
     await page.click('#pinBtn');
     await page.waitForTimeout(300);
     let s = await snap();
-    assert(s.prefs.keepOpen === true, 'pin did not set keepOpen');
+    assert(s.prefs.keepOpen === !before, 'pin click did not invert keepOpen');
     await page.click('#pinBtn');
     await page.waitForTimeout(300);
     s = await snap();
-    assert(s.prefs.keepOpen === false, 'unpin did not clear keepOpen');
+    assert(s.prefs.keepOpen === before, 'second pin click did not restore keepOpen');
   });
 
   await check('theme: pref drives nativeTheme, junk falls back to system', async () => {

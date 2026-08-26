@@ -760,15 +760,15 @@ body.acrylic #app {
 /* ================= Motion & feel =================
    Fast, springy, purposeful — every animation under 300ms. */
 
-/* Panel entrance: rise + fade, like the Win11 flyouts */
-/* Starts at 0.55, not 0 — over acrylic a full fade-from-nothing reads as a
-   ghost/flicker of the desktop behind the panel */
+/* Panel entrance: fade only. Any transform here fights the OS — the window's
+   first painted frame is the pre-animation layout, so translate/scale starts
+   read as the content snapping and re-settling (user-reported three ways). */
 @keyframes panelEnter {
-  from { opacity: 0.55; transform: translateY(10px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0.85; }
+  to { opacity: 1; }
 }
 #app.panel-enter {
-  animation: panelEnter 0.18s cubic-bezier(0.2, 0.9, 0.3, 1);
+  animation: panelEnter 0.12s ease-out;
 }
 
 /* Content cross-fade — only when the stack actually changes (renderer keys it),
