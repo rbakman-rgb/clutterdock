@@ -48,7 +48,7 @@ async function launch() {
     executablePath: require('electron'),
     args: ['.', '--no-sandbox', `--user-data-dir=${userDataDir}`],
     cwd: APP_DIR,
-    env: { ...process.env, CLUTTER_DOCK_NO_UPDATE: '1' },
+    env: { ...process.env, CLUTTER_DOCK_NO_UPDATE: '1', CLUTTER_DOCK_NO_NET: '1' },
   });
   // On Windows the invisible taskbar-host window is created before the panel,
   // so firstWindow() would return the wrong page — select the panel by URL.
@@ -333,6 +333,123 @@ const rpc = (script, arg) => page.evaluate(script, arg);
     const s = await snap();
     assert(s.license.isPro, 'license clobbered via updatePrefs');
     assert(s.prefs.installRegisterChoice === 'skipped', `choice: ${s.prefs.installRegisterChoice}`);
+  });
+
+  // ---- New feature coverage (pin, theme, rename, colors, paste, smart stacks) ----
+  await check('pin: 📌 toggles keepOpen and survives in prefs', async () => {
+    await page.click('#pinBtn');
+    await page.waitForTimeout(300);
+    let s = await snap();
+    assert(s.prefs.keepOpen === true, 'pin did not set keepOpen');
+    await page.click('#pinBtn');
+    await page.waitForTimeout(300);
+    s = await snap();
+    assert(s.prefs.keepOpen === false, 'unpin did not clear keepOpen');
+  });
+
+  await check('theme: pref drives nativeTheme, junk falls back to system', async () => {
+    await rpc(() => clutterDock.updatePrefs({ theme: 'dark' }));
+    const dark = await app.evaluate(({ nativeTheme }) => nativeTheme.shouldUseDarkColors);
+    assert(dark === true, 'dark theme not applied');
+    await rpc(() => clutterDock.updatePrefs({ theme: 'blorp' }));
+    const s = await snap();
+    assert(s.prefs.theme === 'system', `junk theme stored: ${s.prefs.theme}`);
+  });
+
+  await check('smart stacks: Most Used exists alongside Recents', async () => {
+    const s = await snap();
+    assert(s.state.folders.some((f) => f.smartKind === 'mostused'), 'Most Used missing');
+    assert(s.state.folders.filter((f) => f.smartKind === 'mostused').length === 1, 'duplicated');
+  });
+
+  await check('rename item: context action renames in place', async () => {
+    let s = await snap();
+    const f = s.state.folders[0];
+    const item = f.items[0];
+    await rpc(({ i, fid }) => clutterDock.renameItem(i, fid, 'Renamed Item'), { i: item.id, fid: f.id });
+    s = await snap();
+    assert(s.state.folders[0].items.find((x) => x.id === item.id).name === 'Renamed Item', 'rename failed');
+  });
+
+  await check('stack colors: palette hex stored, junk rejected', async () => {
+    let s = await snap();
+    const f = s.state.folders[0];
+    await rpc(({ id }) => clutterDock.setFolderColor(id, '#3B82F6'), { id: f.id });
+    s = await snap();
+    assert(s.state.folders[0].color === '#3B82F6', 'color not stored');
+    await rpc(({ id }) => clutterDock.setFolderColor(id, 'url(javascript:1)'), { id: f.id });
+    s = await snap();
+    assert(s.state.folders[0].color === '#3B82F6', 'junk color accepted');
+    await rpc(({ id }) => clutterDock.setFolderColor(id, ''), { id: f.id });
+    s = await snap();
+    assert(!s.state.folders[0].color, 'color not cleared');
+  });
+
+  await check('clipboard: paste adds a URL, copy puts items back on it', async () => {
+    let s = await snap();
+    const target = s.state.folders.find((x) => x.name === 'S2');
+    await app.evaluate(({ clipboard }) => clipboard.writeText('https://paste-test.example.com'));
+    const res = await rpc((id) => clutterDock.pasteAdd(id), target.id);
+    assert(res.pasted === 1, `paste added ${res.pasted}`);
+    s = await snap();
+    const urlItem = s.state.folders
+      .find((x) => x.id === target.id)
+      .items.find((i) => i.path === 'https://paste-test.example.com');
+    assert(urlItem, 'pasted URL not stored');
+    const copyRes = await rpc((ids) => clutterDock.copyItems(ids), [urlItem.id]);
+    assert(copyRes.ok, 'copy failed');
+    const text = await app.evaluate(({ clipboard }) => clipboard.readText());
+    assert(text.includes('paste-test.example.com'), `clipboard: ${text}`);
+    await rpc(({ i, fid }) => clutterDock.removeItem(i, fid), { i: urlItem.id, fid: target.id });
+  });
+
+  await check('import: shortcut scan returns a clean list; import API adds by target', async () => {
+    const entries = await rpc(() => clutterDock.scanImportSources());
+    assert(Array.isArray(entries), 'scan did not return an array');
+    for (const x of entries.slice(0, 5)) {
+      assert(typeof x.target === 'string' && typeof x.name === 'string', 'malformed entry');
+    }
+    // Import API path works regardless of what the OS has pinned
+    let s = await snap();
+    const target = s.state.folders.find((x) => x.name === 'S2');
+    const res = await rpc(
+      ({ list, id }) => clutterDock.importShortcuts(list, id),
+      { list: [{ target: testFiles[22], name: 'Imported Friendly Name' }], id: target.id }
+    );
+    assert(res.ok, 'importShortcuts failed');
+    s = await snap();
+    const imported = s.state.folders
+      .find((x) => x.id === target.id)
+      .items.find((i) => i.name === 'Imported Friendly Name');
+    assert(imported, 'friendly name not applied on import');
+    await rpc(({ i, fid }) => clutterDock.removeItem(i, fid), { i: imported.id, fid: target.id });
+  });
+
+  await check('switcher: chevron appears once stacks outgrow the strip', async () => {
+    await page.reload();
+    await page.waitForSelector('#addFolderBtn', { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const present = await rpc(() => !!document.getElementById('switcherBtn'));
+    assert(present, 'switcher button missing with 7+ stacks');
+  });
+
+  await check('search: frecency-ranked results, fuzzy match, Esc clears first', async () => {
+    const hits = await rpc(() => clutterDock.searchAll('item-0'));
+    assert(hits.length > 0 && typeof hits[0].score === 'number', 'no scored hits');
+    const fuzzy = await rpc(() => clutterDock.searchAll('itm05'));
+    assert(fuzzy.some((h) => h.item.name.includes('item-05')), 'fuzzy match failed');
+    await page.fill('#search', 'zzz');
+    await page.waitForTimeout(300);
+    await page.focus('#search');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const cleared = await rpc(() => document.getElementById('search').value);
+    assert(cleared === '', 'Esc did not clear the search text');
+    const visible = await app.evaluate(({ BrowserWindow }) => {
+      const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('index.html'));
+      return w.isVisible();
+    });
+    assert(visible, 'first Esc hid the panel instead of clearing search');
   });
 
   // ---- Renderer dialogs ----

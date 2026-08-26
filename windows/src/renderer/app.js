@@ -3,10 +3,91 @@
 let snapshot = null;
 let searchGlobal = false;
 let searchText = '';
-let selectedId = null;
+let selectedId = null; // selection anchor (keyboard + shift ranges)
+let selectedIds = new Set(); // full multi-selection
 let dragId = null;
 
 const $ = (id) => document.getElementById(id);
+
+function setSelection(ids, anchor) {
+  selectedIds = new Set(ids);
+  selectedId = anchor ?? [...selectedIds][0] ?? null;
+}
+
+function isSelected(id) {
+  return selectedIds.has(id) || id === selectedId;
+}
+
+// --- Launcher-grade matching (mirrors the main-process searchAll scoring) ---
+
+function subsequenceMatch(hay, q) {
+  let i = 0;
+  for (const ch of hay) {
+    if (ch === q[i]) i += 1;
+    if (i === q.length) return true;
+  }
+  return false;
+}
+
+function frecencyMap() {
+  const map = new Map();
+  for (const e of snapshot?.history || []) map.set(`${e.kind}|${e.path}`, e);
+  return map;
+}
+
+function itemScore(item, q, hist) {
+  const name = String(item.name || '').toLowerCase();
+  const p = String(item.path || '').toLowerCase();
+  let score = 0;
+  if (name === q) score = 200;
+  else if (name.startsWith(q)) score = 140;
+  else if (name.includes(q)) score = 100;
+  else if (p.includes(q)) score = 40;
+  else if (q.length >= 2 && subsequenceMatch(name, q)) score = 25;
+  if (!score) return 0;
+  const h = hist.get(`${item.kind}|${item.path}`);
+  if (h) {
+    score += Math.min(h.openCount || 0, 20) * 2;
+    const age = Date.now() - Date.parse(h.lastOpened || 0);
+    if (age >= 0 && age < 7 * 24 * 3600 * 1000) score += 10;
+  }
+  return score;
+}
+
+/** Windows-style display path — items are stored with either separator. */
+function displayPath(p) {
+  return /^[A-Za-z]:[\\/]/.test(p) ? String(p).replace(/\//g, '\\') : String(p);
+}
+
+/** Wrap the matched query characters of `name` in <b>, HTML-escaped. */
+function highlightName(name, q) {
+  const raw = String(name);
+  if (!q) return escapeHtml(raw);
+  const lower = raw.toLowerCase();
+  let ranges = [];
+  const idx = lower.indexOf(q);
+  if (idx >= 0) {
+    ranges = [[idx, idx + q.length]];
+  } else if (q.length >= 2) {
+    // subsequence: mark each matched character
+    let qi = 0;
+    for (let i = 0; i < lower.length && qi < q.length; i++) {
+      if (lower[i] === q[qi]) {
+        ranges.push([i, i + 1]);
+        qi += 1;
+      }
+    }
+    if (qi < q.length) ranges = [];
+  }
+  if (!ranges.length) return escapeHtml(raw);
+  let out = '';
+  let pos = 0;
+  for (const [a, b] of ranges) {
+    out += escapeHtml(raw.slice(pos, a)) + '<b>' + escapeHtml(raw.slice(a, b)) + '</b>';
+    pos = b;
+  }
+  return out + escapeHtml(raw.slice(pos));
+}
 
 const ICON = {
   app: '🟩',
@@ -54,6 +135,10 @@ function itemsForView() {
       path: e.path,
       name: e.name,
     }));
+  } else if (folder.smartKind === 'mostused') {
+    items = [...(snapshot.history || [])]
+      .sort((a, b) => (b.openCount || 0) - (a.openCount || 0))
+      .map((e) => ({ id: e.id, kind: e.kind, path: e.path, name: e.name }));
   } else {
     items = [...(folder.items || [])];
     if (folder.sortMode === 'nameAZ') items.sort((a, b) => a.name.localeCompare(b.name));
@@ -63,7 +148,12 @@ function itemsForView() {
     }
   }
   if (q && !searchGlobal) {
-    items = items.filter((i) => `${i.name} ${i.path}`.toLowerCase().includes(q));
+    const hist = frecencyMap();
+    items = items
+      .map((i) => ({ item: i, score: itemScore(i, q, hist) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.item);
   }
   return items;
 }
@@ -96,7 +186,7 @@ async function call(promise) {
 const iconMemo = new Map();
 
 function hydrateIcon(container, item) {
-  if (!container || item.kind === 'url') return;
+  if (!container) return; // URLs hydrate too: favicons come back as data URLs
   const cached = iconMemo.get(item.path);
   if (cached === null) return; // known to have no native icon
   if (typeof cached === 'string') {
@@ -119,14 +209,20 @@ function render() {
     dataWarningShown = true;
     infoDialog(snapshot.dataWarning, 'Heads up');
   }
+  document.body.classList.toggle('acrylic', !!snapshot.runtime?.acrylic);
   renderWorkspaceBar();
   renderTabs();
   renderContent();
   renderHints();
   renderOnboarding();
   const items = itemsForView();
-  $('count').textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
+  const sel = selectedIds.size > 1 ? ` · ${selectedIds.size} selected` : '';
+  $('count').textContent = `${items.length} item${items.length === 1 ? '' : 's'}${sel}`;
   $('searchAll').classList.toggle('on', searchGlobal);
+  $('pinBtn').classList.toggle('on', !!snapshot.prefs.keepOpen);
+  $('pinBtn').title = snapshot.prefs.keepOpen
+    ? 'Unpin — hide when it loses focus'
+    : 'Pin the launcher open';
 }
 
 const STACK_EMOJI = {
@@ -199,12 +295,24 @@ function renderTabs() {
   // view (inside one scroller they'd be pushed off-screen by enough stacks).
   const scroller = document.createElement('div');
   scroller.className = 'tab-scroll';
+  // Vertical wheel scrolls the horizontal strip
+  scroller.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      scroller.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
   for (const f of folders) {
     const b = document.createElement('button');
     b.className = 'tab' + (f.id === snapshot.state.selectedFolderID ? ' active' : '');
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', f.id === snapshot.state.selectedFolderID ? 'true' : 'false');
     b.textContent = stackLabel(f);
+    if (f.color && /^#[0-9a-fA-F]{6}$/.test(f.color)) {
+      // Accent tint: stronger when active
+      b.style.backgroundColor = f.color + (f.id === snapshot.state.selectedFolderID ? '55' : '2b');
+      if (f.id === snapshot.state.selectedFolderID) b.style.color = 'var(--text)';
+    }
     if (f.customImage) {
       clutterDock.getFolderImage(f.id).then((url) => {
         if (url && b.isConnected) {
@@ -238,8 +346,11 @@ function renderTabs() {
         .map((x) => clutterDock.pathForFile(x))
         .filter(Boolean);
       if (itemId && !files.length) {
-        await call(clutterDock.relocateItem(itemId, f.id));
+        // Dragging one of a multi-selection moves the whole selection
+        const ids = selectedIds.has(itemId) && selectedIds.size > 1 ? [...selectedIds] : [itemId];
+        for (const id of ids) await call(clutterDock.relocateItem(id, f.id));
         dragId = null;
+        setSelection([]);
         return;
       }
       if (files.length) {
@@ -252,7 +363,11 @@ function renderTabs() {
   scroller.querySelector('.tab.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   const actions = document.createElement('div');
   actions.className = 'tab-actions';
+  const manyStacks = folders.length > 6;
   actions.innerHTML = `
+    ${manyStacks ? `<button class="icon-btn" id="switcherBtn" title="All stacks (Ctrl+Tab cycles)" aria-label="All stacks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>` : ''}
     <button class="icon-btn" id="addFolderBtn" title="New stack" aria-label="New stack">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
     </button>
@@ -261,6 +376,7 @@ function renderTabs() {
     </button>
   `;
   tabs.appendChild(actions);
+  if (manyStacks) $('switcherBtn').onclick = stackSwitcherDialog;
   $('addFolderBtn').onclick = async () => {
     const pick = await newStackDialog();
     if (!pick) return;
@@ -295,7 +411,7 @@ function renderContent() {
     const isSmart = folder && folder.smartKind !== 'none';
     content.innerHTML = `
       <div class="empty">
-        <div style="font-size:36px">${isSmart ? '🕒' : '📦'}</div>
+        <div style="font-size:36px">${isSmart ? (folder.smartKind === 'mostused' ? '⭐' : '🕒') : '📦'}</div>
         <h3>${emptyTitle(folder)}</h3>
         <p>${emptySub(folder)}</p>
         ${
@@ -303,6 +419,7 @@ function renderContent() {
             ? `<div class="actions">
                 <button class="btn primary" id="emptyAdd">Add apps…</button>
                 <button class="btn secondary" id="emptyUrl">Add URL…</button>
+                <button class="btn secondary" id="emptyImport">Import pinned apps…</button>
               </div>`
             : ''
         }
@@ -311,21 +428,23 @@ function renderContent() {
       await call(clutterDock.pickAndAdd());
     });
     $('emptyUrl')?.addEventListener('click', addUrlPrompt);
+    $('emptyImport')?.addEventListener('click', importWizardDialog);
     return;
   }
 
   const viewMode = folder?.viewMode || 'grid';
+  const q = searchText.trim().toLowerCase();
   if (viewMode === 'list' || (searchGlobal && searchText.trim())) {
     content.innerHTML = `<div class="list" id="list"></div>`;
     const list = $('list');
     for (const item of items) {
       const row = document.createElement('div');
-      row.className = 'list-row' + (item.id === selectedId ? ' selected' : '');
+      row.className = 'list-row' + (isSelected(item.id) ? ' selected' : '');
       row.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
         <div class="meta">
-          <div class="name">${escapeHtml(item.name)}${isRunning(item) ? ' <span class="run-dot" aria-hidden="true"></span>' : ''}</div>
-          <div class="sub">${escapeHtml(item._folderName || item.kind + ' · ' + item.path)}</div>
+          <div class="name">${highlightName(item.name, q)}${isRunning(item) ? ' <span class="run-dot" aria-hidden="true"></span>' : ''}</div>
+          <div class="sub">${escapeHtml(item._folderName || item.kind + ' · ' + displayPath(item.path))}</div>
         </div>`;
       wireItem(row, item, folder);
       hydrateIcon(row.querySelector('.tile-icon'), item);
@@ -336,16 +455,22 @@ function renderContent() {
     const grid = $('grid');
     for (const item of items) {
       const tile = document.createElement('div');
-      tile.className = 'tile' + (item.id === selectedId ? ' selected' : '');
+      tile.className = 'tile' + (isSelected(item.id) ? ' selected' : '');
       tile.draggable = folder?.smartKind === 'none';
       tile.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
         ${isRunning(item) ? '<span class="run-dot" aria-hidden="true"></span>' : ''}
-        <div class="tile-name">${escapeHtml(item.name)}</div>`;
+        <div class="tile-name">${highlightName(item.name, q)}</div>`;
       wireItem(tile, item, folder);
       hydrateIcon(tile.querySelector('.tile-icon'), item);
       if (folder?.smartKind === 'none') {
         tile.addEventListener('dragstart', (e) => {
+          // Alt+drag hands the real file to the OS (drop into Explorer, email…)
+          if (e.altKey && item.kind !== 'url') {
+            e.preventDefault();
+            clutterDock.startItemDrag(item.id);
+            return;
+          }
           dragId = item.id;
           e.dataTransfer.setData('text/plain', item.id);
           e.dataTransfer.effectAllowed = 'move';
@@ -379,8 +504,31 @@ function wireItem(el, item, folder) {
   el.setAttribute('role', 'button');
   el.setAttribute('tabindex', '0');
   el.setAttribute('aria-label', `${item.name}, ${item.kind}${isRunning(item) ? ', running' : ''}`);
-  el.onclick = async () => {
-    selectedId = item.id;
+  el.onclick = async (e) => {
+    // Ctrl/Shift build a multi-selection instead of launching
+    if (e && e.ctrlKey) {
+      const ids = new Set(selectedIds);
+      if (selectedId && !ids.size) ids.add(selectedId);
+      if (ids.has(item.id)) ids.delete(item.id);
+      else ids.add(item.id);
+      setSelection([...ids], item.id);
+      renderContent();
+      render();
+      return;
+    }
+    if (e && e.shiftKey && selectedId) {
+      const items = itemsForView();
+      const a = items.findIndex((i) => i.id === selectedId);
+      const b = items.findIndex((i) => i.id === item.id);
+      if (a >= 0 && b >= 0) {
+        const [lo, hi] = a < b ? [a, b] : [b, a];
+        setSelection(items.slice(lo, hi + 1).map((i) => i.id), selectedId);
+        renderContent();
+        render();
+        return;
+      }
+    }
+    setSelection([item.id], item.id);
     renderContent();
     const res = await clutterDock.openItem(item);
     if (!res?.ok && res?.error) infoDialog(res.error);
@@ -401,13 +549,17 @@ function wireItem(el, item, folder) {
 
 function emptyTitle(folder) {
   if (folder?.smartKind === 'recents') return 'No recent launches yet';
+  if (folder?.smartKind === 'mostused') return 'No launches counted yet';
   return 'This folder is empty';
 }
 function emptySub(folder) {
   if (folder?.smartKind === 'recents') {
     return 'Open items from your folders — they will show up here.';
   }
-  return 'Drop apps, files, or folders here — or use ＋ to add them.';
+  if (folder?.smartKind === 'mostused') {
+    return 'Your most-opened items rise to the top here automatically.';
+  }
+  return 'Drop apps, files, or folders here — paste with Ctrl+V — or use ＋ to add them.';
 }
 
 function renderHints() {
@@ -417,8 +569,8 @@ function renderHints() {
     return;
   }
   hints.textContent =
-    '↑↓←→ move · Enter open · Esc close · Ctrl+Shift+D toggle · Ctrl+G all folders' +
-    (snapshot.gate?.isPro ? ' · Ctrl+Shift+1–9 stacks' : '');
+    'Type to search · Enter open · Ctrl+V paste · Alt+drag out · Ctrl+Tab stacks · Ctrl+Shift+D toggle' +
+    (snapshot.gate?.isPro ? ' · Ctrl+Shift+1–9' : '');
 }
 
 function renderOnboarding() {
@@ -455,7 +607,8 @@ function renderOnboarding() {
           : ''
       }
       <div class="row">
-        <button class="btn primary" id="obAdd">Add apps…</button>
+        <button class="btn primary" id="obImport">Import my pinned apps…</button>
+        <button class="btn secondary" id="obAdd">Add apps…</button>
         <button class="btn secondary" id="obSettings">Settings</button>
         <button class="btn secondary" id="obGot">Got it</button>
       </div>
@@ -472,6 +625,10 @@ function renderOnboarding() {
   $('obAdd').onclick = async () => {
     await clutterDock.updatePrefs(dismissPrefs());
     await call(clutterDock.pickAndAdd());
+  };
+  $('obImport').onclick = async () => {
+    await call(clutterDock.updatePrefs(dismissPrefs()));
+    await importWizardDialog();
   };
   $('obSettings').onclick = async () => {
     await clutterDock.updatePrefs(dismissPrefs());
@@ -745,6 +902,120 @@ function symbolDialog(folderName, current) {
   });
 }
 
+/** Grid popover of every stack, filterable — livable "unlimited stacks" (Ctrl+Tab cycles). */
+function stackSwitcherDialog() {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>All stacks</h2>
+        <input type="text" id="swFilter" placeholder="Filter stacks…" autocomplete="off" spellcheck="false" />
+        <div class="switcher-grid" id="swGrid"></div>
+      </div>`;
+    const grid = $('swGrid');
+    const filter = $('swFilter');
+    const renderList = () => {
+      const q = filter.value.trim().toLowerCase();
+      const folders = visibleFolders().filter((f) => !q || f.name.toLowerCase().includes(q));
+      grid.innerHTML = '';
+      for (const f of folders) {
+        const b = document.createElement('button');
+        b.className = 'switcher-cell' + (f.id === snapshot.state.selectedFolderID ? ' active' : '');
+        if (f.color) b.style.borderColor = f.color;
+        const count = f.smartKind === 'none' ? (f.items || []).length : (snapshot.history || []).length;
+        b.innerHTML = `<span class="sw-symbol">${isLockedFolder(f) ? '🔒' : STACK_EMOJI[f.symbol] || STACK_EMOJI.folder}</span>
+          <span class="sw-name">${escapeHtml(f.name)}</span>
+          <span class="sw-count">${count}</span>`;
+        b.onclick = async () => {
+          closeModal(null);
+          await call(clutterDock.selectFolder(f.id));
+        };
+        grid.appendChild(b);
+      }
+    };
+    filter.oninput = renderList;
+    filter.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        const first = grid.querySelector('.switcher-cell');
+        if (first) first.click();
+      }
+    };
+    renderList();
+    filter.focus();
+  });
+}
+
+function cycleStack(direction) {
+  const folders = visibleFolders();
+  if (folders.length < 2) return;
+  const idx = folders.findIndex((f) => f.id === snapshot.state.selectedFolderID);
+  const next = folders[(idx + direction + folders.length) % folders.length];
+  call(clutterDock.selectFolder(next.id));
+}
+
+/** Import wizard: pull in what's already pinned to the taskbar / desktop / Start Menu. */
+async function importWizardDialog() {
+  const entries = await clutterDock.scanImportSources();
+  if (!entries || !entries.length) {
+    infoDialog('No importable shortcuts found on the taskbar, desktop, or Start Menu.');
+    return;
+  }
+  const chosen = await openModal((modal) => {
+    const groups = ['Taskbar', 'Desktop', 'Start Menu'].filter((g) =>
+      entries.some((x) => x.source === g)
+    );
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>Import your apps</h2>
+        <p class="dialog-sub">These shortcuts already exist on this PC. Tick what belongs in your stacks — nothing is moved or changed.</p>
+        <div class="import-list" id="impList">
+          ${groups
+            .map(
+              (g) => `
+            <div class="import-group">
+              <label class="import-group-head"><input type="checkbox" data-group="${g}" ${g === 'Taskbar' ? 'checked' : ''}/> <b>${g}</b></label>
+              ${entries
+                .filter((x) => x.source === g)
+                .map(
+                  (x, i) =>
+                    `<label class="import-row"><input type="checkbox" data-target="${escapeHtml(x.target)}" data-name="${escapeHtml(x.name)}" ${
+                      g === 'Taskbar' ? 'checked' : ''
+                    }/> ${escapeHtml(x.name)}</label>`
+                )
+                .join('')}
+            </div>`
+            )
+            .join('')}
+        </div>
+        <div class="row">
+          <button class="btn primary" id="dlgOk">Import selected</button>
+          <button class="btn secondary" id="dlgCancel">Cancel</button>
+        </div>
+      </div>`;
+    for (const head of modal.querySelectorAll('[data-group]')) {
+      head.onchange = () => {
+        const group = head.closest('.import-group');
+        for (const cb of group.querySelectorAll('[data-target]')) cb.checked = head.checked;
+      };
+    }
+    $('dlgOk').onclick = () => {
+      const picks = [...modal.querySelectorAll('[data-target]')]
+        .filter((cb) => cb.checked)
+        .map((cb) => ({ target: cb.dataset.target, name: cb.dataset.name }));
+      closeModal(picks);
+    };
+    $('dlgCancel').onclick = () => closeModal(null);
+  });
+  if (!chosen || !chosen.length) return;
+  const folder = selectedFolder();
+  const targetID =
+    folder && folder.smartKind === 'none'
+      ? folder.id
+      : visibleFolders().find((f) => f.smartKind === 'none')?.id;
+  await call(clutterDock.importShortcuts(chosen, targetID));
+}
+
+if (clutterDock.onOpenImport) clutterDock.onOpenImport(() => importWizardDialog());
+
 // Keep the fixed-position context menu inside the panel bounds
 function placeCtx(ctx, x, y) {
   ctx.style.visibility = 'hidden';
@@ -755,31 +1026,114 @@ function placeCtx(ctx, x, y) {
   ctx.style.visibility = '';
 }
 
+function otherStacks(excludeID) {
+  return visibleFolders().filter((f) => f.smartKind === 'none' && f.id !== excludeID);
+}
+
 function showItemMenu(x, y, item, folder) {
   const ctx = $('ctx');
   const canReorder = folder && folder.smartKind === 'none';
+  const isSmart = folder && folder.smartKind !== 'none';
+  const multi = selectedIds.size > 1 && selectedIds.has(item.id);
+  const n = multi ? selectedIds.size : 1;
+  const isExe = item.kind === 'app' && /\.(exe|lnk|bat|cmd|msi)$/i.test(item.path || '');
+  const targets = otherStacks(folder?.id);
   ctx.innerHTML = `
-    <button data-a="open">Open</button>
-    <button data-a="reveal">Show in Explorer</button>
-    ${canReorder ? '<button data-a="left">Move left</button><button data-a="right">Move right</button>' : ''}
-    ${canReorder ? '<button class="danger" data-a="remove">Remove</button>' : ''}
+    <button data-a="open">${multi ? `Open ${n} items` : 'Open'}</button>
+    ${isExe && !multi ? '<button data-a="admin">Run as administrator</button>' : ''}
+    ${item.kind !== 'url' && !multi ? '<button data-a="reveal">Show in Explorer</button>' : ''}
+    <button data-a="copy">${multi ? `Copy ${n} items` : item.kind === 'url' ? 'Copy URL' : 'Copy'}</button>
+    ${!multi && item.kind !== 'url' ? '<button data-a="copypath">Copy path</button>' : ''}
+    ${canReorder && !multi ? '<button data-a="renameitem">Rename…</button>' : ''}
+    ${(canReorder || isSmart) && targets.length ? `<button data-a="moveto">${isSmart ? 'Add to stack' : multi ? `Move ${n} to stack` : 'Move to stack'} ▸</button>` : ''}
+    ${canReorder && !multi ? '<button data-a="left">Move left</button><button data-a="right">Move right</button>' : ''}
+    ${canReorder ? `<button class="danger" data-a="remove">${multi ? `Remove ${n} items` : 'Remove'}</button>` : ''}
   `;
   placeCtx(ctx, x, y);
   ctx.onclick = async (e) => {
     const a = e.target.getAttribute('data-a');
     if (!a) return;
+    if (a === 'moveto') {
+      // Second level: pick the destination stack in place
+      ctx.innerHTML = targets
+        .map((f) => `<button data-stack="${f.id}">${escapeHtml(stackLabel(f))}</button>`)
+        .join('');
+      ctx.onclick = async (ev) => {
+        const dest = ev.target.getAttribute('data-stack');
+        if (!dest) return;
+        ctx.hidden = true;
+        if (isSmart) {
+          // History items are virtual — add the underlying path/URL to the stack
+          const picks = multi
+            ? itemsForView().filter((i) => selectedIds.has(i.id))
+            : [item];
+          for (const p of picks) {
+            if (p.kind === 'url') await call(clutterDock.addURL(p.path, dest));
+            else await call(clutterDock.addPaths([p.path], dest));
+          }
+        } else {
+          const ids = multi ? [...selectedIds] : [item.id];
+          for (const id of ids) await call(clutterDock.relocateItem(id, dest));
+        }
+        setSelection([]);
+      };
+      return;
+    }
     ctx.hidden = true;
-    if (a === 'open') await clutterDock.openItem(item);
+    const pickItems = () => (multi ? itemsForView().filter((i) => selectedIds.has(i.id)) : [item]);
+    if (a === 'open') {
+      for (const p of pickItems()) await clutterDock.openItem(p);
+      await refresh();
+    }
+    if (a === 'admin') {
+      const res = await clutterDock.openItemAdmin(item.id);
+      if (!res?.ok && res?.error) infoDialog(res.error);
+    }
     if (a === 'reveal') await clutterDock.revealItem(item);
+    if (a === 'copy') {
+      const res = await clutterDock.copyItems(pickItems().map((i) => i.id));
+      if (!res?.ok && res?.error) infoDialog(res.error);
+    }
+    if (a === 'copypath') {
+      try {
+        await navigator.clipboard.writeText(displayPath(item.path));
+      } catch (_) {
+        await clutterDock.copyItems([item.id]);
+      }
+    }
+    if (a === 'renameitem') {
+      const name = await textDialog({
+        title: 'Rename item',
+        value: item.name,
+        submitLabel: 'Rename',
+      });
+      if (name) await call(clutterDock.renameItem(item.id, folder.id, name));
+    }
     if (a === 'left') await call(clutterDock.nudgeItem(item.id, -1, folder.id));
     if (a === 'right') await call(clutterDock.nudgeItem(item.id, 1, folder.id));
-    if (a === 'remove') await call(clutterDock.removeItem(item.id, folder.id));
+    if (a === 'remove') {
+      const ids = multi ? [...selectedIds] : [item.id];
+      for (const id of ids) await call(clutterDock.removeItem(id, folder.id));
+      setSelection([]);
+    }
   };
 }
 
+const STACK_COLORS = ['#ef4444', '#f59e0b', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', ''];
+
 function showFolderMenu(x, y, folder) {
   const ctx = $('ctx');
+  const colorRow =
+    folder.smartKind === 'none'
+      ? `<div class="ctx-colors" role="group" aria-label="Stack color">${STACK_COLORS.map(
+          (c) =>
+            `<button class="ctx-color${c ? '' : ' none'}${(folder.color || '') === c ? ' current' : ''}" data-color="${c}" ${
+              c ? `style="background:${c}"` : 'title="No color"'
+            } aria-label="${c || 'No color'}"></button>`
+        ).join('')}</div>`
+      : '';
   ctx.innerHTML = `
+    ${colorRow}
     <button data-a="grid">Grid view</button>
     <button data-a="list">List view</button>
     ${folder.smartKind === 'none' ? '<button data-a="rename">Rename stack…</button>' : ''}
@@ -793,6 +1147,12 @@ function showFolderMenu(x, y, folder) {
   `;
   placeCtx(ctx, x, y);
   ctx.onclick = async (e) => {
+    const color = e.target.getAttribute('data-color');
+    if (color !== null) {
+      ctx.hidden = true;
+      await call(clutterDock.setFolderColor(folder.id, color));
+      return;
+    }
     const a = e.target.getAttribute('data-a');
     if (!a) return;
     ctx.hidden = true;
@@ -878,6 +1238,40 @@ $('search').addEventListener('input', async (e) => {
   searchText = e.target.value;
   await refresh();
 });
+
+// Launcher flow: hotkey → type → Enter opens the top match
+$('search').addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const items = itemsForView();
+    if (items.length && searchText.trim()) {
+      const res = await clutterDock.openItem(items[0]);
+      if (!res?.ok && res?.error) infoDialog(res.error);
+      else await refresh();
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (searchText.trim()) {
+      // First Esc clears the search; the global handler hides on the next one
+      e.preventDefault();
+      e.stopPropagation();
+      $('search').value = '';
+      searchText = '';
+      await refresh();
+    }
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const items = itemsForView();
+    if (items.length) {
+      setSelection([items[0].id], items[0].id);
+      renderContent();
+      $('search').blur();
+    }
+  }
+});
 async function toggleGlobalSearch() {
   if (!snapshot?.gate?.canUseGlobalSearch) {
     upsellDialog('Search across all folders is a Pro feature.');
@@ -891,10 +1285,16 @@ $('settingsBtn').onclick = () => clutterDock.openSettings();
 
 const HELP_KEYS = [
   ['Ctrl+Shift+D', 'Open / close'],
-  ['Esc', 'Close'],
-  ['Enter', 'Open selected'],
-  ['Arrows', 'Move selection'],
+  ['Esc', 'Close (clears search first)'],
+  ['Type anywhere', 'Search; Enter opens the top match'],
+  ['Arrows', 'Move selection (↑↓ move by row)'],
+  ['Ctrl+F', 'Focus search'],
   ['Ctrl+G', 'Toggle search all'],
+  ['Ctrl+Tab', 'Next stack (Shift for previous)'],
+  ['Ctrl+Click / Shift+Click', 'Select several items'],
+  ['Ctrl+C / Ctrl+V', 'Copy items / paste files & URLs'],
+  ['Delete', 'Remove selected'],
+  ['Alt+drag', 'Drag a real file out to another app'],
   ['Alt+← / Alt+→', 'Reorder item'],
 ];
 
@@ -921,11 +1321,20 @@ document.addEventListener('click', (e) => {
   if (!$('ctx').contains(e.target)) $('ctx').hidden = true;
 });
 
+/** Columns in the visible grid, so ↑/↓ move by a full row. */
+function gridColumns() {
+  const grid = $('grid');
+  if (!grid) return 1; // list view: one column
+  const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length;
+  return Math.max(1, cols);
+}
+
 document.addEventListener('keydown', async (e) => {
   if (modalOpen()) {
     if (e.key === 'Escape') closeModal(null);
     return;
   }
+  const inInput = /^(input|textarea)$/i.test(document.activeElement?.tagName || '');
   if (e.key === 'Escape') {
     if (!snapshot?.prefs?.hasCompletedOnboarding) {
       // Esc dismisses the welcome card — that skip also declines the
@@ -944,32 +1353,109 @@ document.addEventListener('keydown', async (e) => {
     await toggleGlobalSearch();
     return;
   }
+  if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    $('search').focus();
+    $('search').select();
+    return;
+  }
+  if (e.key === 'Tab' && e.ctrlKey) {
+    e.preventDefault();
+    cycleStack(e.shiftKey ? -1 : 1);
+    return;
+  }
+  if (inInput) return;
+  if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    const folder = selectedFolder();
+    if (folder?.smartKind === 'none') {
+      const res = await call(clutterDock.pasteAdd(folder.id));
+      if (res?.pasted === 0 && !res?.limitMessage) {
+        infoDialog('Nothing on the clipboard that ClutterDock can add.');
+      }
+    }
+    return;
+  }
+  if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
+    const ids = selectedIds.size ? [...selectedIds] : selectedId ? [selectedId] : [];
+    if (ids.length) {
+      e.preventDefault();
+      await clutterDock.copyItems(ids);
+    }
+    return;
+  }
+  if (e.key === 'Delete') {
+    const folder = selectedFolder();
+    if (folder?.smartKind === 'none') {
+      const ids = selectedIds.size ? [...selectedIds] : selectedId ? [selectedId] : [];
+      for (const id of ids) await call(clutterDock.removeItem(id, folder.id));
+      setSelection([]);
+    }
+    return;
+  }
+  // Type-to-search: printable characters land in the search box
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const search = $('search');
+    search.focus();
+    search.value += e.key;
+    e.preventDefault();
+    searchText = search.value;
+    await refresh();
+    return;
+  }
   const items = itemsForView();
   if (!items.length) return;
   const idx = Math.max(0, items.findIndex((i) => i.id === selectedId));
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+  const step = (delta) => {
+    const next = Math.min(items.length - 1, Math.max(0, idx + delta));
+    setSelection([items[next].id], items[next].id);
+    renderContent();
+  };
+  if (e.key === 'ArrowRight') {
     e.preventDefault();
     if (e.altKey && selectedFolder()?.smartKind === 'none' && selectedId) {
       await call(clutterDock.nudgeItem(selectedId, 1, selectedFolder().id));
-    } else {
-      selectedId = items[Math.min(items.length - 1, idx + 1)].id;
-      renderContent();
-    }
+    } else step(1);
   }
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+  if (e.key === 'ArrowLeft') {
     e.preventDefault();
     if (e.altKey && selectedFolder()?.smartKind === 'none' && selectedId) {
       await call(clutterDock.nudgeItem(selectedId, -1, selectedFolder().id));
-    } else {
-      selectedId = items[Math.max(0, idx - 1)].id;
-      renderContent();
-    }
+    } else step(-1);
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    step(gridColumns()); // a full row down, not one item over
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (idx - gridColumns() < 0) {
+      $('search').focus();
+    } else step(-gridColumns());
   }
   if (e.key === 'Enter' && selectedId) {
     const item = items.find((i) => i.id === selectedId);
     if (item) await clutterDock.openItem(item);
   }
 });
+
+// A drag anywhere over the panel suspends the blur auto-hide until it ends
+let dragDepth = 0;
+document.addEventListener('dragenter', () => {
+  dragDepth += 1;
+  if (dragDepth === 1) clutterDock.setDragActive?.(true);
+});
+document.addEventListener('dragleave', () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) clutterDock.setDragActive?.(false);
+});
+document.addEventListener('drop', () => {
+  dragDepth = 0;
+  clutterDock.setDragActive?.(false);
+});
+
+$('pinBtn').onclick = () =>
+  call(clutterDock.updatePrefs({ keepOpen: !snapshot?.prefs?.keepOpen }));
 
 clutterDock.onSnapshot((data) => {
   snapshot = data;

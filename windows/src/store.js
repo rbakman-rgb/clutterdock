@@ -23,10 +23,45 @@ const { lockItems, unlockItems, relockItems } = require('./stack-lock');
 
 const CURRENT_VERSION = 1;
 
-function dataDir() {
-  const root = electronApp
+/**
+ * Users can point the data folder somewhere else (e.g. OneDrive) — the pointer
+ * itself always lives in the default root so it can be found at boot.
+ */
+function defaultRoot() {
+  return electronApp
     ? electronApp.getPath('userData')
     : process.env.CLUTTERDOCK_DATA_DIR || path.join(os.tmpdir(), 'clutterdock-test');
+}
+
+function dataDirPointerPath() {
+  return path.join(defaultRoot(), 'datadir.json');
+}
+
+function readDataDirPointer() {
+  if (!electronApp) return null; // tests always use the env dir directly
+  try {
+    const raw = JSON.parse(fs.readFileSync(dataDirPointerPath(), 'utf8'));
+    if (raw && typeof raw.dir === 'string' && raw.dir && fs.existsSync(raw.dir)) return raw.dir;
+  } catch (_) {
+    /* no pointer or unreadable — use the default */
+  }
+  return null;
+}
+
+function setDataDirPointer(dir) {
+  if (dir) {
+    fs.writeFileSync(dataDirPointerPath(), JSON.stringify({ dir }), 'utf8');
+  } else {
+    fs.rmSync(dataDirPointerPath(), { force: true });
+  }
+  _dataDirCache = null;
+}
+
+let _dataDirCache = null;
+
+function dataDir() {
+  if (_dataDirCache) return _dataDirCache;
+  const root = readDataDirPointer() || defaultRoot();
   const dir = path.join(root, 'ClutterDock');
   if (!fs.existsSync(dir)) {
     for (const legacy of ['SlaveDock', 'DockFolder']) {
@@ -42,7 +77,30 @@ function dataDir() {
     }
   }
   fs.mkdirSync(dir, { recursive: true });
+  _dataDirCache = dir;
   return dir;
+}
+
+/** One backup per day, keep the last 7 — protects against user mistakes, not just corruption. */
+function rotateBackups() {
+  try {
+    const src = configPath();
+    if (!fs.existsSync(src)) return;
+    const dir = path.join(dataDir(), 'Backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const stamp = new Date().toISOString().slice(0, 10);
+    const dest = path.join(dir, `folders-${stamp}.json`);
+    if (!fs.existsSync(dest)) fs.copyFileSync(src, dest);
+    const backups = fs
+      .readdirSync(dir)
+      .filter((f) => /^folders-\d{4}-\d{2}-\d{2}\.json$/.test(f))
+      .sort();
+    for (const old of backups.slice(0, Math.max(0, backups.length - 7))) {
+      fs.rmSync(path.join(dir, old), { force: true });
+    }
+  } catch (e) {
+    console.error('ClutterDock backup rotation failed', e);
+  }
 }
 
 function configPath() {
@@ -77,6 +135,13 @@ function defaultPrefs() {
     hasCompletedOnboarding: false,
     showKeyboardHints: true,
     launchAtLogin: false,
+    keepOpen: false,
+    theme: 'system',
+    panelPlacement: 'cursor',
+    panelX: null,
+    panelY: null,
+    transparencyEffects: true,
+    sendToShortcut: true,
     licenseKey: '',
     themeAccent: 'system',
     checkForUpdatesAutomatically: true,
@@ -112,7 +177,9 @@ function loadJSON(file, fallback, onCorrupt) {
 function saveJSON(file, data) {
   const tmp = file + '.tmp';
   try {
-    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+    // Compact JSON: at Pro-scale stores the pretty form is ~30% larger and this
+    // path runs on every (debounced) mutation.
+    fs.writeFileSync(tmp, JSON.stringify(data), 'utf8');
     fs.renameSync(tmp, file);
   } catch (e) {
     console.error('ClutterDock save error', file, e);
@@ -129,6 +196,9 @@ class Store {
     this.dataWarning = null;
     this._unlocked = new Set();
     this._sessionPasswords = {};
+    this._saveTimer = null;
+    this._historyTimer = null;
+    rotateBackups();
     this.state = loadJSON(configPath(), defaultState(), (backup) => {
       this.dataWarning =
         'Your stacks file was unreadable, so ClutterDock started fresh. ' +
@@ -283,6 +353,7 @@ class Store {
   }
 
   _ensureSmartFolders() {
+    let changed = false;
     if (!this.state.folders.some((f) => f.smartKind === 'recents')) {
       this.state.folders.push({
         id: randomUUID(),
@@ -293,16 +364,54 @@ class Store {
         viewMode: 'grid',
         smartKind: 'recents',
       });
-      this.persist();
+      changed = true;
     }
+    if (!this.state.folders.some((f) => f.smartKind === 'mostused')) {
+      this.state.folders.push({
+        id: randomUUID(),
+        name: 'Most Used',
+        items: [],
+        symbol: 'star',
+        sortMode: 'manual',
+        viewMode: 'grid',
+        smartKind: 'mostused',
+      });
+      changed = true;
+    }
+    if (changed) this.persist();
   }
 
+  /**
+   * Debounced persist: every mutation used to synchronously rewrite the whole
+   * store (~150-215ms per op at a 600KB store in the stress suite). Mutations
+   * now coalesce into one write. Anything that must be durable immediately
+   * (lock/unlock, import) calls persistNow(); main flushes on quit.
+   */
   persist() {
+    clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => this.persistNow(), 250);
+  }
+
+  persistNow() {
+    clearTimeout(this._saveTimer);
+    this._saveTimer = null;
     this.state.version = CURRENT_VERSION;
     saveJSON(configPath(), { ...this.state, folders: this._sealedFolders() });
   }
 
+  flushPendingSave() {
+    if (this._saveTimer) this.persistNow();
+    if (this._historyTimer) this.persistHistoryNow();
+  }
+
   persistHistory() {
+    clearTimeout(this._historyTimer);
+    this._historyTimer = setTimeout(() => this.persistHistoryNow(), 500);
+  }
+
+  persistHistoryNow() {
+    clearTimeout(this._historyTimer);
+    this._historyTimer = null;
     saveJSON(historyPath(), this.history);
   }
 
@@ -324,6 +433,8 @@ class Store {
       lockedFolderIDs: this.state.folders.filter((f) => this.isLocked(f)).map((f) => f.id),
       dataDir: dataDir(),
       dataWarning: this.dataWarning,
+      // Main-process runtime facts the renderer needs (acrylic support, etc.)
+      runtime: this.runtimeInfo || {},
       license: {
         isPro: this.isPro,
         display: this.isPro ? maskLicense(this.prefs.licenseKey) : '',
@@ -355,7 +466,7 @@ class Store {
       f.items = [];
       this._unlocked.delete(id);
       delete this._sessionPasswords[id];
-      this.persist();
+      this.persistNow(); // sealing must hit disk immediately
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -387,7 +498,7 @@ class Store {
     f.items = [];
     this._unlocked.delete(id);
     delete this._sessionPasswords[id];
-    this.persist();
+    this.persistNow(); // sealing must hit disk immediately
     return { ok: true };
   }
 
@@ -397,7 +508,7 @@ class Store {
     delete f.lock;
     this._unlocked.delete(id);
     delete this._sessionPasswords[id];
-    this.persist();
+    this.persistNow();
     return { ok: true };
   }
 
@@ -481,6 +592,29 @@ class Store {
     this.persist();
   }
 
+  /** Stack accent color: a palette hex or '' to clear. */
+  setFolderColor(id, color) {
+    const f = this.state.folders.find((x) => x.id === id);
+    if (!f || f.smartKind !== 'none') return;
+    const c = String(color || '');
+    if (c && !/^#[0-9a-fA-F]{6}$/.test(c)) return;
+    if (c) f.color = c;
+    else delete f.color;
+    this.persist();
+  }
+
+  renameItem(itemID, folderID, name) {
+    const targetID = folderID || this.state.selectedFolderID;
+    const f = this.state.folders.find((x) => x.id === targetID);
+    if (!f || f.smartKind !== 'none') return false;
+    const item = f.items.find((i) => i.id === itemID);
+    const n = String(name || '').trim().slice(0, 120);
+    if (!item || !n) return false;
+    item.name = n;
+    this.persist();
+    return true;
+  }
+
   deleteFolder(id) {
     const f = this.state.folders.find((x) => x.id === id);
     if (!f) return;
@@ -514,7 +648,8 @@ class Store {
     this.persist();
   }
 
-  addPaths(paths, folderID) {
+  /** `names` (optional): path → friendly display name (e.g. exe FileDescription). */
+  addPaths(paths, folderID, names) {
     const targetID = folderID || this.state.selectedFolderID;
     const f = this.state.folders.find((x) => x.id === targetID);
     if (!f || f.smartKind !== 'none') return { added: 0, hitLimit: false };
@@ -531,11 +666,12 @@ class Store {
       const key = `${kind}|${p}`;
       if (existing.has(key)) continue;
       existing.add(key);
+      const friendly = names && typeof names[p] === 'string' && names[p].trim();
       f.items.push({
         id: randomUUID(),
         kind,
         path: p,
-        name: displayName(p, kind),
+        name: (friendly && friendly.slice(0, 120)) || displayName(p, kind),
       });
       added += 1;
     }
@@ -697,17 +833,21 @@ class Store {
   searchAll(query) {
     const q = (query || '').trim().toLowerCase();
     if (!q) return [];
+    const frecency = new Map(
+      this.history.entries.map((e) => [`${e.kind}|${e.path}`, e])
+    );
     const hits = [];
     for (const folder of this.state.folders) {
       if (folder.smartKind !== 'none') continue;
       if (this.isLocked(folder)) continue; // a locked stack must not leak via search
       for (const item of folder.items || []) {
-        const hay = `${item.name} ${item.path}`.toLowerCase();
-        if (hay.includes(q)) {
-          hits.push({ item, folderName: folder.name, folderID: folder.id });
+        const score = searchScore(item, q, frecency.get(`${item.kind}|${item.path}`));
+        if (score > 0) {
+          hits.push({ item, folderName: folder.name, folderID: folder.id, score });
         }
       }
     }
+    hits.sort((a, b) => b.score - a.score);
     return hits;
   }
 
@@ -765,7 +905,7 @@ class Store {
       };
       this._ensureSmartFolders();
     }
-    this.persist();
+    this.persistNow();
   }
 
   updatePrefs( partial) {
@@ -858,4 +998,36 @@ function displayName(p, kind) {
   return base;
 }
 
-module.exports = { Store, dataDir };
+/** True when every character of `q` appears in `hay` in order ("nptd" → notepad). */
+function subsequenceMatch(hay, q) {
+  let i = 0;
+  for (const ch of hay) {
+    if (ch === q[i]) i += 1;
+    if (i === q.length) return true;
+  }
+  return false;
+}
+
+/**
+ * Launcher-style ranking: exact/name matches beat path matches beat fuzzy hits,
+ * and frequently/recently opened items float to the top.
+ */
+function searchScore(item, q, historyEntry) {
+  const name = String(item.name || '').toLowerCase();
+  const p = String(item.path || '').toLowerCase();
+  let score = 0;
+  if (name === q) score = 200;
+  else if (name.startsWith(q)) score = 140;
+  else if (name.includes(q)) score = 100;
+  else if (p.includes(q)) score = 40;
+  else if (q.length >= 2 && subsequenceMatch(name, q)) score = 25;
+  if (!score) return 0;
+  if (historyEntry) {
+    score += Math.min(historyEntry.openCount || 0, 20) * 2;
+    const age = Date.now() - Date.parse(historyEntry.lastOpened || 0);
+    if (age >= 0 && age < 7 * 24 * 3600 * 1000) score += 10;
+  }
+  return score;
+}
+
+module.exports = { Store, dataDir, setDataDirPointer, searchScore, subsequenceMatch };

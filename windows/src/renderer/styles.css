@@ -18,6 +18,13 @@
   --app-grad-1: #e8eefc;
   --app-grad-2: #f7f8fc;
   --app-grad-3: #eef2ff;
+  /* Per-kind tile backgrounds live in tokens so both themes define them once —
+     a later light-only rule silently beat the dark overrides in the cascade */
+  --tile-app-bg: linear-gradient(145deg, #dbeafe, #eff6ff);
+  --tile-file-bg: linear-gradient(145deg, #fef3c7, #fffbeb);
+  --tile-folder-bg: linear-gradient(145deg, #e0e7ff, #eef2ff);
+  --tile-url-bg: linear-gradient(145deg, #d1fae5, #ecfdf5);
+  --tile-icon-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
@@ -41,12 +48,12 @@
     --app-grad-1: #131a28;
     --app-grad-2: #10141d;
     --app-grad-3: #141a2b;
+    --tile-app-bg: rgba(59, 130, 246, 0.16);
+    --tile-file-bg: rgba(245, 158, 11, 0.14);
+    --tile-folder-bg: rgba(99, 102, 241, 0.16);
+    --tile-url-bg: rgba(16, 185, 129, 0.14);
+    --tile-icon-shadow: none;
   }
-  .tile-icon { box-shadow: none; }
-  .tile-icon.app { background: rgba(59, 130, 246, 0.16); }
-  .tile-icon.file { background: rgba(245, 158, 11, 0.14); }
-  .tile-icon.folder { background: rgba(99, 102, 241, 0.16); }
-  .tile-icon.url { background: rgba(16, 185, 129, 0.14); }
 }
 
 * { box-sizing: border-box; }
@@ -214,17 +221,17 @@ button, .tile, .list-row {
   place-items: center;
   font-size: 22px;
   background: var(--surface);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--tile-icon-shadow);
 }
 .tile-icon img {
   width: 72%;
   height: 72%;
   object-fit: contain;
 }
-.tile-icon.app { background: linear-gradient(145deg, #dbeafe, #eff6ff); }
-.tile-icon.file { background: linear-gradient(145deg, #fef3c7, #fffbeb); }
-.tile-icon.folder { background: linear-gradient(145deg, #e0e7ff, #eef2ff); }
-.tile-icon.url { background: linear-gradient(145deg, #d1fae5, #ecfdf5); }
+.tile-icon.app { background: var(--tile-app-bg); }
+.tile-icon.file { background: var(--tile-file-bg); }
+.tile-icon.folder { background: var(--tile-folder-bg); }
+.tile-icon.url { background: var(--tile-url-bg); }
 .tile-name {
   font-size: 11px;
   text-align: center;
@@ -604,4 +611,139 @@ button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* Acrylic (Win11): the OS draws the blurred material behind the window,
+   so surfaces above it go translucent */
+body.acrylic { background: transparent; }
+body.acrylic #app {
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--app-grad-1) 62%, transparent) 0%,
+    color-mix(in srgb, var(--app-grad-2) 55%, transparent) 45%,
+    color-mix(in srgb, var(--app-grad-3) 62%, transparent) 100%);
+}
+
+/* Grab strip: frameless windows need somewhere to drag from */
+.drag-strip {
+  height: 8px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+/* Pin toggle (footer) */
+#pinBtn.on {
+  color: var(--tab-active-text);
+  background: var(--accent-soft);
+}
+
+/* Match highlighting in item names */
+.tile-name b, .list-row .name b {
+  font-weight: 700;
+  color: var(--tab-active-text);
+}
+
+/* Stack color palette row in the folder context menu */
+.ctx-colors {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.ctx-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.ctx-color.none {
+  background: var(--chip-bg);
+  position: relative;
+}
+.ctx-color.none::after {
+  content: '✕';
+  font-size: 9px;
+  color: var(--muted);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.ctx-color.current { border-color: var(--text); }
+.ctx-color:hover { transform: scale(1.15); }
+
+/* Stack switcher popover */
+.switcher-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+.switcher-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+}
+.switcher-cell:hover { background: var(--tile-hover); }
+.switcher-cell.active { background: var(--accent-soft); border-color: var(--accent); }
+.switcher-cell .sw-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.switcher-cell .sw-count {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* Import wizard */
+.import-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+}
+.import-group { margin-bottom: 8px; }
+.import-group-head { display: block; padding: 3px 0; }
+.import-row {
+  display: block;
+  padding: 2px 0 2px 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tab strip: fade the clipped edge so overflow is visible at a glance */
+.tab-scroll {
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent);
+}
+
+/* Hotkey recorder armed state */
+#hotkeyRecord.recording {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Windows High Contrast: let the system draw real borders */
+@media (forced-colors: active) {
+  .tab, .tile, .list-row, .btn, .icon-btn, .toggle, .ctx, .card, .switcher-cell {
+    border: 1px solid CanvasText;
+  }
+  .run-dot { background: Highlight; box-shadow: none; }
 }

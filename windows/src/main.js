@@ -10,11 +10,16 @@ const {
   dialog,
   shell,
   screen,
+  clipboard,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { Store } = require('./store');
+const os = require('os');
+const { execFile, spawn } = require('child_process');
+const { createHash } = require('crypto');
+const { Store, dataDir, setDataDirPointer } = require('./store');
 const { setupUpdater } = require('./updater');
+const { buildHDrop, parseHDrop } = require('./win-clipboard');
 
 /** @type {BrowserWindow | null} */
 let panel = null;
@@ -42,6 +47,13 @@ let taskbarHost = null;
 let isQuitting = false;
 let suppressTaskbarFocus = false;
 let lastPanelHideAt = 0;
+// A drag hovering the panel must never trigger the blur auto-hide — the drop
+// target would vanish mid-drag (renderer reports via 'set-drag-active').
+let panelDragActiveUntil = 0;
+
+// Acrylic needs Windows 11 22H2+ (build 22621)
+const winBuild = isWin ? parseInt(os.release().split('.')[2] || '0', 10) : 0;
+const acrylicSupported = isWin && winBuild >= 22621;
 
 // Native dialogs steal focus from the always-on-top panel. Without a guard the
 // panel's blur handler hides it mid-dialog; without a parent the dialog can
@@ -99,6 +111,7 @@ function safeOpenExternal(rawUrl) {
 function createPanel() {
   if (panel && !panel.isDestroyed()) return panel;
 
+  const useAcrylic = acrylicSupported && store?.prefs?.transparencyEffects !== false;
   panel = new BrowserWindow({
     width: store?.prefs?.panelWidth || 480,
     height: store?.prefs?.panelHeight || 520,
@@ -111,6 +124,8 @@ function createPanel() {
     skipTaskbar: true,
     alwaysOnTop: true,
     transparent: false,
+    // Win11 22H2+: native acrylic like the OS's own flyouts (clock, quick settings)
+    ...(useAcrylic ? { backgroundMaterial: 'acrylic' } : {}),
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#10141d' : '#f4f6fb',
     hasShadow: true,
     webPreferences: {
@@ -120,13 +135,23 @@ function createPanel() {
       sandbox: false,
     },
   });
+  if (store) {
+    store.runtimeInfo = { ...(store.runtimeInfo || {}), acrylic: useAcrylic, acrylicSupported };
+  }
 
   hardenWebContents(panel.webContents);
   panel.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   panel.on('blur', () => {
-    // Don't hide while a native dialog is open
-    if (panel && !panel.webContents.isDevToolsOpened() && nativeDialogDepth === 0) {
+    // Don't hide while a native dialog is open, the user pinned the panel
+    // open, or a drag from Explorer is in flight (starting that drag blurs us)
+    if (
+      panel &&
+      !panel.webContents.isDevToolsOpened() &&
+      nativeDialogDepth === 0 &&
+      !store?.prefs?.keepOpen &&
+      Date.now() > panelDragActiveUntil
+    ) {
       // Small delay so clicks on dialogs register
       setTimeout(() => {
         if (
@@ -134,7 +159,9 @@ function createPanel() {
           !panel.isDestroyed() &&
           !panel.isFocused() &&
           !settingsWin?.isFocused() &&
-          nativeDialogDepth === 0
+          nativeDialogDepth === 0 &&
+          !store?.prefs?.keepOpen &&
+          Date.now() > panelDragActiveUntil
         ) {
           hidePanel();
         }
@@ -144,6 +171,18 @@ function createPanel() {
 
   panel.on('closed', () => {
     panel = null;
+  });
+
+  // Remember where the user drags the panel (placement mode "remembered")
+  let moveTimer = null;
+  panel.on('moved', () => {
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(() => {
+      if (panel && !panel.isDestroyed() && panel.isVisible()) {
+        const [x, y] = panel.getPosition();
+        store.updatePrefs({ panelX: x, panelY: y });
+      }
+    }, 400);
   });
 
   // Remember the user's panel size across restarts
@@ -167,6 +206,26 @@ function positionPanel() {
   const display = screen.getDisplayNearestPoint(cursor);
   const { width, height } = panel.getBounds();
   const wa = display.workArea;
+  const mode = store?.prefs?.panelPlacement || 'cursor';
+
+  if (mode === 'remembered' && Number.isFinite(store.prefs.panelX) && Number.isFinite(store.prefs.panelY)) {
+    // Last position the user dragged it to, clamped onto a live display
+    const target = screen.getDisplayNearestPoint({ x: store.prefs.panelX, y: store.prefs.panelY }).workArea;
+    const x = Math.min(Math.max(store.prefs.panelX, target.x), target.x + target.width - width);
+    const y = Math.min(Math.max(store.prefs.panelY, target.y), target.y + target.height - height);
+    panel.setPosition(Math.round(x), Math.round(y), false);
+    return;
+  }
+  if (mode === 'taskbar') {
+    // Fixed flyout above the taskbar corner, like the OS clock/quick settings
+    const primary = screen.getPrimaryDisplay().workArea;
+    panel.setPosition(
+      Math.round(primary.x + primary.width - width - 12),
+      Math.round(primary.y + primary.height - height - 12),
+      false
+    );
+    return;
+  }
   let x = Math.round(cursor.x - width / 2);
   let y = Math.round(cursor.y - height - 16);
   // Prefer above taskbar if cursor near bottom
@@ -401,46 +460,327 @@ function registerHotkey() {
   return ok;
 }
 
-// Running-app indicators: poll GUI process paths only while the panel is visible
-// (PowerShell spawn is too heavy to run continuously). Windows-only.
-let runningPoll = null;
+// Running-app indicators (Windows). One persistent PowerShell child streams
+// the GUI process list while the panel is visible — respawning powershell.exe
+// every 10s cost a CPU spike and a Defender scan per poll.
+let runningWatcher = null;
+let lastRunningSig = '';
 
-function refreshRunningPaths() {
-  if (!isWin) return;
-  const { execFile } = require('child_process');
-  execFile(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-Command',
-      'Get-Process | Where-Object {$_.MainWindowTitle -ne ""} | Select-Object -ExpandProperty Path -Unique',
-    ],
-    { timeout: 5000, windowsHide: true },
-    (err, stdout) => {
-      if (err || !panel || panel.isDestroyed()) return;
-      const paths = String(stdout || '')
+function startRunningPoll() {
+  if (!isWin || runningWatcher) return;
+  const script =
+    'while($true){' +
+    "Get-Process | Where-Object {$_.MainWindowTitle -ne ''} | Select-Object -ExpandProperty Path -Unique;" +
+    "'CDOCK_END';" +
+    '[Console]::Out.Flush();' +
+    'Start-Sleep -Seconds 5}';
+  try {
+    runningWatcher = spawn('powershell.exe', ['-NoProfile', '-Command', script], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch (e) {
+    console.warn('running-apps watcher failed to start', e);
+    runningWatcher = null;
+    return;
+  }
+  let buffer = '';
+  runningWatcher.stdout.on('data', (chunk) => {
+    buffer += String(chunk);
+    let idx;
+    while ((idx = buffer.indexOf('CDOCK_END')) >= 0) {
+      const block = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 'CDOCK_END'.length);
+      const paths = block
         .split(/\r?\n/)
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean);
-      panel.webContents.send('running-paths', paths);
+      const sig = paths.join('|');
+      if (sig !== lastRunningSig && panel && !panel.isDestroyed()) {
+        lastRunningSig = sig;
+        panel.webContents.send('running-paths', paths);
+      }
     }
-  );
-}
-
-function startRunningPoll() {
-  if (!isWin || runningPoll) return;
-  refreshRunningPaths();
-  runningPoll = setInterval(refreshRunningPaths, 10000);
+    if (buffer.length > 262144) buffer = ''; // never let a marker-less stream grow unbounded
+  });
+  runningWatcher.on('exit', () => {
+    runningWatcher = null;
+  });
 }
 
 function stopRunningPoll() {
-  clearInterval(runningPoll);
-  runningPoll = null;
+  if (runningWatcher) {
+    try {
+      runningWatcher.kill();
+    } catch (_) {
+      /* already gone */
+    }
+    runningWatcher = null;
+  }
+  lastRunningSig = '';
+}
+
+/**
+ * Friendly display names for .exe paths from the version resource
+ * ("mstsc" → "Remote Desktop Connection"). One PowerShell call per add
+ * batch; anything that fails falls back to the basename.
+ */
+function resolveDisplayNames(paths) {
+  const exes = [...new Set((paths || []).filter((p) => /\.exe$/i.test(p) && fs.existsSync(p)))];
+  if (!isWin || !exes.length) return Promise.resolve({});
+  const list = exes.map((p) => `'${p.replace(/'/g, "''")}'`).join(',');
+  const script =
+    `foreach($p in @(${list})){` +
+    `$d=(Get-Item -LiteralPath $p -ErrorAction SilentlyContinue).VersionInfo.FileDescription;` +
+    `Write-Output ($p + '|' + $d)}`;
+  return new Promise((resolve) => {
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-Command', script],
+      { timeout: 4000, windowsHide: true },
+      (err, stdout) => {
+        const names = {};
+        if (!err) {
+          for (const line of String(stdout || '').split(/\r?\n/)) {
+            const sep = line.indexOf('|');
+            if (sep <= 0) continue;
+            const p = line.slice(0, sep);
+            const desc = line.slice(sep + 1).trim();
+            if (desc && exes.includes(p)) names[p] = desc;
+          }
+        }
+        resolve(names);
+      }
+    );
+  });
+}
+
+// Favicons for URL items, cached on disk by host (Favicons/<sha1>.png)
+const faviconMemo = new Map(); // host → dataURL | null
+const faviconInFlight = new Map();
+
+function faviconCachePath(host) {
+  const hash = createHash('sha1').update(host).digest('hex');
+  const dir = path.join(dataDir(), 'Favicons');
+  fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, `${hash}.png`);
+}
+
+async function getFaviconDataURL(rawUrl) {
+  let host;
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    host = u.hostname;
+  } catch (_) {
+    return null;
+  }
+  if (faviconMemo.has(host)) return faviconMemo.get(host);
+  const cached = faviconCachePath(host);
+  if (fs.existsSync(cached)) {
+    try {
+      const img = nativeImage.createFromPath(cached);
+      const url = img.isEmpty() ? null : img.toDataURL();
+      faviconMemo.set(host, url);
+      return url;
+    } catch (_) {
+      /* refetch below */
+    }
+  }
+  if (process.env.CLUTTER_DOCK_NO_NET) return null;
+  if (faviconInFlight.has(host)) return faviconInFlight.get(host);
+  const job = (async () => {
+    try {
+      const res = await fetch(
+        `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`,
+        { signal: AbortSignal.timeout(6000) }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = Buffer.from(await res.arrayBuffer());
+      const img = nativeImage.createFromBuffer(buf);
+      if (img.isEmpty()) throw new Error('not an image');
+      fs.writeFileSync(cached, buf);
+      const url = img.toDataURL();
+      faviconMemo.set(host, url);
+      return url;
+    } catch (_) {
+      faviconMemo.set(host, null); // negative-cache for this session
+      return null;
+    } finally {
+      faviconInFlight.delete(host);
+    }
+  })();
+  faviconInFlight.set(host, job);
+  return job;
+}
+
+/**
+ * Enumerate the user's existing shortcuts (taskbar pins, desktop, Start Menu)
+ * for the import wizard. Read-only; targets that no longer exist are skipped.
+ */
+function scanImportSources() {
+  if (!isWin) return [];
+  const sources = [
+    {
+      source: 'Taskbar',
+      dir: path.join(
+        app.getPath('appData'),
+        'Microsoft', 'Internet Explorer', 'Quick Launch', 'User Pinned', 'TaskBar'
+      ),
+      depth: 0,
+    },
+    { source: 'Desktop', dir: app.getPath('desktop'), depth: 0 },
+    {
+      source: 'Start Menu',
+      dir: path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+      depth: 2,
+    },
+    {
+      source: 'Start Menu',
+      dir: path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+      depth: 2,
+    },
+  ];
+  const seen = new Set();
+  const out = [];
+  const walk = (dir, depth, source) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return;
+    }
+    for (const entry of entries) {
+      if (out.length >= 400) return;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (depth > 0) walk(full, depth - 1, source);
+        continue;
+      }
+      if (!/\.lnk$/i.test(entry.name)) continue;
+      if (/uninstall/i.test(entry.name)) continue;
+      let target;
+      try {
+        target = shell.readShortcutLink(full).target;
+      } catch (_) {
+        continue;
+      }
+      if (!target || !/\.exe$/i.test(target) || !fs.existsSync(target)) continue;
+      if (/uninstall|setup|installer/i.test(path.basename(target))) continue;
+      const key = target.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ source, name: entry.name.replace(/\.lnk$/i, ''), target });
+    }
+  };
+  for (const s of sources) walk(s.dir, s.depth, s.source);
+  return out;
+}
+
+// "Send to → ClutterDock" in Explorer's right-click menu (packaged builds only —
+// in dev the target would be a bare electron.exe)
+function sendToShortcutPath() {
+  return path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'SendTo', 'ClutterDock.lnk');
+}
+
+function syncSendToShortcut() {
+  if (!isWin || !app.isPackaged) return;
+  try {
+    if (store.prefs.sendToShortcut !== false) {
+      shell.writeShortcutLink(sendToShortcutPath(), 'update', {
+        target: process.execPath,
+        description: 'Add to ClutterDock',
+      });
+    } else {
+      fs.rmSync(sendToShortcutPath(), { force: true });
+    }
+  } catch (e) {
+    console.warn('SendTo shortcut sync failed', e);
+  }
+}
+
+/** Absolute existing paths passed on the command line (Send to / drag onto the exe). */
+function extractPathArgs(argv) {
+  return (argv || []).filter((a) => {
+    if (typeof a !== 'string' || a.startsWith('-')) return false;
+    if (!path.isAbsolute(a)) return false;
+    const lower = a.toLowerCase();
+    if (lower === process.execPath.toLowerCase()) return false;
+    if (lower.endsWith('electron.exe') || lower.endsWith('clutterdock.exe')) return false;
+    if (lower === path.resolve(__dirname, '..').toLowerCase()) return false;
+    try {
+      return fs.existsSync(a);
+    } catch (_) {
+      return false;
+    }
+  });
+}
+
+async function addPathArgs(paths) {
+  if (!paths.length || !store) return;
+  const names = await resolveDisplayNames(paths);
+  const target = store.selectedFolder();
+  const targetID = target && target.smartKind === 'none'
+    ? target.id
+    : store.state.folders.find((f) => f.smartKind === 'none')?.id;
+  store.addPaths(paths, targetID, names);
+  showPanel();
+}
+
+// Taskbar jump list: right-click the icon → jump straight into a stack
+let jumpListTimer = null;
+let jumpListSig = '';
+
+function refreshJumpList() {
+  if (!isWin || !store) return;
+  clearTimeout(jumpListTimer);
+  jumpListTimer = setTimeout(() => {
+    const stacks = store
+      .visibleFolders()
+      .filter((f) => f.smartKind === 'none')
+      .slice(0, 7);
+    const sig = stacks.map((f) => `${f.id}:${f.name}`).join('|');
+    if (sig === jumpListSig) return;
+    jumpListSig = sig;
+    try {
+      app.setUserTasks([
+        ...stacks.map((f) => ({
+          program: process.execPath,
+          arguments: `--open-stack=${f.id}`,
+          iconPath: process.execPath,
+          iconIndex: 0,
+          title: f.name,
+          description: `Open the ${f.name} stack`,
+        })),
+        {
+          program: process.execPath,
+          arguments: '--settings',
+          iconPath: process.execPath,
+          iconIndex: 0,
+          title: 'Settings',
+          description: 'ClutterDock Settings',
+        },
+      ]);
+    } catch (_) {
+      /* Jump Lists may fail in portable Temp launches */
+    }
+  }, 1500);
+}
+
+function argValue(argv, prefix) {
+  const hit = (argv || []).find((a) => typeof a === 'string' && a.startsWith(prefix));
+  return hit ? hit.slice(prefix.length) : null;
+}
+
+function applyTheme() {
+  const t = store?.prefs?.theme;
+  nativeTheme.themeSource = t === 'light' || t === 'dark' ? t : 'system';
 }
 
 // Every mutation IPC returns the same envelope: { ok, snapshot, error?, limitMessage? }.
 // (The renderer previously had to guess between three different shapes.)
 function okSnap(extra = {}) {
+  refreshJumpList();
   return { ok: true, snapshot: store.getSnapshot(), ...extra };
 }
 function failSnap(error, extra = {}) {
@@ -504,14 +844,187 @@ function wireIpc() {
     });
     let addResult = null;
     if (!result.canceled && result.filePaths.length) {
-      addResult = store.addPaths(result.filePaths);
+      const names = await resolveDisplayNames(result.filePaths);
+      addResult = store.addPaths(result.filePaths, null, names);
     }
     return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
   });
 
-  ipcMain.handle('add-paths', (_e, paths, folderID) => {
-    const addResult = store.addPaths(paths || [], folderID);
+  ipcMain.handle('add-paths', async (_e, paths, folderID) => {
+    const list = paths || [];
+    const names = await resolveDisplayNames(list);
+    const addResult = store.addPaths(list, folderID, names);
     return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
+  });
+
+  ipcMain.handle('rename-item', (_e, itemID, folderID, name) => {
+    store.renameItem(itemID, folderID, name);
+    return okSnap();
+  });
+
+  ipcMain.handle('set-folder-color', (_e, folderID, color) => {
+    store.setFolderColor(folderID, color);
+    return okSnap();
+  });
+
+  // Launch an app elevated (context menu → Run as administrator)
+  ipcMain.handle('open-item-admin', (_e, itemID) => {
+    const item = store.findItem(itemID);
+    if (!item || item.kind !== 'app' || !/\.(exe|lnk|bat|cmd|msi)$/i.test(item.path)) {
+      return { ok: false, error: 'Only apps can run as administrator.' };
+    }
+    if (!fs.existsSync(item.path)) return { ok: false, error: 'Missing: ' + item.path };
+    try {
+      const quoted = `'${item.path.replace(/'/g, "''")}'`;
+      execFile(
+        'powershell.exe',
+        ['-NoProfile', '-Command', `Start-Process -FilePath ${quoted} -Verb RunAs`],
+        { timeout: 10000, windowsHide: true },
+        () => {}
+      );
+      store.recordLaunch(item);
+      if (store.prefs.closeAfterLaunch) hidePanel();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+  });
+
+  // Import wizard: existing taskbar / desktop / Start Menu shortcuts
+  ipcMain.handle('scan-import-sources', () => {
+    try {
+      return scanImportSources();
+    } catch (e) {
+      console.warn('shortcut scan failed', e);
+      return [];
+    }
+  });
+
+  ipcMain.handle('import-shortcuts', async (_e, entries, folderID) => {
+    const clean = (Array.isArray(entries) ? entries : [])
+      .filter((x) => x && typeof x.target === 'string' && fs.existsSync(x.target))
+      .slice(0, 400);
+    if (!clean.length) return okSnap();
+    const names = {};
+    for (const x of clean) {
+      if (typeof x.name === 'string' && x.name.trim()) names[x.target] = x.name.trim();
+    }
+    const addResult = store.addPaths(clean.map((x) => x.target), folderID, names);
+    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
+  });
+
+  // Clipboard: Ctrl+V adds copied files/URLs, Ctrl+C puts items on the clipboard
+  ipcMain.handle('paste-add', async (_e, folderID) => {
+    let paths = [];
+    if (isWin) {
+      try {
+        paths = parseHDrop(clipboard.readBuffer('CF_HDROP')).filter((p) => fs.existsSync(p));
+      } catch (_) {
+        paths = [];
+      }
+    }
+    if (paths.length) {
+      const names = await resolveDisplayNames(paths);
+      const addResult = store.addPaths(paths, folderID, names);
+      return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : { pasted: addResult.added });
+    }
+    const text = (clipboard.readText() || '').trim();
+    if (!text) return okSnap({ pasted: 0 });
+    if (path.isAbsolute(text) && fs.existsSync(text)) {
+      const names = await resolveDisplayNames([text]);
+      const addResult = store.addPaths([text], folderID, names);
+      return okSnap({ pasted: addResult.added });
+    }
+    const urlResult = store.addURL(text, folderID);
+    if (urlResult.hitLimit) return okSnap({ limitMessage: urlResult.message });
+    return okSnap({ pasted: urlResult.added });
+  });
+
+  ipcMain.handle('copy-items', (_e, itemIDs) => {
+    const items = (Array.isArray(itemIDs) ? itemIDs : [])
+      .map((id) => store.findItem(id))
+      .filter(Boolean);
+    const files = items.filter((i) => i.kind !== 'url' && fs.existsSync(i.path)).map((i) => i.path);
+    const urls = items.filter((i) => i.kind === 'url').map((i) => i.path);
+    if (files.length && isWin) {
+      const buf = buildHDrop(files);
+      if (buf) clipboard.writeBuffer('CF_HDROP', buf);
+      return { ok: true, copied: files.length, as: 'files' };
+    }
+    const text = [...files, ...urls].join('\n');
+    if (!text) return { ok: false, error: 'Nothing to copy' };
+    clipboard.writeText(text);
+    return { ok: true, copied: files.length + urls.length, as: 'text' };
+  });
+
+  // A drag over the panel suspends the blur auto-hide (see panel 'blur')
+  ipcMain.handle('set-drag-active', (_e, active) => {
+    panelDragActiveUntil = active ? Date.now() + 30000 : 0;
+  });
+
+  // Native drag-out: Alt+drag a tile into Explorer / Mail / anywhere
+  ipcMain.on('drag-out', async (e, itemID) => {
+    const item = store.findItem(itemID);
+    if (!item || item.kind === 'url' || !fs.existsSync(item.path)) return;
+    let icon = null;
+    try {
+      icon = await app.getFileIcon(item.path, { size: 'normal' });
+    } catch (_) {
+      /* fallback below */
+    }
+    if (!icon || icon.isEmpty()) icon = nativeImage.createFromPath(asset('icon.png'));
+    try {
+      e.sender.startDrag({ file: item.path, icon });
+    } catch (err) {
+      console.warn('drag-out failed', err);
+    }
+  });
+
+  // Custom data folder (e.g. OneDrive) — takes effect after relaunch
+  ipcMain.handle('choose-data-dir', async () => {
+    const result = await showNativeDialog(dialog.showOpenDialog, {
+      title: 'Choose where ClutterDock stores its data',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
+    const rootTarget = result.filePaths[0];
+    try {
+      const probe = path.join(rootTarget, '.clutterdock-write-test');
+      fs.writeFileSync(probe, 'ok');
+      fs.rmSync(probe, { force: true });
+      store.flushPendingSave();
+      const src = dataDir();
+      const dest = path.join(rootTarget, 'ClutterDock');
+      if (path.resolve(src) !== path.resolve(dest)) {
+        fs.cpSync(src, dest, { recursive: true });
+      }
+      setDataDirPointer(rootTarget);
+      return { ok: true, dir: dest, needsRestart: true };
+    } catch (e) {
+      return { ok: false, error: 'Could not use that folder: ' + String(e.message || e) };
+    }
+  });
+
+  ipcMain.handle('reset-data-dir', () => {
+    try {
+      store.flushPendingSave();
+      setDataDirPointer(null);
+      return { ok: true, needsRestart: true };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+  });
+
+  ipcMain.handle('relaunch-app', () => {
+    isQuitting = true;
+    app.relaunch();
+    app.quit();
+  });
+
+  // Settings can hand off to the panel's import wizard
+  ipcMain.handle('open-import-wizard', () => {
+    showPanel();
+    if (panel && !panel.isDestroyed()) panel.webContents.send('open-import');
   });
 
   ipcMain.handle('relocate-item', (_e, itemID, folderID) => {
@@ -585,6 +1098,11 @@ function wireIpc() {
     launchAtLogin: 'boolean',
     checkForUpdatesAutomatically: 'boolean',
     installRegisterChoice: 'string',
+    keepOpen: 'boolean',
+    theme: 'string',
+    panelPlacement: 'string',
+    transparencyEffects: 'boolean',
+    sendToShortcut: 'boolean',
   };
 
   ipcMain.handle('update-prefs', (_e, partial) => {
@@ -597,7 +1115,24 @@ function wireIpc() {
     if ('installRegisterChoice' in clean && clean.installRegisterChoice !== 'skipped') {
       delete clean.installRegisterChoice;
     }
+    // Enum prefs: junk values fall back to their defaults rather than persisting
+    if ('theme' in clean && !['system', 'light', 'dark'].includes(clean.theme)) {
+      clean.theme = 'system';
+    }
+    if ('panelPlacement' in clean && !['cursor', 'remembered', 'taskbar'].includes(clean.panelPlacement)) {
+      clean.panelPlacement = 'cursor';
+    }
     store.updatePrefs(clean);
+    if ('theme' in clean) applyTheme();
+    if ('transparencyEffects' in clean && panel && !panel.isDestroyed() && acrylicSupported) {
+      try {
+        panel.setBackgroundMaterial(clean.transparencyEffects ? 'acrylic' : 'none');
+        store.runtimeInfo = { ...(store.runtimeInfo || {}), acrylic: clean.transparencyEffects };
+      } catch (_) {
+        /* older Electron */
+      }
+    }
+    if ('sendToShortcut' in clean) syncSendToShortcut();
     let hotkeyError = null;
     if (clean.hotkey !== undefined) {
       // A typo'd accelerator would silently leave the app with no hotkey at all
@@ -829,7 +1364,8 @@ function wireIpc() {
   const iconCache = new Map();
   ipcMain.handle('get-item-icon', async (_e, itemID) => {
     const item = store.findItem(itemID);
-    if (!item || item.kind === 'url') return null;
+    if (!item) return null;
+    if (item.kind === 'url') return getFaviconDataURL(item.path);
     if (iconCache.has(item.path)) return iconCache.get(item.path);
     let url = null;
     try {
@@ -862,11 +1398,24 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', (_e, argv) => {
+    if (!store) return;
     if (argv && argv.some((a) => a === '--settings' || String(a).endsWith('--settings'))) {
-      if (store) createSettings();
+      createSettings();
       return;
     }
-    if (store) showPanel();
+    const stackID = argValue(argv, '--open-stack=');
+    if (stackID) {
+      store.selectFolder(stackID);
+      showPanel();
+      return;
+    }
+    // "Send to → ClutterDock" / files dragged onto the exe arrive as argv paths
+    const dropped = extractPathArgs(argv);
+    if (dropped.length) {
+      addPathArgs(dropped);
+      return;
+    }
+    showPanel();
   });
 
   app.whenReady().then(() => {
@@ -883,11 +1432,14 @@ if (!gotLock) {
       /* ignore */
     }
 
+    applyTheme();
     wireIpc();
     createTray();
     if (isWin) createTaskbarHost();
     createPanel();
     registerHotkey();
+    syncSendToShortcut();
+    refreshJumpList();
 
     // Follow OS theme switches — a stale backgroundColor flashes the old
     // theme's color on every resize/show.
@@ -913,9 +1465,16 @@ if (!gotLock) {
 
     if (argvHas('--settings')) {
       setTimeout(() => createSettings(), 400);
+    } else if (argValue(process.argv, '--open-stack=')) {
+      store.selectFolder(argValue(process.argv, '--open-stack='));
+      setTimeout(() => showPanel(), 400);
     } else if (!store.prefs.hasCompletedOnboarding || argvHas('--open')) {
       setTimeout(() => showPanel(), 400);
     }
+
+    // Files handed over at launch (Send to while the app wasn't running)
+    const launchPaths = extractPathArgs(process.argv.slice(1));
+    if (launchPaths.length) setTimeout(() => addPathArgs(launchPaths), 600);
 
     // Background update check (NSIS installs)
     if (store.prefs.checkForUpdatesAutomatically !== false && !process.env.CLUTTER_DOCK_NO_UPDATE) {
@@ -930,10 +1489,13 @@ if (!gotLock) {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  store?.flushPendingSave(); // writes are debounced; nothing may be lost on quit
+  stopRunningPoll();
 });
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  store?.flushPendingSave();
 });
 
 // Keep running in the tray when panel/settings close

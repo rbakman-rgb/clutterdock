@@ -9,6 +9,7 @@
 </head>
 <body>
   <div id="app">
+    <div class="drag-strip" aria-hidden="true"></div>
     <div class="wsbar" id="wsbar" hidden aria-label="Workspaces"></div>
     <div class="tabs" id="tabs" role="tablist" aria-label="Stacks"></div>
     <div class="search-row">
@@ -20,6 +21,9 @@
     <div class="footer">
       <span id="count" aria-live="polite">0 items</span>
       <span class="spacer"></span>
+      <button class="icon-btn" id="pinBtn" title="Pin the launcher open" aria-label="Pin the launcher open">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 3h6l1 7 2.5 2.5a1 1 0 0 1-.7 1.7H6.2a1 1 0 0 1-.7-1.7L8 10z"/></svg>
+      </button>
       <button class="icon-btn" id="helpBtn" title="Help" aria-label="Help">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </button>

@@ -65,7 +65,7 @@ async function launch() {
     executablePath: require('electron'),
     args: ['.', '--no-sandbox', `--user-data-dir=${userDataDir}`],
     cwd: APP_DIR,
-    env: { ...process.env, CLUTTER_DOCK_NO_UPDATE: '1' },
+    env: { ...process.env, CLUTTER_DOCK_NO_UPDATE: '1', CLUTTER_DOCK_NO_NET: '1' },
     timeout: 60000,
   });
   await app.firstWindow();
