@@ -341,24 +341,39 @@ function createTaskbarHost() {
   // the window title (no page title to override it).
   taskbarHost.loadURL('about:blank');
 
+  // ONE physical taskbar click can fire focus + minimize + restore on this
+  // window in quick succession (plus the panel's own blur→hide), and each
+  // handler used to act independently — the panel visibly fought itself:
+  // open, toggled shut, reopened by the trailing event. All host-driven
+  // visibility changes now go through a single debounced gate, and anything
+  // arriving shortly after a hide is treated as the same gesture.
+  let lastHostActionAt = 0;
+  const hostAction = (fn) => {
+    const now = Date.now();
+    if (now - lastHostActionAt < 450) return; // trailing events of the same click
+    if (now - lastPanelHideAt < 500) return; // the click that hid it, or Windows refocusing us after a hide
+    lastHostActionAt = now;
+    fn();
+  };
+
   taskbarHost.on('close', (e) => {
     if (isQuitting) return;
     e.preventDefault();
-    togglePanel();
+    hostAction(togglePanel);
   });
   taskbarHost.on('minimize', () => {
+    // Taskbar-click minimize of the host means "dismiss" — no debounce needed
+    // to hide, but it must count as a host action so restore/focus from the
+    // same click don't instantly reopen.
+    lastHostActionAt = Date.now();
     hidePanel();
   });
   taskbarHost.on('restore', () => {
-    showPanel();
+    hostAction(showPanel);
   });
   taskbarHost.on('focus', () => {
     if (suppressTaskbarFocus) return;
-    // A taskbar click on an open panel often blurs the panel (which hides it)
-    // before this focus event lands — toggling then would instantly reopen the
-    // launcher the user just dismissed.
-    if (Date.now() - lastPanelHideAt < 350) return;
-    togglePanel();
+    hostAction(togglePanel);
   });
 
   try {

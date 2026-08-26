@@ -761,8 +761,10 @@ body.acrylic #app {
    Fast, springy, purposeful — every animation under 300ms. */
 
 /* Panel entrance: rise + fade, like the Win11 flyouts */
+/* Starts at 0.55, not 0 — over acrylic a full fade-from-nothing reads as a
+   ghost/flicker of the desktop behind the panel */
 @keyframes panelEnter {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  from { opacity: 0.55; transform: translateY(10px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 #app.panel-enter {
