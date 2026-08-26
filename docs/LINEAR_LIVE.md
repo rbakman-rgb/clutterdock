@@ -78,7 +78,11 @@
 ### G4 Growth
 | ID | State | Notes |
 |----|--------|--------|
-| RON-374 | Todo · High | Soft launch; blocked by 363 |
+| RON-374 | In Progress · High | Soft launch parent. Kit in `docs/CAMPAIGN.md`. Posts not sent. |
+| RON-502 | Todo · High | X thread + Grok Bot X operator |
+| RON-503 | Todo · High | Reddit path (karma, then one post / sub) |
+| RON-504 | Todo · Medium | Real 12–20s demo clip |
+| RON-505 | Backlog · Low | Product Hunt / Show HN; blocked by 361+365 |
 | RON-376 | Todo · Low | Homebrew; blocked by 361 |
 | RON-377 | Backlog | iCloud sync |
 
@@ -90,6 +94,4 @@
 2. **When ready to sell:** RON-364 → 365 → 366 → 367  
 3. **Anytime product polish:** RON-369 screenshots  
 4. **When ready for public free downloads:** RON-372 (site CTAs) + optional RON-363 smoke  
-5. Soft launch RON-374 after smoke  
-
-Site stays Coming soon until Ronald says otherwise.
+5. Soft launch RON-374 — kit ready (`docs/CAMPAIGN.md`); Ronald still has to post. Pro sale and Product Hunt wait on merchant + signing.

@@ -111,7 +111,7 @@ open /Applications/ClutterDock.app
 2. **RON-363** — Windows smoke from Releases (Mac smoke done)  
 3. **RON-372** — Re-enable site download CTAs when ready  
 4. **G2** — Merchant + Pro checkout when ready to sell  
-5. **Soft launch** after full smoke (RON-374)  
+5. **Soft launch (RON-374)** — campaign kit is in `docs/CAMPAIGN.md`. Record a real clip, then X + Reddit. Grok Bot briefs in `docs/campaign/GROK_BOT.md`. Do not sell Pro until Lemon Squeezy is live.  
 
 ---
 
