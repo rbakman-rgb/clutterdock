@@ -274,6 +274,10 @@ function createTaskbarHost() {
   });
   taskbarHost.setMenu(null);
   taskbarHost.setSkipTaskbar(false);
+  // A window that never navigates has no live renderer, which hangs DevTools
+  // automation (the e2e suite) waiting on its CDP target. about:blank keeps
+  // the window title (no page title to override it).
+  taskbarHost.loadURL('about:blank');
 
   taskbarHost.on('close', (e) => {
     if (isQuitting) return;
