@@ -18,6 +18,13 @@
   --app-grad-1: #e8eefc;
   --app-grad-2: #f7f8fc;
   --app-grad-3: #eef2ff;
+  /* Per-kind tile backgrounds live in tokens so both themes define them once —
+     a later light-only rule silently beat the dark overrides in the cascade */
+  --tile-app-bg: linear-gradient(145deg, #dbeafe, #eff6ff);
+  --tile-file-bg: linear-gradient(145deg, #fef3c7, #fffbeb);
+  --tile-folder-bg: linear-gradient(145deg, #e0e7ff, #eef2ff);
+  --tile-url-bg: linear-gradient(145deg, #d1fae5, #ecfdf5);
+  --tile-icon-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
@@ -41,12 +48,12 @@
     --app-grad-1: #131a28;
     --app-grad-2: #10141d;
     --app-grad-3: #141a2b;
+    --tile-app-bg: rgba(59, 130, 246, 0.16);
+    --tile-file-bg: rgba(245, 158, 11, 0.14);
+    --tile-folder-bg: rgba(99, 102, 241, 0.16);
+    --tile-url-bg: rgba(16, 185, 129, 0.14);
+    --tile-icon-shadow: none;
   }
-  .tile-icon { box-shadow: none; }
-  .tile-icon.app { background: rgba(59, 130, 246, 0.16); }
-  .tile-icon.file { background: rgba(245, 158, 11, 0.14); }
-  .tile-icon.folder { background: rgba(99, 102, 241, 0.16); }
-  .tile-icon.url { background: rgba(16, 185, 129, 0.14); }
 }
 
 * { box-sizing: border-box; }
@@ -65,15 +72,41 @@ html, body {
   flex-direction: column;
   height: 100%;
   background: linear-gradient(160deg, var(--app-grad-1) 0%, var(--app-grad-2) 45%, var(--app-grad-3) 100%);
+  /* Frameless window: a hairline ring so the panel reads as a card on any desktop */
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* Thin, theme-matched scrollbars — the stock ones look bolted-on in the panel */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--muted); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+button, .tile, .list-row {
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .tabs {
   display: flex;
   gap: 6px;
   padding: 12px 14px 8px;
-  overflow-x: auto;
   align-items: center;
 }
+.tab-scroll {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+}
+.tab-scroll::-webkit-scrollbar { height: 4px; }
 .tab {
   border: none;
   background: var(--chip-bg);
@@ -83,7 +116,9 @@ html, body {
   cursor: pointer;
   font-size: 12px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
+.tab:hover { background: var(--tile-hover); }
 .tab.active {
   background: var(--accent-soft);
   font-weight: 600;
@@ -93,16 +128,23 @@ html, body {
   margin-left: auto;
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 .icon-btn {
   border: none;
   background: transparent;
   cursor: pointer;
   font-size: 16px;
-  padding: 4px 8px;
+  padding: 6px;
   border-radius: 8px;
   color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+.icon-btn svg { width: 16px; height: 16px; display: block; }
 .icon-btn:hover { background: var(--tile-hover); color: var(--text); }
 
 .search-row {
@@ -111,14 +153,31 @@ html, body {
   padding: 0 14px 10px;
   align-items: center;
 }
+.search-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-glyph {
+  position: absolute;
+  left: 11px;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
 .search-row input {
   flex: 1;
+  width: 100%;
   border: 1px solid var(--border);
   background: var(--surface-input);
+  color: var(--text);
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 32px;
   font-size: 13px;
   outline: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 .search-row input:focus {
   border-color: var(--accent);
@@ -178,17 +237,17 @@ html, body {
   place-items: center;
   font-size: 22px;
   background: var(--surface);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--tile-icon-shadow);
 }
 .tile-icon img {
   width: 72%;
   height: 72%;
   object-fit: contain;
 }
-.tile-icon.app { background: linear-gradient(145deg, #dbeafe, #eff6ff); }
-.tile-icon.file { background: linear-gradient(145deg, #fef3c7, #fffbeb); }
-.tile-icon.folder { background: linear-gradient(145deg, #e0e7ff, #eef2ff); }
-.tile-icon.url { background: linear-gradient(145deg, #d1fae5, #ecfdf5); }
+.tile-icon.app { background: var(--tile-app-bg); }
+.tile-icon.file { background: var(--tile-file-bg); }
+.tile-icon.folder { background: var(--tile-folder-bg); }
+.tile-icon.url { background: var(--tile-url-bg); }
 .tile-name {
   font-size: 11px;
   text-align: center;
@@ -290,6 +349,7 @@ html, body {
   justify-content: center;
   z-index: 20;
   padding: 16px;
+  overflow: auto;
 }
 .overlay[hidden] { display: none; }
 .card {
@@ -299,6 +359,7 @@ html, body {
   width: min(400px, 100%);
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
   border: 1px solid rgba(59, 130, 246, 0.3);
+  margin: auto; /* keeps it centered yet scrollable when taller than the panel */
 }
 .card h2 { margin: 0 0 10px; font-size: 16px; }
 .card ol { margin: 0 0 14px; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--text-body); }
@@ -424,12 +485,19 @@ html, body {
 .field:last-child { border-bottom: none; }
 .field label { display: flex; flex-direction: column; gap: 2px; }
 .field label span.sub { font-size: 11px; color: var(--muted); }
-.field input[type="text"], .field select {
+.field input[type="text"], .field input[type="email"], .field select {
   border: 1px solid var(--border);
+  background: var(--surface-input);
+  color: var(--text);
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 13px;
   min-width: 180px;
+}
+.field input[type="text"]:focus, .field input[type="email"]:focus, .field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none;
 }
 .status { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
@@ -547,6 +615,8 @@ html, body {
   border-radius: 999px;
   background: var(--chip-bg);
   margin-left: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .tier-badge.pro { background: rgba(251, 146, 60, 0.35); }
 
@@ -557,4 +627,364 @@ button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* Acrylic (Win11): the OS draws the blurred material behind the window,
+   so surfaces above it go translucent */
+body.acrylic { background: transparent; }
+body.acrylic #app {
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--app-grad-1) 62%, transparent) 0%,
+    color-mix(in srgb, var(--app-grad-2) 55%, transparent) 45%,
+    color-mix(in srgb, var(--app-grad-3) 62%, transparent) 100%);
+}
+
+/* Grab strip: frameless windows need somewhere to drag from */
+.drag-strip {
+  height: 8px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+/* Pin toggle (footer) */
+#pinBtn.on {
+  color: var(--tab-active-text);
+  background: var(--accent-soft);
+}
+
+/* Match highlighting in item names */
+.tile-name b, .list-row .name b {
+  font-weight: 700;
+  color: var(--tab-active-text);
+}
+
+/* Stack color palette row in the folder context menu */
+.ctx-colors {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.ctx-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.ctx-color.none {
+  background: var(--chip-bg);
+  position: relative;
+}
+.ctx-color.none::after {
+  content: '✕';
+  font-size: 9px;
+  color: var(--muted);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.ctx-color.current { border-color: var(--text); }
+.ctx-color:hover { transform: scale(1.15); }
+
+/* Stack switcher popover */
+.switcher-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+.switcher-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+}
+.switcher-cell:hover { background: var(--tile-hover); }
+.switcher-cell.active { background: var(--accent-soft); border-color: var(--accent); }
+.switcher-cell .sw-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.switcher-cell .sw-count {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* Import wizard */
+.import-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+}
+.import-group { margin-bottom: 8px; }
+.import-group-head { display: block; padding: 3px 0; }
+.import-row {
+  display: block;
+  padding: 2px 0 2px 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tab strip: fade both clipped edges so overflow reads as "more here" */
+.tab-scroll {
+  -webkit-mask-image: linear-gradient(to right,
+    transparent, black 14px, black calc(100% - 18px), transparent);
+}
+
+/* Search-to-add: installed apps offered under search results */
+.appidx {
+  margin: 10px 4px 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.appidx-head {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 0 8px 6px;
+}
+.appidx-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 12.5px;
+  text-align: left;
+}
+.appidx-row:hover { background: var(--tile-hover); }
+.appidx-row .appidx-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.appidx-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appidx-name b { font-weight: 700; color: var(--tab-active-text); }
+.appidx-src {
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.appidx-add {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tab-active-text);
+  background: var(--accent-soft);
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.appidx-row:hover .appidx-add { filter: brightness(1.08); }
+
+/* Search-with-no-stack-matches state (the app index renders below it) */
+.empty-search {
+  padding: 14px 12px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.empty-search p { margin: 0; }
+
+/* Hotkey recorder armed state */
+#hotkeyRecord.recording {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ================= Motion & feel =================
+   Fast, springy, purposeful — every animation under 300ms. */
+
+/* Panel entrance: fade only. Any transform here fights the OS — the window's
+   first painted frame is the pre-animation layout, so translate/scale starts
+   read as the content snapping and re-settling (user-reported three ways). */
+@keyframes panelEnter {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+#app.panel-enter {
+  animation: panelEnter 0.12s ease-out;
+}
+
+/* Content cross-fade — only when the stack actually changes (renderer keys it),
+   otherwise every selection click would blink */
+@keyframes contentIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.content-anim .grid, .content-anim .list, .content-anim .empty {
+  animation: contentIn 0.16s ease-out;
+}
+
+/* Tiles: lift on hover, sink on press, pulse on launch */
+.tile {
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    transform 0.14s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.tile:hover { transform: translateY(-2px); }
+.tile:hover .tile-icon {
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+}
+.tile:active { transform: translateY(0) scale(0.97); }
+.tile-icon { transition: box-shadow 0.14s ease, transform 0.14s ease; }
+@keyframes launchPulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+.tile.launching .tile-icon, .list-row.launching .tile-icon {
+  animation: launchPulse 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+/* Dialogs pop in */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.overlay .card { animation: cardIn 0.16s cubic-bezier(0.2, 0.9, 0.3, 1); }
+
+/* Context menus slide in from the click point */
+@keyframes ctxIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.ctx:not([hidden]) { animation: ctxIn 0.12s ease-out; }
+
+/* Running dot breathes */
+@keyframes dotBreathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.run-dot { animation: dotBreathe 2.4s ease-in-out infinite; }
+
+/* Empty-state glyph floats gently */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.empty > div:first-child { animation: floaty 3.2s ease-in-out infinite; }
+
+/* Buttons acknowledge the press */
+.btn, .icon-btn, .toggle, .tab {
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    color 0.12s ease, transform 0.1s ease, filter 0.12s ease;
+}
+.btn:hover { filter: brightness(1.05); }
+.btn:active, .icon-btn:active, .tab:active { transform: scale(0.96); }
+
+/* Someone asked the OS to calm things down — honor it completely */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+/* ================= Context menu grouping ================= */
+.ctx-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 8px;
+}
+.ctx button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ctx-key {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ================= Dialog & onboarding polish ================= */
+.dialog .row { justify-content: flex-end; }
+.dialog .row .btn.primary { order: 2; }
+.dialog .row .btn.secondary { order: 1; }
+
+.ob-tagline {
+  margin: -4px 0 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.ob-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.ob-step { display: flex; gap: 10px; align-items: flex-start; }
+.ob-step-icon {
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--chip-bg);
+  border-radius: 9px;
+}
+.ob-step div > b { display: block; font-size: 13px; }
+.ob-step span:not(.ob-step-icon) {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.ob-step span b { font-size: inherit; }
+.ob-actions { margin-bottom: 8px; }
+.ob-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.link-btn:hover { color: var(--text); background: var(--tile-hover); }
+
+/* Windows High Contrast: let the system draw real borders */
+@media (forced-colors: active) {
+  .tab, .tile, .list-row, .btn, .icon-btn, .toggle, .ctx, .card, .switcher-cell {
+    border: 1px solid CanvasText;
+  }
+  .run-dot { background: Highlight; box-shadow: none; }
 }

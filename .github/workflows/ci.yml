@@ -45,6 +45,25 @@ jobs:
           for f in src/*.js src/renderer/*.js scripts/*.js; do node --check "$f"; done
           npm test
 
+  windows-e2e:
+    name: Windows app E2E (headless Electron)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install dependencies
+        working-directory: windows
+        run: npm ci
+      - name: Run E2E suite
+        working-directory: windows
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+          xvfb-run -a -s "-screen 0 1280x900x24" npm run e2e
+
   site:
     name: Website link check
     runs-on: ubuntu-latest

@@ -32,10 +32,19 @@
         <input type="checkbox" id="login" />
       </div>
       <div class="field">
-        <label for="hotkey">Global hotkey
-          <span class="sub">Electron accelerator string</span>
+        <label for="hotkeyRecord">Global hotkey
+          <span class="sub">Click, then press the shortcut you want</span>
         </label>
-        <input type="text" id="hotkey" placeholder="CommandOrControl+Shift+D" />
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn secondary" id="hotkeyRecord">Ctrl+Shift+D</button>
+          <button class="btn secondary" id="hotkeyReset" title="Restore the default">Reset</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="keepOpen">Keep launcher open
+          <span class="sub">Don't hide when it loses focus (📌 in the launcher does the same)</span>
+        </label>
+        <input type="checkbox" id="keepOpen" />
       </div>
       <div class="field">
         <label>Welcome tips</label>
@@ -53,6 +62,70 @@
         </label>
         <button class="btn secondary" id="checkUpdates">Check for Updates…</button>
       </div>
+    </div>
+
+    <div class="section">
+      <h3>Appearance</h3>
+      <div class="field">
+        <label for="theme">Theme
+          <span class="sub">Follow Windows, or force light / dark</span>
+        </label>
+        <select id="theme">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="transparency">Transparency effects
+          <span class="sub">Acrylic panel material (Windows 11) — can flash when the panel opens on some systems</span>
+        </label>
+        <input type="checkbox" id="transparency" />
+      </div>
+      <div class="field">
+        <label for="placement">Launcher position
+          <span class="sub">Where the panel appears when summoned</span>
+        </label>
+        <select id="placement">
+          <option value="cursor">At the mouse cursor</option>
+          <option value="remembered">Where I last moved it</option>
+          <option value="taskbar">Above the taskbar corner</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Windows integration</h3>
+      <div class="field">
+        <label for="sendTo">Show in Explorer's "Send to" menu
+          <span class="sub">Right-click any file → Send to → ClutterDock</span>
+        </label>
+        <input type="checkbox" id="sendTo" />
+      </div>
+      <div class="field">
+        <label>Import existing shortcuts
+          <span class="sub">Pull in taskbar pins, desktop and Start Menu apps</span>
+        </label>
+        <button class="btn secondary" id="importShortcuts">Import shortcuts…</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Data folder</h3>
+      <div class="field">
+        <label>Where stacks are stored
+          <span class="sub" id="dataDirLine">—</span>
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn secondary" id="dataDirChange">Change…</button>
+          <button class="btn secondary" id="dataDirReset">Use default</button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.45;margin:8px 0 0">
+        Point this at a synced folder (OneDrive, Dropbox) and your stacks follow you between PCs.
+        Daily backups are kept in the Backups subfolder for a week.
+      </p>
+      <div class="status" id="dataDirStatus" aria-live="polite"></div>
     </div>
 
     <div class="section">

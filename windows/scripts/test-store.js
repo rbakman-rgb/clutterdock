@@ -31,6 +31,7 @@ fs.writeFileSync(tmpFile, 'x');
 assert.strictEqual(store.addPaths([tmpFile], coding.id).added, 1, 'addPaths adds');
 assert.strictEqual(store.addPaths([tmpFile], coding.id).added, 0, 'dedupe by kind|path');
 
+store.flushPendingSave(); // writes are debounced; flush before re-reading from disk
 let reloaded = freshStore();
 assert.ok(reloaded.state.folders.some((f) => f.name === 'Coding'), 'persisted across reload');
 assert.strictEqual(
@@ -169,5 +170,71 @@ assert.strictEqual(
 );
 reopened2.relockFolder(priv.id);
 assert.ok(store.isLocked(reopened2.state.folders.find((f) => f.id === priv.id)), 'relocks');
+
+// --- Most Used smart stack exists alongside Recents
+dir = freshDir();
+store = freshStore();
+assert.ok(store.state.folders.some((f) => f.smartKind === 'mostused'), 'Most Used smart stack created');
+assert.strictEqual(
+  store.state.folders.filter((f) => f.smartKind === 'mostused').length,
+  1,
+  'Most Used not duplicated'
+);
+store.flushPendingSave();
+assert.ok(
+  freshStore().state.folders.filter((f) => f.smartKind === 'mostused').length === 1,
+  'Most Used stable across reloads'
+);
+
+// --- renameItem
+const rnFolder = store.state.folders.find((f) => f.smartKind === 'none');
+const rnFile = path.join(dir, 'to-rename.txt');
+fs.writeFileSync(rnFile, 'x');
+store.addPaths([rnFile], rnFolder.id);
+const rnItem = rnFolder.items[0];
+assert.strictEqual(store.renameItem(rnItem.id, rnFolder.id, '  Quarterly Report  '), true, 'renames');
+assert.strictEqual(rnFolder.items[0].name, 'Quarterly Report', 'rename trims and applies');
+assert.strictEqual(store.renameItem(rnItem.id, rnFolder.id, '   '), false, 'blank rename rejected');
+
+// --- addPaths honors a friendly-name map
+const nmFile = path.join(dir, 'MSTSC.EXE.txt');
+fs.writeFileSync(nmFile, 'x');
+store.addPaths([nmFile], rnFolder.id, { [nmFile]: 'Remote Desktop Connection' });
+assert.ok(
+  rnFolder.items.some((i) => i.name === 'Remote Desktop Connection'),
+  'friendly name map applied'
+);
+
+// --- folder colors validated
+store.setFolderColor(rnFolder.id, '#3B82F6');
+assert.strictEqual(rnFolder.color, '#3B82F6', 'palette color stored');
+store.setFolderColor(rnFolder.id, 'javascript:alert(1)');
+assert.strictEqual(rnFolder.color, '#3B82F6', 'junk color rejected');
+store.setFolderColor(rnFolder.id, '');
+assert.strictEqual(rnFolder.color, undefined, 'color cleared');
+
+// --- search ranks by frecency and matches subsequences
+const sFolderRes = store.addFolder('SearchRank');
+const sFolder = sFolderRes.folder;
+const fA = path.join(dir, 'alpha-notes.txt');
+const fB = path.join(dir, 'alpha-report.txt');
+fs.writeFileSync(fA, 'x');
+fs.writeFileSync(fB, 'x');
+store.addPaths([fA, fB], sFolder.id);
+const itemB = sFolder.items.find((i) => i.name.includes('report'));
+for (let i = 0; i < 5; i++) store.recordLaunch(itemB); // itemB is opened often
+const ranked = store.searchAll('alpha');
+assert.strictEqual(ranked[0].item.id, itemB.id, 'frequently opened item ranks first');
+const fuzzy = store.searchAll('alpharpt');
+assert.ok(fuzzy.some((h) => h.item.id === itemB.id), 'subsequence match finds items');
+assert.strictEqual(store.searchAll('zzqx').length, 0, 'no false fuzzy positives');
+
+// --- CF_HDROP round-trip (Ctrl+C / Ctrl+V file transfer)
+const { buildHDrop, parseHDrop } = require('../src/win-clipboard');
+const hPaths = ['C:\\Users\\Test\\file one.txt', 'C:\\Файлы\\отчёт.xlsx'];
+assert.deepStrictEqual(parseHDrop(buildHDrop(hPaths)), hPaths, 'CF_HDROP round-trips (incl. unicode)');
+assert.deepStrictEqual(parseHDrop(Buffer.alloc(4)), [], 'truncated buffer tolerated');
+assert.deepStrictEqual(parseHDrop(null), [], 'null buffer tolerated');
+assert.strictEqual(buildHDrop([]), null, 'empty path list builds nothing');
 
 console.log('store tests passed');

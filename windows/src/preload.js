@@ -65,4 +65,29 @@ contextBridge.exposeInMainWorld('clutterDock', {
   deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
   checkForUpdates: (interactive) => ipcRenderer.invoke('check-for-updates', interactive),
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
+  renameItem: (itemID, folderID, name) => ipcRenderer.invoke('rename-item', itemID, folderID, name),
+  setFolderColor: (folderID, color) => ipcRenderer.invoke('set-folder-color', folderID, color),
+  openItemAdmin: (itemID) => ipcRenderer.invoke('open-item-admin', itemID),
+  scanImportSources: () => ipcRenderer.invoke('scan-import-sources'),
+  getAppIndex: () => ipcRenderer.invoke('get-app-index'),
+  getAppIcon: (target) => ipcRenderer.invoke('get-app-icon', target),
+  importShortcuts: (entries, folderID) => ipcRenderer.invoke('import-shortcuts', entries, folderID),
+  pasteAdd: (folderID) => ipcRenderer.invoke('paste-add', folderID),
+  copyItems: (itemIDs) => ipcRenderer.invoke('copy-items', itemIDs),
+  setDragActive: (active) => ipcRenderer.invoke('set-drag-active', active),
+  startItemDrag: (itemID) => ipcRenderer.send('drag-out', itemID),
+  chooseDataDir: () => ipcRenderer.invoke('choose-data-dir'),
+  resetDataDir: () => ipcRenderer.invoke('reset-data-dir'),
+  relaunchApp: () => ipcRenderer.invoke('relaunch-app'),
+  openImportWizard: () => ipcRenderer.invoke('open-import-wizard'),
+  onOpenImport: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on('open-import', handler);
+    return () => ipcRenderer.removeListener('open-import', handler);
+  },
+  onPanelShown: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on('panel-shown', handler);
+    return () => ipcRenderer.removeListener('panel-shown', handler);
+  },
 });

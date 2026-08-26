@@ -7,12 +7,26 @@ const $ = (id) => document.getElementById(id);
 document.addEventListener('dragover', (e) => e.preventDefault());
 document.addEventListener('drop', (e) => e.preventDefault());
 
+/** Accelerator → what a Windows user expects to read ("Ctrl+Shift+D"). */
+function friendlyAccel(accel) {
+  return String(accel || '')
+    .replace(/CommandOrControl|CmdOrCtrl/g, 'Ctrl')
+    .replace(/Command|Meta|Super/g, 'Win');
+}
+
 async function load() {
   snapshot = await clutterDock.getSnapshot();
   $('closeAfter').checked = !!snapshot.prefs.closeAfterLaunch;
   $('hints').checked = !!snapshot.prefs.showKeyboardHints;
   $('login').checked = !!snapshot.prefs.launchAtLogin;
-  $('hotkey').value = snapshot.prefs.hotkey || 'CommandOrControl+Shift+D';
+  if (!recording) $('hotkeyRecord').textContent = friendlyAccel(snapshot.prefs.hotkey);
+  $('keepOpen').checked = !!snapshot.prefs.keepOpen;
+  $('theme').value = snapshot.prefs.theme || 'system';
+  $('placement').value = snapshot.prefs.panelPlacement || 'cursor';
+  $('transparency').checked = snapshot.prefs.transparencyEffects !== false;
+  $('transparency').disabled = !snapshot.runtime?.acrylicSupported;
+  $('sendTo').checked = snapshot.prefs.sendToShortcut !== false;
+  $('dataDirLine').textContent = snapshot.dataDir || '—';
   if ($('autoUpdate')) {
     $('autoUpdate').checked = snapshot.prefs.checkForUpdatesAutomatically !== false;
   }
@@ -109,7 +123,77 @@ async function savePrefs(partial) {
 $('closeAfter').onchange = (e) => savePrefs({ closeAfterLaunch: e.target.checked });
 $('hints').onchange = (e) => savePrefs({ showKeyboardHints: e.target.checked });
 $('login').onchange = (e) => savePrefs({ launchAtLogin: e.target.checked });
-$('hotkey').onchange = (e) => savePrefs({ hotkey: e.target.value.trim() || 'CommandOrControl+Shift+D' });
+$('keepOpen').onchange = (e) => savePrefs({ keepOpen: e.target.checked });
+$('theme').onchange = (e) => savePrefs({ theme: e.target.value });
+$('placement').onchange = (e) => savePrefs({ panelPlacement: e.target.value });
+$('transparency').onchange = (e) => savePrefs({ transparencyEffects: e.target.checked });
+$('sendTo').onchange = (e) => savePrefs({ sendToShortcut: e.target.checked });
+$('importShortcuts').onclick = () => clutterDock.openImportWizard();
+
+// Hotkey recorder: click, press the combo, done — no accelerator syntax
+let recording = false;
+$('hotkeyRecord').onclick = () => {
+  recording = true;
+  $('hotkeyRecord').textContent = 'Press keys…';
+  $('hotkeyRecord').classList.add('recording');
+};
+document.addEventListener('keydown', (e) => {
+  if (!recording) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.key === 'Escape') {
+    recording = false;
+    $('hotkeyRecord').classList.remove('recording');
+    $('hotkeyRecord').textContent = friendlyAccel(snapshot.prefs.hotkey);
+    return;
+  }
+  // Wait for a real key on top of the modifiers
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  const parts = [];
+  if (e.ctrlKey) parts.push('CommandOrControl');
+  if (e.altKey) parts.push('Alt');
+  if (e.shiftKey) parts.push('Shift');
+  if (e.metaKey) parts.push('Super');
+  let key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+  if (key === ' ') key = 'Space';
+  if (!parts.length && key.length === 1) return; // bare letters would fire while typing anywhere
+  parts.push(key);
+  recording = false;
+  $('hotkeyRecord').classList.remove('recording');
+  savePrefs({ hotkey: parts.join('+') });
+}, true);
+$('hotkeyReset').onclick = () => savePrefs({ hotkey: 'CommandOrControl+Shift+D' });
+
+$('dataDirChange').onclick = async () => {
+  const res = await clutterDock.chooseDataDir();
+  if (res?.ok) {
+    $('dataDirStatus').innerHTML = '';
+    const note = document.createElement('span');
+    note.textContent = `Data will move to ${res.dir}. `;
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = 'Restart now';
+    btn.onclick = () => clutterDock.relaunchApp();
+    $('dataDirStatus').append(note, btn);
+  } else if (res?.error) {
+    $('dataDirStatus').textContent = res.error;
+  }
+};
+$('dataDirReset').onclick = async () => {
+  const res = await clutterDock.resetDataDir();
+  if (res?.ok) {
+    $('dataDirStatus').innerHTML = '';
+    const note = document.createElement('span');
+    note.textContent = 'Back to the default location after a restart. ';
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = 'Restart now';
+    btn.onclick = () => clutterDock.relaunchApp();
+    $('dataDirStatus').append(note, btn);
+  } else if (res?.error) {
+    $('dataDirStatus').textContent = res.error;
+  }
+};
 
 $('resetTips').onclick = () => savePrefs({ hasCompletedOnboarding: false });
 if ($('autoUpdate')) {
