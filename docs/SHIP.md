@@ -41,6 +41,17 @@ gh release create vX.Y.Z dist/ClutterDock-*-mac.zip --generate-notes
 gh repo edit rbakman-rgb/clutterdock --visibility public
 ```
 
+## Shipped 2026-08-26 (v1.4.9 / Win 1.3.0 unsigned beta)
+
+| Item | Evidence |
+|------|----------|
+| Release **v1.4.9** | https://github.com/rbakman-rgb/clutterdock/releases/tag/v1.4.9 |
+| Windows | `ClutterDock-1.3.0-x64-setup.exe` — glitch fixes (dialog/focus/toggle races, taskbar-click flicker), 20 design & functionality upgrades (pin-open, import wizard, hotkey recorder, multi-select, Send to, Alt+drag-out, Ctrl+C/V CF_HDROP, frecency search, Most Used, custom data folder + backups, stack colors, placement modes, jump-list stacks), motion pass, search-to-add installed-app index. Acrylic OFF by default (opt-in — Windows re-composites it visibly on re-show) |
+| Mac | `ClutterDock-1.4.9-mac.zip` — Dock icon accepts dropped apps/files (CFBundleDocumentTypes; verify drop on a real Mac) |
+| Tests | 40/40 e2e + 21/21 stress on real Windows; unit + e2e re-verified in CI container (CF_HDROP check is Windows-only) |
+| Site | `/dl/mac` + `/dl/win` point at v1.4.9 assets — redeploy worker after release assets publish |
+| Debug | Panel event tracing behind `CLUTTER_DOCK_DEBUG=1` |
+
 ## Shipped 2026-08-10 (v1.4.7 / Win 1.2.1 unsigned beta)
 
 | Item | Evidence |
