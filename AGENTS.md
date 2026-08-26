@@ -3,6 +3,19 @@
 Read `SESSION.md` first for project layout, build commands, and product decisions.
 Constraints: no Dock replacement / private Dock APIs; free core stays usable (never paywall launch).
 
+## Self-sufficiency rule (Ronald's standing instruction)
+
+Exhaust every avenue you can act on yourself before handing a step back to
+Ronald — a permission error on one path is not a blocker. Enumerate what your
+credentials CAN do and build the bridge from there. Precedent: the Claude cloud
+environment cannot push tags or dispatch workflows (403), but it can push
+branches including workflow files — so releases are cut by pushing
+`release/vX.Y.Z`, which the Release workflow turns into the tag + GitHub
+Release itself. Only hand back steps that genuinely require Ronald's own
+accounts or hardware (Cloudflare `wrangler login`, real-Mac / real-Windows
+smoke tests), and when you do, give exact copy-paste commands, never
+descriptions.
+
 ## Linear sync (do this every session)
 
 Linear is the **source of truth for the backlog**. Git is code. Keep them in sync using the Linear MCP (`mcp.linear.app`).
