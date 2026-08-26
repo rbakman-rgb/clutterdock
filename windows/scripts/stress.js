@@ -343,6 +343,101 @@ const totalItems = (s) => s.state.folders.reduce((n, f) => n + (f.items || []).l
     assert(s.license.isPro, 'license clobbered by prefs fuzz');
   });
 
+  await check('icons: 300 rapid icon requests settle without leak or crash', async () => {
+    const s = await snap();
+    const withItems = s.state.folders.filter((f) => f.name.startsWith('Stk-')).slice(0, 3);
+    const ids = withItems.flatMap((f) => f.items.map((i) => i.id)).slice(0, 300);
+    const start = Date.now();
+    for (const id of ids) await rpc((x) => clutterDock.getItemIcon(x), id);
+    metric('icon request avg ms', ((Date.now() - start) / ids.length).toFixed(1));
+    const alive = await rpc(() => !!document.getElementById('addFolderBtn'));
+    assert(alive, 'renderer dead after icon storm');
+  });
+
+  await check('clipboard: 20 copy/paste round-trips keep integrity', async () => {
+    const savedText = await app.evaluate(({ clipboard }) => clipboard.readText());
+    let s = await snap();
+    // Churn may have renamed stacks — pick any populated one
+    const src = s.state.folders.find((f) => /^Stk-/.test(f.name) && (f.items || []).length >= 5);
+    assert(src, 'no populated stack left to copy from');
+    const pick = src.items.slice(0, 5).map((i) => i.id);
+    let res = await rpc((n) => clutterDock.addFolder(n, 'work'), 'PasteTarget');
+    assert(res.ok, 'paste target create failed');
+    s = await snap();
+    const dest = s.state.folders.find((f) => f.name === 'PasteTarget');
+    for (let i = 0; i < 20; i++) {
+      const copy = await rpc((ids) => clutterDock.copyItems(ids), pick);
+      assert(copy.ok && copy.copied === 5, `copy ${i}: ${JSON.stringify(copy)}`);
+      await rpc((id) => clutterDock.pasteAdd(id), dest.id);
+    }
+    s = await snap();
+    const got = s.state.folders.find((f) => f.id === dest.id).items.length;
+    assert(got === 5, `paste dedupe broken: ${got} items after 20 pastes of the same 5`);
+    await app.evaluate(({ clipboard }, t) => clipboard.writeText(t || ''), savedText);
+  });
+
+  await check('feature churn: 150 rename/color/theme/cycle ops stay consistent', async () => {
+    let s = await snap();
+    const before = totalItems(s);
+    const normals = s.state.folders.filter((f) => f.name.startsWith('Stk-'));
+    const palette = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', ''];
+    const start = Date.now();
+    for (let i = 0; i < 150; i++) {
+      const f = pick(normals);
+      const op = i % 5;
+      if (op === 0) await rpc(({ id, n }) => clutterDock.renameFolder(id, n), { id: f.id, n: `Stk-${i}-r` });
+      else if (op === 1) await rpc(({ id, c }) => clutterDock.setFolderColor(id, c), { id: f.id, c: pick(palette) });
+      else if (op === 2) await rpc((t) => clutterDock.updatePrefs({ theme: t }), pick(['light', 'dark', 'system']));
+      else if (op === 3) await rpc((id) => clutterDock.selectFolder(id), f.id);
+      else {
+        const item = f.items && f.items.length ? pick(f.items) : null;
+        if (item) await rpc(({ i: it, fid, n }) => clutterDock.renameItem(it, fid, n), { i: item.id, fid: f.id, n: `item ${i}` });
+      }
+    }
+    metric('feature churn ops/sec', (150 / ((Date.now() - start) / 1000)).toFixed(1));
+    await rpc(() => clutterDock.updatePrefs({ theme: 'system' }));
+    s = await snap();
+    assert(totalItems(s) === before, `items ${before} -> ${totalItems(s)} after feature churn`);
+    for (const f of s.state.folders) {
+      assert(!f.color || /^#[0-9a-fA-F]{6}$/.test(f.color), `bad color survived: ${f.color}`);
+    }
+  });
+
+  await check('import: 300 synthetic shortcuts land in one call with names', async () => {
+    const impDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cdock-imp-'));
+    const entries = [];
+    for (let i = 0; i < 300; i++) {
+      const p = path.join(impDir, `target-${i}.txt`);
+      fs.writeFileSync(p, 'x');
+      entries.push({ target: p, name: `Friendly ${i}` });
+    }
+    let res = await rpc((n) => clutterDock.addFolder(n, 'work'), 'Imported');
+    assert(res.ok, 'import stack create failed');
+    let s = await snap();
+    const dest = s.state.folders.find((f) => f.name === 'Imported');
+    const start = Date.now();
+    res = await rpc(({ list, id }) => clutterDock.importShortcuts(list, id), { list: entries, id: dest.id });
+    metric('bulk import 300 ms', Date.now() - start);
+    s = await snap();
+    const items = s.state.folders.find((f) => f.id === dest.id).items;
+    assert(items.length === 300, `imported ${items.length}/300`);
+    assert(items.every((i) => /^Friendly \d+$/.test(i.name)), 'friendly names lost in bulk import');
+    fs.rmSync(impDir, { recursive: true, force: true });
+  });
+
+  await check('flush race: mutate-then-quit loses nothing to the debounce', async () => {
+    let res = await rpc((n) => clutterDock.addFolder(n, 'work'), 'FlushRace');
+    assert(res.ok, 'flush stack create failed');
+    let s = await snap();
+    const dest = s.state.folders.find((f) => f.name === 'FlushRace');
+    await rpc(({ p, id }) => clutterDock.addPaths(p, id), { p: files.slice(1990, 2000), id: dest.id });
+    await app.close(); // immediately — the debounced write must flush on quit
+    await launch();
+    s = await snap();
+    const got = s.state.folders.find((f) => f.name === 'FlushRace');
+    assert(got && got.items.length === 10, `flush race lost items: ${got ? got.items.length : 'stack gone'}/10`);
+  });
+
   await check('memory: process footprint at full load', async () => {
     const appMetrics = await app.evaluate(({ app: a }) => a.getAppMetrics().map((m) => ({
       type: m.type, mb: Math.round(m.memory.workingSetSize / 1024) })));
@@ -354,8 +449,15 @@ const totalItems = (s) => s.state.folders.reduce((n, f) => n + (f.items || []).l
 
   await check('restart at scale: everything survives, vault stays sealed', async () => {
     let s = await snap();
+    let vault = s.state.folders.find((f) => f.name === 'Vault');
+    // The flush-race relaunch left the vault sealed — open it so the baseline
+    // counts every item, then relock for the persistence round-trip.
+    if (s.lockedFolderIDs.includes(vault.id)) {
+      const r = await rpc(({ id, pw }) => clutterDock.unlockFolder(id, pw), { id: vault.id, pw: 'correct-horse-battery' });
+      assert(r.ok, `baseline unlock failed: ${r.error}`);
+      s = await snap();
+    }
     const before = { folders: s.state.folders.length, items: totalItems(s) };
-    const vault = s.state.folders.find((f) => f.name === 'Vault');
     await rpc(({ id }) => clutterDock.relockFolder(id), { id: vault.id });
     await app.close();
     assert(!fs.existsSync(storeFile() + '.tmp'), 'orphan .tmp left after close');

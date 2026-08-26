@@ -80,10 +80,16 @@ function createFeatureGate(isPro) {
       return isPro || count < FREE_MAX_ITEMS;
     },
     folderLimitMessage(current) {
-      return `Free includes ${FREE_MAX_FOLDERS} folders (${current}/${FREE_MAX_FOLDERS}). Upgrade to Pro for unlimited.`;
+      // `current` can exceed the cap (stacks made on Pro, then deactivated) —
+      // "(7/5)" read like a bug, so describe the situation instead
+      return current > FREE_MAX_FOLDERS
+        ? `You have ${current} stacks — the Free plan includes ${FREE_MAX_FOLDERS}. Your stacks are safe; upgrade to Pro to add more.`
+        : `The Free plan includes ${FREE_MAX_FOLDERS} stacks and you've used all of them. Upgrade to Pro for unlimited.`;
     },
     itemLimitMessage(current) {
-      return `Free includes ${FREE_MAX_ITEMS} items per folder (${current}/${FREE_MAX_ITEMS}). Upgrade to Pro for unlimited.`;
+      return current > FREE_MAX_ITEMS
+        ? `This stack holds ${current} items — the Free plan includes ${FREE_MAX_ITEMS} per stack. Your items are safe; upgrade to Pro to add more.`
+        : `The Free plan includes ${FREE_MAX_ITEMS} items per stack and this one is full. Upgrade to Pro for unlimited.`;
     },
   };
 }

@@ -83,4 +83,9 @@ contextBridge.exposeInMainWorld('clutterDock', {
     ipcRenderer.on('open-import', handler);
     return () => ipcRenderer.removeListener('open-import', handler);
   },
+  onPanelShown: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on('panel-shown', handler);
+    return () => ipcRenderer.removeListener('panel-shown', handler);
+  },
 });

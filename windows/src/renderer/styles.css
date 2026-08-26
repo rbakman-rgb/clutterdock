@@ -153,15 +153,31 @@ button, .tile, .list-row {
   padding: 0 14px 10px;
   align-items: center;
 }
+.search-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-glyph {
+  position: absolute;
+  left: 11px;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
 .search-row input {
   flex: 1;
+  width: 100%;
   border: 1px solid var(--border);
   background: var(--surface-input);
   color: var(--text);
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 32px;
   font-size: 13px;
   outline: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 .search-row input:focus {
   border-color: var(--accent);
@@ -729,9 +745,10 @@ body.acrylic #app {
   white-space: nowrap;
 }
 
-/* Tab strip: fade the clipped edge so overflow is visible at a glance */
+/* Tab strip: fade both clipped edges so overflow reads as "more here" */
 .tab-scroll {
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent);
+  -webkit-mask-image: linear-gradient(to right,
+    transparent, black 14px, black calc(100% - 18px), transparent);
 }
 
 /* Hotkey recorder armed state */
@@ -739,6 +756,160 @@ body.acrylic #app {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
+
+/* ================= Motion & feel =================
+   Fast, springy, purposeful — every animation under 300ms. */
+
+/* Panel entrance: rise + fade, like the Win11 flyouts */
+@keyframes panelEnter {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+#app.panel-enter {
+  animation: panelEnter 0.18s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* Content cross-fade — only when the stack actually changes (renderer keys it),
+   otherwise every selection click would blink */
+@keyframes contentIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.content-anim .grid, .content-anim .list, .content-anim .empty {
+  animation: contentIn 0.16s ease-out;
+}
+
+/* Tiles: lift on hover, sink on press, pulse on launch */
+.tile {
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    transform 0.14s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.tile:hover { transform: translateY(-2px); }
+.tile:hover .tile-icon {
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+}
+.tile:active { transform: translateY(0) scale(0.97); }
+.tile-icon { transition: box-shadow 0.14s ease, transform 0.14s ease; }
+@keyframes launchPulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+.tile.launching .tile-icon, .list-row.launching .tile-icon {
+  animation: launchPulse 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+/* Dialogs pop in */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.overlay .card { animation: cardIn 0.16s cubic-bezier(0.2, 0.9, 0.3, 1); }
+
+/* Context menus slide in from the click point */
+@keyframes ctxIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.ctx:not([hidden]) { animation: ctxIn 0.12s ease-out; }
+
+/* Running dot breathes */
+@keyframes dotBreathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.run-dot { animation: dotBreathe 2.4s ease-in-out infinite; }
+
+/* Empty-state glyph floats gently */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.empty > div:first-child { animation: floaty 3.2s ease-in-out infinite; }
+
+/* Buttons acknowledge the press */
+.btn, .icon-btn, .toggle, .tab {
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    color 0.12s ease, transform 0.1s ease, filter 0.12s ease;
+}
+.btn:hover { filter: brightness(1.05); }
+.btn:active, .icon-btn:active, .tab:active { transform: scale(0.96); }
+
+/* Someone asked the OS to calm things down — honor it completely */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+/* ================= Context menu grouping ================= */
+.ctx-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 8px;
+}
+.ctx button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ctx-key {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ================= Dialog & onboarding polish ================= */
+.dialog .row { justify-content: flex-end; }
+.dialog .row .btn.primary { order: 2; }
+.dialog .row .btn.secondary { order: 1; }
+
+.ob-tagline {
+  margin: -4px 0 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.ob-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.ob-step { display: flex; gap: 10px; align-items: flex-start; }
+.ob-step-icon {
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--chip-bg);
+  border-radius: 9px;
+}
+.ob-step div > b { display: block; font-size: 13px; }
+.ob-step span:not(.ob-step-icon) {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.ob-step span b { font-size: inherit; }
+.ob-actions { margin-bottom: 8px; }
+.ob-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.link-btn:hover { color: var(--text); background: var(--tile-hover); }
 
 /* Windows High Contrast: let the system draw real borders */
 @media (forced-colors: active) {

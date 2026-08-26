@@ -13,7 +13,10 @@
     <div class="wsbar" id="wsbar" hidden aria-label="Workspaces"></div>
     <div class="tabs" id="tabs" role="tablist" aria-label="Stacks"></div>
     <div class="search-row">
-      <input id="search" type="search" placeholder="Search…" autocomplete="off" aria-label="Search items" />
+      <div class="search-wrap">
+        <svg class="search-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <input id="search" type="search" placeholder="Search — just start typing" autocomplete="off" aria-label="Search items" />
+      </div>
       <button class="toggle" id="searchAll" title="Search all folders" aria-label="Search all folders">All</button>
     </div>
     <div class="content" id="content"></div>

@@ -245,9 +245,12 @@ function showPanel() {
   // (Pro stack hotkeys, re-shows) makes it jump to wherever the cursor is.
   if (!win.isVisible()) positionPanel();
   suppressTaskbarFocus = true;
+  const wasHidden = !win.isVisible();
   win.show();
   win.focus();
   win.webContents.send('snapshot', store.getSnapshot());
+  // Entrance animation + focus-the-search, only on a real appearance
+  if (wasHidden) win.webContents.send('panel-shown');
   startRunningPoll();
   setTimeout(() => {
     suppressTaskbarFocus = false;

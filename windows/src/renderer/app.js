@@ -389,11 +389,17 @@ function renderTabs() {
   tabs.appendChild(badge);
 }
 
+let lastContentKey = null;
+
 function renderContent() {
   const content = $('content');
   const folder = selectedFolder();
   const items = itemsForView();
   content.classList.remove('drop-active');
+  // Animate the content swap only when the view genuinely changes
+  const contentKey = `${folder?.id}|${folder?.viewMode}|${searchGlobal && searchText.trim() ? 'g' : ''}`;
+  content.classList.toggle('content-anim', contentKey !== lastContentKey);
+  lastContentKey = contentKey;
 
   if (isLockedFolder(folder)) {
     content.innerHTML = `
@@ -440,6 +446,7 @@ function renderContent() {
     for (const item of items) {
       const row = document.createElement('div');
       row.className = 'list-row' + (isSelected(item.id) ? ' selected' : '');
+      row.title = `${item.name}\n${displayPath(item.path)}`;
       row.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
         <div class="meta">
@@ -456,6 +463,7 @@ function renderContent() {
     for (const item of items) {
       const tile = document.createElement('div');
       tile.className = 'tile' + (isSelected(item.id) ? ' selected' : '');
+      tile.title = `${item.name}\n${displayPath(item.path)}`; // truncated names stay readable
       tile.draggable = folder?.smartKind === 'none';
       tile.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
@@ -530,6 +538,12 @@ function wireItem(el, item, folder) {
     }
     setSelection([item.id], item.id);
     renderContent();
+    // Immediate visual acknowledgement — the launch itself takes a beat
+    const launched = document.querySelector('.tile.selected, .list-row.selected');
+    if (launched) {
+      launched.classList.add('launching');
+      setTimeout(() => launched.classList.remove('launching'), 450);
+    }
     const res = await clutterDock.openItem(item);
     if (!res?.ok && res?.error) infoDialog(res.error);
     else await refresh();
@@ -568,9 +582,8 @@ function renderHints() {
     hints.textContent = '';
     return;
   }
-  hints.textContent =
-    'Type to search · Enter open · Ctrl+V paste · Alt+drag out · Ctrl+Tab stacks · Ctrl+Shift+D toggle' +
-    (snapshot.gate?.isPro ? ' · Ctrl+Shift+1–9' : '');
+  // One quiet line; the ? button carries the full list
+  hints.textContent = 'Type to search · Enter opens · Ctrl+Tab switches stacks · ? for all shortcuts';
 }
 
 function renderOnboarding() {
@@ -586,18 +599,17 @@ function renderOnboarding() {
   overlay.innerHTML = `
     <div class="card">
       <h2>✨ Welcome to ClutterDock</h2>
-      <ol>
-        <li>Create stacks (Coding, Work…) with a name &amp; symbol</li>
-        <li>Drop apps, files, or URLs into each stack</li>
-        <li>Pin ClutterDock to the <b>taskbar</b> (right‑click the icon → Pin) then unpin the apps you now launch from stacks</li>
-        <li>Click the taskbar / tray icon or press <b>Ctrl+Shift+D</b></li>
-        <li>Free forever — tips optional via Buy Me a Coffee</li>
-      </ol>
+      <p class="ob-tagline">Your taskbar, decluttered — stacks of apps, files, and links, one hotkey away.</p>
+      <div class="ob-steps">
+        <div class="ob-step"><span class="ob-step-icon">🗂️</span><div><b>Make stacks</b><span>Coding, Work, Clients — or import what's already pinned</span></div></div>
+        <div class="ob-step"><span class="ob-step-icon">📥</span><div><b>Fill them</b><span>Drop, paste (Ctrl+V), or Send&nbsp;to&nbsp;→&nbsp;ClutterDock from Explorer</span></div></div>
+        <div class="ob-step"><span class="ob-step-icon">⚡</span><div><b>Summon</b><span>Pin to the taskbar, click it — or press <b>Ctrl+Shift+D</b> and just type</span></div></div>
+      </div>
       ${
         showRegister
           ? `<div class="ob-register">
         <b>Optional: count this install</b>
-        <p>Send a one-time ping (Windows + version + a random ID) so the developer knows this copy launched. Email only if you want release news. Skipping sends nothing.</p>
+        <p>One anonymous ping (Windows + version + random ID). Email only for release news. Skipping sends nothing.</p>
         <div class="row">
           <input id="obEmail" type="email" placeholder="Email (optional)" aria-label="Email for release news (optional)" />
           <button class="btn secondary" id="obCount">Count me in</button>
@@ -606,11 +618,14 @@ function renderOnboarding() {
       </div>`
           : ''
       }
-      <div class="row">
+      <div class="row ob-actions">
         <button class="btn primary" id="obImport">Import my pinned apps…</button>
         <button class="btn secondary" id="obAdd">Add apps…</button>
-        <button class="btn secondary" id="obSettings">Settings</button>
-        <button class="btn secondary" id="obGot">Got it</button>
+      </div>
+      <div class="ob-links">
+        <button class="link-btn" id="obSettings">Settings</button>
+        <span aria-hidden="true">·</span>
+        <button class="link-btn" id="obGot">Skip for now</button>
       </div>
     </div>`;
   // Any way out of the card counts as skip if the user didn't opt in —
@@ -1039,19 +1054,20 @@ function showItemMenu(x, y, item, folder) {
   const isExe = item.kind === 'app' && /\.(exe|lnk|bat|cmd|msi)$/i.test(item.path || '');
   const targets = otherStacks(folder?.id);
   ctx.innerHTML = `
-    <button data-a="open">${multi ? `Open ${n} items` : 'Open'}</button>
+    <button data-a="open">${multi ? `Open ${n} items` : 'Open'}<span class="ctx-key">Enter</span></button>
     ${isExe && !multi ? '<button data-a="admin">Run as administrator</button>' : ''}
     ${item.kind !== 'url' && !multi ? '<button data-a="reveal">Show in Explorer</button>' : ''}
-    <button data-a="copy">${multi ? `Copy ${n} items` : item.kind === 'url' ? 'Copy URL' : 'Copy'}</button>
+    <div class="ctx-sep"></div>
+    <button data-a="copy">${multi ? `Copy ${n} items` : item.kind === 'url' ? 'Copy URL' : 'Copy'}<span class="ctx-key">Ctrl+C</span></button>
     ${!multi && item.kind !== 'url' ? '<button data-a="copypath">Copy path</button>' : ''}
     ${canReorder && !multi ? '<button data-a="renameitem">Rename…</button>' : ''}
     ${(canReorder || isSmart) && targets.length ? `<button data-a="moveto">${isSmart ? 'Add to stack' : multi ? `Move ${n} to stack` : 'Move to stack'} ▸</button>` : ''}
-    ${canReorder && !multi ? '<button data-a="left">Move left</button><button data-a="right">Move right</button>' : ''}
-    ${canReorder ? `<button class="danger" data-a="remove">${multi ? `Remove ${n} items` : 'Remove'}</button>` : ''}
+    ${canReorder && !multi ? '<div class="ctx-sep"></div><button data-a="left">Move left<span class="ctx-key">Alt+←</span></button><button data-a="right">Move right<span class="ctx-key">Alt+→</span></button>' : ''}
+    ${canReorder ? `<div class="ctx-sep"></div><button class="danger" data-a="remove">${multi ? `Remove ${n} items` : 'Remove'}<span class="ctx-key">Del</span></button>` : ''}
   `;
   placeCtx(ctx, x, y);
   ctx.onclick = async (e) => {
-    const a = e.target.getAttribute('data-a');
+    const a = e.target.closest('[data-a]')?.getAttribute('data-a');
     if (!a) return;
     if (a === 'moveto') {
       // Second level: pick the destination stack in place
@@ -1059,7 +1075,7 @@ function showItemMenu(x, y, item, folder) {
         .map((f) => `<button data-stack="${f.id}">${escapeHtml(stackLabel(f))}</button>`)
         .join('');
       ctx.onclick = async (ev) => {
-        const dest = ev.target.getAttribute('data-stack');
+        const dest = ev.target.closest('[data-stack]')?.getAttribute('data-stack');
         if (!dest) return;
         ctx.hidden = true;
         if (isSmart) {
@@ -1132,28 +1148,33 @@ function showFolderMenu(x, y, folder) {
             } aria-label="${c || 'No color'}"></button>`
         ).join('')}</div>`
       : '';
+  const isNormal = folder.smartKind === 'none';
   ctx.innerHTML = `
     ${colorRow}
     <button data-a="grid">Grid view</button>
     <button data-a="list">List view</button>
-    ${folder.smartKind === 'none' ? '<button data-a="rename">Rename stack…</button>' : ''}
-    ${folder.smartKind === 'none' ? '<button data-a="symbol">Change symbol…</button>' : ''}
-    ${folder.smartKind === 'none' ? '<button data-a="image">Custom image…</button>' : ''}
-    ${folder.smartKind === 'none' && folder.customImage ? '<button data-a="clearimage">Remove image</button>' : ''}
-    ${folder.smartKind === 'none' && !folder.lock ? '<button data-a="lock">Lock with password…</button>' : ''}
-    ${folder.smartKind === 'none' && isLockedFolder(folder) ? '<button data-a="unlock">Unlock…</button>' : ''}
-    ${folder.smartKind === 'none' && folder.lock && !isLockedFolder(folder) ? '<button data-a="relock">Lock now</button><button data-a="removelock">Remove password</button>' : ''}
-    ${folder.smartKind === 'none' ? '<button class="danger" data-a="delete">Delete stack</button>' : ''}
+    ${isNormal ? `
+    <div class="ctx-sep"></div>
+    <button data-a="rename">Rename stack…</button>
+    <button data-a="symbol">Change symbol…</button>
+    <button data-a="image">Custom image…</button>
+    ${folder.customImage ? '<button data-a="clearimage">Remove image</button>' : ''}
+    <div class="ctx-sep"></div>
+    ${!folder.lock ? '<button data-a="lock">Lock with password…</button>' : ''}
+    ${isLockedFolder(folder) ? '<button data-a="unlock">Unlock…</button>' : ''}
+    ${folder.lock && !isLockedFolder(folder) ? '<button data-a="relock">Lock now</button><button data-a="removelock">Remove password</button>' : ''}
+    <div class="ctx-sep"></div>
+    <button class="danger" data-a="delete">Delete stack</button>` : ''}
   `;
   placeCtx(ctx, x, y);
   ctx.onclick = async (e) => {
-    const color = e.target.getAttribute('data-color');
-    if (color !== null) {
+    const colorBtn = e.target.closest('[data-color]');
+    if (colorBtn) {
       ctx.hidden = true;
-      await call(clutterDock.setFolderColor(folder.id, color));
+      await call(clutterDock.setFolderColor(folder.id, colorBtn.getAttribute('data-color')));
       return;
     }
-    const a = e.target.getAttribute('data-a');
+    const a = e.target.closest('[data-a]')?.getAttribute('data-a');
     if (!a) return;
     ctx.hidden = true;
     if (a === 'grid') await call(clutterDock.setFolderView(folder.id, 'grid'));
@@ -1461,5 +1482,24 @@ clutterDock.onSnapshot((data) => {
   snapshot = data;
   render();
 });
+
+// Every appearance: entrance motion, clean slate, caret ready in search
+if (clutterDock.onPanelShown) {
+  clutterDock.onPanelShown(() => {
+    const appEl = document.getElementById('app');
+    appEl.classList.remove('panel-enter');
+    void appEl.offsetWidth; // restart the animation
+    appEl.classList.add('panel-enter');
+    const search = $('search');
+    if (search.value) {
+      search.value = '';
+      searchText = '';
+      refresh();
+    }
+    if (snapshot?.prefs?.hasCompletedOnboarding) {
+      search.focus();
+    }
+  });
+}
 
 refresh();
