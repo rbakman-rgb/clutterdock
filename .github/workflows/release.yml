@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - "v*"
+    # Remote/CI environments whose credentials can push branches but not tags
+    # (e.g. the Claude Code cloud proxy) cut a release by pushing release/vX.Y.Z;
+    # the publish job derives the tag from the branch name and creates it itself.
+    branches:
+      - "release/v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -93,6 +98,9 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
+            # release/v1.4.9 branch push -> tag v1.4.9
+            echo "name=${GITHUB_REF_NAME#release/}" >> "$GITHUB_OUTPUT"
           else
             echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           fi
@@ -101,6 +109,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
+          # Pin tag creation to the built commit (branch-push cuts would
+          # otherwise tag whatever the default branch points at)
+          target_commitish: ${{ github.sha }}
           name: ClutterDock ${{ steps.tag.outputs.name }}
           draft: false
           prerelease: false
