@@ -11,7 +11,7 @@ This is a **soft public beta**, not a Product Hunt / paid-ads launch.
 | Live now | Not live |
 |----------|----------|
 | https://clutterdock.com/#download | Pro checkout |
-| Mac zip + Windows **setup.exe** (v1.4.8) | Apple notarization |
+| Mac zip + Windows **setup.exe** (v1.4.9 / Win 1.3.0) | Apple notarization |
 | Site, GitHub, demo page | Windows Authenticode |
 | Free forever core | Homebrew, Sparkle, Product Hunt |
 

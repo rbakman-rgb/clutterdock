@@ -9,17 +9,18 @@
 
 ---
 
-## Reality check (2026-08-06)
+## Reality check (2026-08-26)
 
 | Area | Status |
 |------|--------|
 | Brand / repo / domains | ClutterDock · public `rbakman-rgb/clutterdock` · clutterdock.com |
-| Mac app | **1.4.5** (multi-stack UX + settings URL) |
-| Windows | **1.1.3** source · CI builds on tag |
-| GitHub Release | Tag **v1.4.5** (supersedes v1.4.3 unsigned beta) |
-| Marketing site | **Coming soon** (no download CTAs — intentional) |
-| Merchant / checkout | **Not set up** — G2 stays Todo |
-| Apple Developer / notarize | **Not started** |
+| Mac app | **1.4.9** (Dock-icon drops via CFBundleDocumentTypes — verify on a real Mac) |
+| Windows | **1.3.0** — glitch fixes, 20-feature upgrade pass, motion polish, search-to-add; 40/40 e2e + 21/21 stress native |
+| GitHub Release | Tag **v1.4.9** live with Mac zip, NSIS setup, portable, `latest.yml` (auto-update feed) |
+| Marketing site | Live with downloads; `/dl/*` points at v1.4.9 — **worker redeploy pending** (site-deploy workflow needs `CLOUDFLARE_API_TOKEN` secret, else `npx wrangler deploy` manually) |
+| Merchant / checkout | Lemon Squeezy chosen + site wired (RON-364 Done); products/auto-email/checkout URL still open (RON-365/366/367) |
+| Apple Developer | Enrolled + Developer ID build (RON-359/360 Done); **notarization open** (RON-361) |
+| Releases from cloud agents | Push `release/vX.Y.Z` — the Release workflow creates the tag + release itself (tags can't be pushed from cloud sessions) |
 
 ---
 

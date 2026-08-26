@@ -1,0 +1,35 @@
+name: Deploy site
+
+# Deploys the Cloudflare worker + website assets whenever site files change on
+# main (or on demand). Needs a repo secret CLOUDFLARE_API_TOKEN — create one at
+# https://dash.cloudflare.com/profile/api-tokens with the "Edit Cloudflare
+# Workers" template, then add it under Settings → Secrets and variables →
+# Actions. Until that secret exists this workflow fails with an auth error and
+# deploys stay manual (npx wrangler@latest deploy).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - "scripts/site-worker.mjs"
+      - "wrangler.toml"
+      - ".github/workflows/site-deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Deploy worker + assets
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret is not set — see the comment at the top of this workflow."
+            exit 1
+          fi
+          npx wrangler@latest deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

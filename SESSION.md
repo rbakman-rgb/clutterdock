@@ -1,7 +1,8 @@
 # ClutterDock — Session save
 
-**Saved:** 2026-08-10  
-**Status:** **Public unsigned beta** — cutting **Mac 1.4.7** + **Win 1.2.1** (working license validation, audit fixes, password stacks). Site Coming soon; Pro keys manual until Lemon Squeezy.  
+**Saved:** 2026-08-26  
+**Status:** **Public unsigned beta v1.4.9** — Mac **1.4.9** (Dock-icon drops) + Win **1.3.0** (glitch fixes, 20-feature upgrade pass, motion polish, search-to-add; 40/40 e2e + 21/21 stress on real Windows). Release live with auto-update feed; site downloads point at v1.4.9 (worker redeploy pending). Pro keys manual until Lemon Squeezy products/checkout go live (RON-365/366/367). Notarization (RON-361) still open.  
+**2026-08-26:** Cloud agents cut releases by pushing `release/vX.Y.Z` (tag pushes are blocked from cloud sessions; the Release workflow creates the tag itself). Windows E2E (`npm run e2e`) + stress (`npm run stress`) suites live in `windows/scripts/`; e2e runs in CI. Panel debug tracing: `CLUTTER_DOCK_DEBUG=1`.  
 **2026-08-10:** Ronald is already an Apple Developer (RON-359 Done). No Developer ID Application cert in this Mac's keychain yet (`security find-identity` empty for codesigning beyond ad-hoc) — RON-360 is create/install cert + signed build, then RON-361 notarize. Merchant pick: **Lemon Squeezy** (RON-364).  
 **2026-08-07 full-app audit + round 2 shipped (RON-417…425).** License fix + secret rotation; Windows Electron-33 fixes; Pro parity; CI tests. Password stacks **RON-473** on main.  
 **URLs:** https://github.com/rbakman-rgb/clutterdock · https://clutterdock.com/ (**live** — Cloudflare Workers; clutterdock.app + www 301 → clutterdock.com)  

@@ -18,6 +18,7 @@
    - `windows/package.json` `version` (when shipping Windows)
    - README version blurb
 2. `git commit` + `git tag vX.Y.Z` + `git push origin main --tags`
+   - From a cloud agent session (tag pushes blocked): push `release/vX.Y.Z` instead — the Release workflow derives the tag, creates it at the built commit, and deletes the branch after publishing
 3. GitHub Actions **Release** workflow builds Mac zip + Windows exe and publishes the release
 4. Confirm download links on the website still match the latest tag pattern
 

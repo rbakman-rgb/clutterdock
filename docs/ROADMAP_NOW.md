@@ -1,6 +1,6 @@
 # ClutterDock — Where we go from here
 
-**As of:** 2026-08-10  
+**As of:** 2026-08-26 (v1.4.9 / Win 1.3.0 shipped — see `docs/SHIP.md` + `docs/LINEAR_LIVE.md` for current state; the tables below predate it)  
 **Project:** [ClutterDock — V1 Public Launch](https://linear.app/rbakman/project/clutterdock-v1-public-launch-9720be94b795)
 
 ---

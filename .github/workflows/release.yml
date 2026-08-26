@@ -144,3 +144,9 @@ jobs:
           files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up release branch
+        # Branch-push cuts leave a release/vX.Y.Z branch behind; the tag now
+        # records the commit, so delete the branch once the release is live.
+        if: startsWith(github.ref, 'refs/heads/release/')
+        run: git push origin --delete "${GITHUB_REF_NAME}" || true
