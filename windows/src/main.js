@@ -831,10 +831,14 @@ function syncSendToShortcut() {
   if (!isWin || !app.isPackaged) return;
   try {
     if (store.prefs.sendToShortcut !== false) {
-      shell.writeShortcutLink(sendToShortcutPath(), 'update', {
+      // 'create' creates-or-overwrites; 'update' silently fails when the lnk
+      // doesn't exist yet — which is every fresh install (caught by the
+      // RON-363 smoke against the real 1.3.0 installer)
+      const ok = shell.writeShortcutLink(sendToShortcutPath(), 'create', {
         target: process.execPath,
         description: 'Add to ClutterDock',
       });
+      if (!ok) console.warn('SendTo shortcut write returned false');
     } else {
       fs.rmSync(sendToShortcutPath(), { force: true });
     }
