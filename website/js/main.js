@@ -112,6 +112,30 @@
     });
   }, 4000);
 
+  // Platform-aware download cards: mark the visitor's own OS as "for you"
+  const dlGrid = document.querySelector(".download-grid");
+  if (dlGrid) {
+    const ua = navigator.userAgent;
+    const isMacVisitor = /Macintosh|Mac OS X/i.test(ua) && !/like Mac OS X/i.test(ua); // iPads say "like Mac OS X"
+    const isWinVisitor = /Windows NT/i.test(ua);
+    const cards = dlGrid.querySelectorAll(".download-card");
+    const pick = isWinVisitor ? 1 : isMacVisitor ? 0 : -1;
+    if (pick >= 0 && cards[pick]) {
+      cards.forEach((c) => c.classList.remove("recommended"));
+      cards[pick].classList.add("for-you");
+      const primary = cards[pick].querySelector(".btn");
+      const other = cards[1 - pick] && cards[1 - pick].querySelector(".btn");
+      if (primary) {
+        primary.classList.add("btn-primary");
+        primary.classList.remove("btn-secondary");
+      }
+      if (other) {
+        other.classList.add("btn-secondary");
+        other.classList.remove("btn-primary");
+      }
+    }
+  }
+
   // Lemon Squeezy checkout (only when URLs are set in checkout-config.js)
   const checkout = window.CLUTTERDOCK_CHECKOUT || {};
   const checkoutMap = {

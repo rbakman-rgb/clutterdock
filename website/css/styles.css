@@ -476,6 +476,15 @@ button {
   background: var(--bg-elevated);
 }
 
+/* Narrow screens clip the wide tables — fade the edge so "this scrolls" reads */
+@media (max-width: 900px) {
+  .diff-table-wrap,
+  .table-wrap {
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 26px), rgba(0, 0, 0, 0.2));
+    mask-image: linear-gradient(to right, black calc(100% - 26px), rgba(0, 0, 0, 0.2));
+  }
+}
+
 .diff-table {
   width: 100%;
   border-collapse: collapse;
@@ -1765,12 +1774,13 @@ button {
     animation: hero-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  .js .reveal-hero > *:nth-child(1) { animation-delay: 0.05s; }
-  .js .reveal-hero > *:nth-child(2) { animation-delay: 0.14s; }
-  .js .reveal-hero > *:nth-child(3) { animation-delay: 0.24s; }
-  .js .reveal-hero > *:nth-child(4) { animation-delay: 0.34s; }
-  .js .reveal-hero > *:nth-child(5) { animation-delay: 0.44s; }
-  .js .reveal-hero > *:nth-child(6) { animation-delay: 0.54s; }
+  /* Fast stagger — long delays left the hero looking empty to quick visitors */
+  .js .reveal-hero > *:nth-child(1) { animation-delay: 0.02s; }
+  .js .reveal-hero > *:nth-child(2) { animation-delay: 0.07s; }
+  .js .reveal-hero > *:nth-child(3) { animation-delay: 0.12s; }
+  .js .reveal-hero > *:nth-child(4) { animation-delay: 0.17s; }
+  .js .reveal-hero > *:nth-child(5) { animation-delay: 0.22s; }
+  .js .reveal-hero > *:nth-child(6) { animation-delay: 0.27s; }
 
   @keyframes hero-in {
     to {
@@ -1906,4 +1916,50 @@ button {
   color: var(--text-muted);
   font-size: 0.95rem;
   line-height: 1.55;
+}
+
+/* ——— Hero demo video (replaces the icon burst) ——— */
+.hero-demo {
+  margin: 2.6rem auto 2.2rem;
+  max-width: 680px;
+  width: 100%;
+}
+.hero-demo-video {
+  width: 100%;
+  display: block;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: #070a10;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 120px rgba(96, 165, 250, 0.07);
+}
+.hero-demo-note {
+  margin: 0.7rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+.hero-demo-note a { color: inherit; text-decoration: underline; }
+.hero-demo-note a:hover { color: var(--text); }
+
+/* Platform-aware download cards: the visitor's own OS becomes primary */
+.download-card .os-badge {
+  display: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8ec5ff;
+  background: rgba(96, 165, 250, 0.14);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  margin-bottom: 0.6rem;
+  width: fit-content;
+}
+.download-card.for-you .os-badge { display: inline-block; }
+.download-card.for-you {
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 0 40px rgba(96, 165, 250, 0.08);
 }

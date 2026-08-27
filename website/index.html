@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260821a" />
+  <link rel="stylesheet" href="css/styles.css?v=20260826a" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -55,7 +55,7 @@
       <nav class="nav-links" data-nav-links id="site-nav">
         <a href="#problem">The problem</a>
         <a href="#solution">The fix</a>
-        <a href="#different">Why us</a>
+        <a href="demo.html">Demo</a>
         <a href="pricing.html">Pricing</a>
         <a class="nav-cta" href="#download">Download</a>
       </nav>
@@ -82,35 +82,28 @@
           <a class="btn btn-secondary" href="#solution">How ClutterDock works</a>
         </div>
 
-        <div class="hero-product" tabindex="0" aria-label="ClutterDock app icon — hover to see apps fly out">
-          <div class="hero-burst" aria-hidden="true">
-            <span class="burst-app c1" style="--i:0"></span>
-            <span class="burst-app c2" style="--i:1"></span>
-            <span class="burst-app c3" style="--i:2"></span>
-            <span class="burst-app c4" style="--i:3"></span>
-            <span class="burst-app c5" style="--i:4"></span>
-            <span class="burst-app c6" style="--i:5"></span>
-            <span class="burst-app c7" style="--i:6"></span>
-            <span class="burst-app c8" style="--i:7"></span>
-            <span class="burst-app c9" style="--i:8"></span>
-            <span class="burst-app c10" style="--i:9"></span>
-            <span class="burst-app c11" style="--i:10"></span>
-            <span class="burst-app c12" style="--i:11"></span>
-          </div>
-          <img
-            src="assets/icon-256.png"
-            alt="ClutterDock app icon"
-            width="180"
-            height="180"
-            decoding="async"
-            fetchpriority="high"
-          />
+        <div class="hero-demo" data-hero-demo>
+          <video
+            class="hero-demo-video"
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="auto"
+            poster="assets/screenshots/win-light.webp"
+            aria-label="ClutterDock demo — stacks of apps opened with one hotkey"
+          >
+            <source src="assets/clutterdock-demo.mp4" type="video/mp4" />
+          </video>
+          <p class="hero-demo-note">Real product footage · <a href="demo.html">watch the full demo</a></p>
         </div>
 
         <div class="trust-strip" aria-label="Product promises">
           <span>No Dock replacement</span>
           <span class="dot" aria-hidden="true"></span>
           <span>No account required</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span><a href="https://github.com/rbakman-rgb/clutterdock" rel="noopener">Open source</a></span>
           <span class="dot" aria-hidden="true"></span>
           <span>Free forever core</span>
           <span class="dot" aria-hidden="true"></span>
@@ -207,26 +200,46 @@
       </div>
       <p class="concept-note">Conceptual illustration — not a product screenshot.</p>
 
-      <div class="product-shots" data-reveal aria-label="Real product screenshots from ClutterDock on Mac">
+      <div class="product-shots" data-reveal aria-label="Real product screenshots from ClutterDock on Windows and Mac">
         <figure class="product-shot">
           <img
-            src="assets/screenshots/launcher.png"
-            alt="ClutterDock launcher on Mac — Apps stack with grid of apps, search, and Free badge"
+            src="assets/screenshots/win-light.webp"
+            alt="ClutterDock launcher on Windows — stacks of real apps with search, colored tabs, and Most Used"
+            width="551"
+            height="596"
+            loading="lazy"
+          />
+          <figcaption>Windows launcher — type to search, Enter to launch</figcaption>
+        </figure>
+        <figure class="product-shot">
+          <img
+            src="assets/screenshots/win-dark.webp"
+            alt="ClutterDock launcher on Windows in dark mode"
+            width="551"
+            height="596"
+            loading="lazy"
+          />
+          <figcaption>Dark mode — follows Windows, or force your pick</figcaption>
+        </figure>
+        <figure class="product-shot">
+          <img
+            src="assets/screenshots/launcher.webp"
+            alt="ClutterDock launcher on Mac — Apps stack with grid of apps and search"
             width="880"
             height="752"
             loading="lazy"
           />
-          <figcaption>Launcher — stacks, search, and keyboard launch</figcaption>
+          <figcaption>Mac launcher — stacks, search, keyboard launch</figcaption>
         </figure>
         <figure class="product-shot">
           <img
-            src="assets/screenshots/settings.png"
-            alt="ClutterDock Settings window on Mac — Folders and stacks preferences"
+            src="assets/screenshots/settings.webp"
+            alt="ClutterDock Settings window on Mac — stacks and preferences"
             width="1400"
             height="1040"
             loading="lazy"
           />
-          <figcaption>Settings — stacks, workspaces, and Pro</figcaption>
+          <figcaption>Mac Settings — stacks, workspaces, and Pro</figcaption>
         </figure>
       </div>
 
@@ -294,7 +307,7 @@
           <span class="need-num">04</span>
           <div>
             <h3>You want speed without a subscription</h3>
-            <p>Free forever for daily stacks. Pro is planned as a one-time unlock — not rent on your own organization.</p>
+            <p>Free forever for daily stacks. Pro is a one-time unlock — not rent on your own organization.</p>
           </div>
         </article>
       </div>
@@ -390,28 +403,28 @@
       </div>
       <div class="feature-grid" data-reveal-stagger>
         <article class="feature-card">
-          <h3>Folders that behave</h3>
-          <p>Grid or list, drag reorder, sort modes, running indicators — stable public APIs only.</p>
+          <h3>Search everything you own</h3>
+          <p>Type any installed app’s name — even before it’s in a stack — and add or launch it in one keystroke.</p>
         </article>
         <article class="feature-card">
-          <h3>More than apps</h3>
-          <p>Files, folders, and URLs live next to the tools you open them with.</p>
+          <h3>Import your setup in one click</h3>
+          <p>Pull taskbar pins, desktop shortcuts, and Start Menu apps straight into stacks. No rebuilding by hand.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Password-protected stacks (Pro)</h3>
+          <p>Lock a stack behind a password — its contents are encrypted on disk and invisible until you unlock.</p>
         </article>
         <article class="feature-card">
           <h3>Keyboard-first</h3>
-          <p>Global hotkey, arrows, shortcuts. Pro adds search-all and per-folder hotkeys.</p>
+          <p>Hotkey → type → Enter. Copy and paste real files, drag items out to any app, reorder without a mouse.</p>
         </article>
         <article class="feature-card">
           <h3>Smart momentum</h3>
-          <p>Recents from what you launched. Running for what’s live. Less manual tidy-up.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Workspaces (Pro)</h3>
-          <p>Switch whole sets of stacks for home vs work without rebuilding the Dock.</p>
+          <p>Recents and Most Used build themselves from what you launch. Running dots show what’s live.</p>
         </article>
         <article class="feature-card">
           <h3>Cross-platform craft</h3>
-          <p>Native Swift on macOS 14+. Tray launcher on Windows 10/11. Same idea, native feel.</p>
+          <p>Native Swift on macOS 14+. Native-feel launcher on Windows 10/11. Same idea, same license, both platforms.</p>
         </article>
       </div>
     </section>
@@ -469,6 +482,7 @@
       </div>
       <div class="download-grid" data-reveal-stagger>
         <article class="download-card recommended">
+          <span class="os-badge">For your Mac</span>
           <h3>macOS 14+</h3>
           <p>Native Swift · universal (Apple Silicon + Intel) · v1.4.9</p>
           <a class="btn btn-primary" href="/dl/mac">Download Mac zip</a>
@@ -477,6 +491,7 @@
           </p>
         </article>
         <article class="download-card">
+          <span class="os-badge">For your PC</span>
           <h3>Windows 10 / 11</h3>
           <p>Taskbar + tray · installer · v1.3.0</p>
           <a class="btn btn-secondary" href="/dl/win">Download Windows installer</a>
@@ -519,7 +534,9 @@
         </div>
         <div class="footer-col">
           <h4>Support</h4>
+          <a href="demo.html">Demo</a>
           <a href="pricing.html#faq">FAQ</a>
+          <a href="https://github.com/rbakman-rgb/clutterdock" rel="noopener">Open source</a>
           <a href="privacy.html">Privacy</a>
           <a href="terms.html">Terms</a>
         </div>
@@ -531,6 +548,6 @@
     </div>
   </footer>
 
-  <script src="js/main.js?v=20260821a"></script>
+  <script src="js/main.js?v=20260826a"></script>
 </body>
 </html>
