@@ -13,8 +13,8 @@ const CANONICAL_HOST = "clutterdock.com";
 
 // Keep in sync with the Download buttons in website/index.html.
 const DOWNLOAD_ASSETS = {
-  mac: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.9/ClutterDock-1.4.9-mac.zip",
-  win: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.9/ClutterDock-1.3.0-x64-setup.exe",
+  mac: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.10/ClutterDock-1.4.10-mac.zip",
+  win: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.10/ClutterDock-1.3.1-x64-setup.exe",
 };
 const RELEASES_LATEST = "https://github.com/rbakman-rgb/clutterdock/releases/latest";
 
