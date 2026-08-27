@@ -20,6 +20,7 @@ const { createHash } = require('crypto');
 const { Store, dataDir, setDataDirPointer } = require('./store');
 const { setupUpdater } = require('./updater');
 const { buildHDrop, parseHDrop } = require('./win-clipboard');
+const { BETA_EXPIRY, expiryState } = require('./beta-expiry');
 
 /** @type {BrowserWindow | null} */
 let panel = null;
@@ -300,10 +301,36 @@ function showPanel() {
   win.webContents.send('snapshot', store.getSnapshot());
   // Entrance animation + focus-the-search, only on a real appearance
   if (wasHidden) win.webContents.send('panel-shown');
+  notifyBetaExpiry(win);
   startRunningPoll();
   setTimeout(() => {
     suppressTaskbarFocus = false;
   }, 400);
+}
+
+/**
+ * Beta-build expiration: warn inside the window, nag daily once expired.
+ * The app keeps working either way — only the reminder escalates.
+ * CLUTTER_DOCK_FAKE_TODAY=YYYY-MM-DD lets tests drive the clock.
+ */
+function betaNow() {
+  const fake = process.env.CLUTTER_DOCK_FAKE_TODAY;
+  return fake ? Date.parse(`${fake}T12:00:00Z`) : Date.now();
+}
+
+function notifyBetaExpiry(win) {
+  const now = betaNow();
+  const state = expiryState(now);
+  if (state === 'ok') return;
+  const today = new Date(now).toISOString().slice(0, 10);
+  // Daily-once is marked when the renderer ACKS showing the modal — marking on
+  // send raced the renderer's startup and swallowed the first day's nag
+  const nagged = state === 'expired' && store.prefs.lastBetaNagDay === today;
+  win.webContents.send('beta-expiry', {
+    state,
+    expiry: BETA_EXPIRY,
+    modal: state === 'expired' && !nagged,
+  });
 }
 
 function hidePanel() {
@@ -1157,6 +1184,11 @@ function wireIpc() {
     isQuitting = true;
     app.relaunch();
     app.quit();
+  });
+
+  // Renderer confirms the expired-beta modal was actually displayed
+  ipcMain.handle('beta-nag-shown', () => {
+    store.updatePrefs({ lastBetaNagDay: new Date(betaNow()).toISOString().slice(0, 10) });
   });
 
   // Settings can hand off to the panel's import wizard

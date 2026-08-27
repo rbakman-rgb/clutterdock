@@ -671,7 +671,13 @@ function renderHints() {
     return;
   }
   // One quiet line; the ? button carries the full list
-  hints.textContent = 'Type to search · Enter opens · Ctrl+Tab switches stacks · ? for all shortcuts';
+  if (betaExpiryState?.state === 'warn') {
+    hints.textContent = `Beta build expires ${friendlyDate(betaExpiryState.expiry)} — check Settings → Updates`;
+  } else if (betaExpiryState?.state === 'expired') {
+    hints.textContent = 'This beta build has expired — update from Settings → Updates';
+  } else {
+    hints.textContent = 'Type to search · Enter opens · Ctrl+Tab switches stacks · ? for all shortcuts';
+  }
 }
 
 function renderOnboarding() {
@@ -1570,6 +1576,46 @@ clutterDock.onSnapshot((data) => {
   snapshot = data;
   render();
 });
+
+// Beta-build expiration: footer warning in the window, daily modal after.
+// The app never stops working — only the reminder escalates.
+let betaExpiryState = null;
+
+function friendlyDate(iso) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
+if (clutterDock.onBetaExpiry) {
+  clutterDock.onBetaExpiry(({ state, expiry, modal: showModal }) => {
+    betaExpiryState = { state, expiry };
+    renderHints();
+    // Never stack the nag on top of the first-run welcome card — the footer
+    // line still carries the message and the modal returns tomorrow
+    if (showModal && snapshot?.prefs?.hasCompletedOnboarding && !modalOpen()) {
+      clutterDock.betaNagShown?.();
+      openModal((modal) => {
+        modal.innerHTML = `
+          <div class="card dialog">
+            <h2>This beta build has expired</h2>
+            <p class="dialog-sub">ClutterDock keeps working — nothing is locked. But this unsigned beta from before ${escapeHtml(friendlyDate(expiry))} is out of date, and newer builds fix real issues. Grab the current version.</p>
+            <div class="row">
+              <button class="btn secondary" id="dlgCancel">Later</button>
+              <button class="btn primary" id="dlgOk">Update now</button>
+            </div>
+          </div>`;
+        $('dlgOk').onclick = async () => {
+          closeModal(null);
+          const res = await clutterDock.checkForUpdates(true);
+          if (!res?.ok || res?.error) {
+            await clutterDock.openExternal('https://clutterdock.com/dl/win');
+          }
+        };
+        $('dlgCancel').onclick = () => closeModal(null);
+      });
+    }
+  });
+}
 
 // Every appearance: entrance motion, clean slate, caret ready in search
 if (clutterDock.onPanelShown) {

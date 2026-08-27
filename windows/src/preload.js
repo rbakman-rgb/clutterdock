@@ -90,4 +90,10 @@ contextBridge.exposeInMainWorld('clutterDock', {
     ipcRenderer.on('panel-shown', handler);
     return () => ipcRenderer.removeListener('panel-shown', handler);
   },
+  betaNagShown: () => ipcRenderer.invoke('beta-nag-shown'),
+  onBetaExpiry: (cb) => {
+    const handler = (_e, info) => cb(info);
+    ipcRenderer.on('beta-expiry', handler);
+    return () => ipcRenderer.removeListener('beta-expiry', handler);
+  },
 });

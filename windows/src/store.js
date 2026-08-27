@@ -144,6 +144,7 @@ function defaultPrefs() {
     // window re-shows, which flashes visibly on every open (seen on video).
     transparencyEffects: false,
     sendToShortcut: true,
+    lastBetaNagDay: '', // main-internal: one expired-build nag per day
     licenseKey: '',
     themeAccent: 'system',
     checkForUpdatesAutomatically: true,

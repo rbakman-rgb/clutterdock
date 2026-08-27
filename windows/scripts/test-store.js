@@ -237,4 +237,13 @@ assert.deepStrictEqual(parseHDrop(Buffer.alloc(4)), [], 'truncated buffer tolera
 assert.deepStrictEqual(parseHDrop(null), [], 'null buffer tolerated');
 assert.strictEqual(buildHDrop([]), null, 'empty path list builds nothing');
 
+// --- Beta expiry: warn window and expiry boundary
+const { expiryState } = require('../src/beta-expiry');
+const D = (s) => Date.parse(`${s}T12:00:00Z`);
+assert.strictEqual(expiryState(D('2026-09-01'), '2026-11-30'), 'ok', 'far before expiry is ok');
+assert.strictEqual(expiryState(D('2026-11-20'), '2026-11-30'), 'warn', 'inside 14-day window warns');
+assert.strictEqual(expiryState(D('2026-11-30'), '2026-11-30'), 'expired', 'expiry day is expired');
+assert.strictEqual(expiryState(D('2027-01-01'), '2026-11-30'), 'expired', 'after expiry stays expired');
+assert.strictEqual(expiryState(D('2026-01-01'), 'not-a-date'), 'ok', 'malformed date never nags');
+
 console.log('store tests passed');
