@@ -449,15 +449,35 @@ function createTaskbarHost() {
     e.preventDefault();
     hostAction('close', togglePanel);
   });
-  // Windows maps a taskbar click to focus, minimize, OR restore depending on
-  // the host's current state — the user means the same thing by all of them:
-  // "toggle the launcher". Treat them identically; the gate dedupes the
-  // multiple events one click produces.
+  // The host lives PERMANENTLY MINIMIZED. An unminimized 1x1 host sits in the
+  // z-order, so minimizing ANY other app could hand it foreground focus — and
+  // a focus event is indistinguishable from a taskbar click, so the launcher
+  // popped up whenever the user minimized anything (reported live). Minimized
+  // windows never receive stray focus; the only way the host un-minimizes is
+  // the user's actual taskbar click (or Alt-Tab), which arrives as 'restore' —
+  // the one unambiguous click signal. We toggle, then re-minimize instantly.
+  let hostReminimizing = false;
+  const minimizeHost = () => {
+    if (!taskbarHost || taskbarHost.isDestroyed() || taskbarHost.isMinimized()) return;
+    hostReminimizing = true;
+    taskbarHost.minimize();
+    setTimeout(() => {
+      hostReminimizing = false;
+    }, 300);
+  };
+  setTimeout(minimizeHost, 200); // park it right after creation
+
   taskbarHost.on('minimize', () => {
+    if (hostReminimizing) {
+      dlog('host:minimize (programmatic re-park)');
+      return;
+    }
+    // User-driven minimize of a momentarily-restored host — same click intent
     hostAction('minimize', togglePanel);
   });
   taskbarHost.on('restore', () => {
     hostAction('restore', togglePanel);
+    setTimeout(minimizeHost, 60); // park again even when the gate swallowed it
   });
   taskbarHost.on('focus', () => {
     if (suppressTaskbarFocus) {
@@ -465,9 +485,11 @@ function createTaskbarHost() {
       // focus straight back so the blur auto-hide never sees an orphan panel
       dlog('host:focus during show → bouncing focus back to panel');
       if (panel && !panel.isDestroyed() && panel.isVisible()) panel.focus();
+      minimizeHost();
       return;
     }
     hostAction('focus', togglePanel);
+    minimizeHost();
   });
   taskbarHost.on('blur', () => dlog('host:blur'));
   taskbarHost.on('show', () => dlog('host:show'));
