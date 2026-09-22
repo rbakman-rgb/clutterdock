@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
+const { THEMES } = require('./themes');
 
 contextBridge.exposeInMainWorld('clutterDock', {
   // File.path was removed in Electron 32; drops must resolve paths via webUtils.
@@ -9,6 +10,7 @@ contextBridge.exposeInMainWorld('clutterDock', {
       return null;
     }
   },
+  themes: THEMES,
   getSnapshot: () => ipcRenderer.invoke('get-snapshot'),
   onSnapshot: (cb) => {
     const handler = (_e, data) => cb(data);
@@ -76,6 +78,7 @@ contextBridge.exposeInMainWorld('clutterDock', {
   copyItems: (itemIDs) => ipcRenderer.invoke('copy-items', itemIDs),
   setDragActive: (active) => ipcRenderer.invoke('set-drag-active', active),
   startItemDrag: (itemID) => ipcRenderer.send('drag-out', itemID),
+  resetPanelBounds: () => ipcRenderer.invoke('reset-panel-bounds'),
   chooseDataDir: () => ipcRenderer.invoke('choose-data-dir'),
   resetDataDir: () => ipcRenderer.invoke('reset-data-dir'),
   relaunchApp: () => ipcRenderer.invoke('relaunch-app'),

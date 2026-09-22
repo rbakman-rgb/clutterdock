@@ -60,7 +60,24 @@ assert.strictEqual(normals, 5, `free cap enforced (got ${normals})`);
 // --- URL scheme allowlist
 assert.strictEqual(store.addURL('https://example.com', coding.id).added, 1, 'https ok');
 assert.strictEqual(store.addURL('file:///C:/x.exe', coding.id).added, 0, 'file: rejected');
+assert.ok(store.addURL('file:///C:/x.exe', coding.id).error, 'file: explains the rejection');
 assert.strictEqual(store.addURL('ms-msdt:/id x', coding.id).added, 0, 'ms-msdt rejected');
+assert.ok(store.addURL('not a url', coding.id).error, 'junk url explains the rejection');
+const recents = store.state.folders.find((f) => f.smartKind === 'recents');
+const smartDrop = store.addPaths([tmpFile], recents.id);
+assert.strictEqual(smartDrop.added, 0, 'smart folder accepts no drops');
+assert.ok(smartDrop.error, 'smart folder drop explains itself');
+assert.strictEqual(recents.items.length, 0, 'recents items stay empty');
+
+freshDir();
+const lone = freshStore();
+const only = lone.state.folders.find((f) => f.smartKind === 'none');
+const blocked = lone.deleteFolder(only.id);
+assert.strictEqual(blocked.ok, false, 'last stack is kept');
+assert.ok(lone.state.folders.some((f) => f.id === only.id), 'last stack still present');
+const extra = lone.addFolder('Second', 'folder');
+assert.strictEqual(extra.ok, true, 'second stack added');
+assert.strictEqual(lone.deleteFolder(extra.folder.id).ok, true, 'a spare stack can be deleted');
 
 // --- relocate onto own folder keeps position
 const f2 = path.join(dir, 'second.txt');

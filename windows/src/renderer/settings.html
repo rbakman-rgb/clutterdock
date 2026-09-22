@@ -68,10 +68,10 @@
       <h3>Appearance</h3>
       <div class="field">
         <label for="theme">Theme
-          <span class="sub">Follow Windows, or force light / dark</span>
+          <span class="sub" id="themeBlurb">Ten looks, plus Match Windows.</span>
         </label>
         <select id="theme">
-          <option value="system">System</option>
+          <option value="system">Match Windows</option>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
         </select>
@@ -91,6 +91,12 @@
           <option value="remembered">Where I last moved it</option>
           <option value="taskbar">Above the taskbar corner</option>
         </select>
+      </div>
+      <div class="field">
+        <label>Launcher size
+          <span class="sub">Back to the standard size if the panel has grown too large</span>
+        </label>
+        <button class="btn secondary" id="resetPanel">Reset size</button>
       </div>
     </div>
 

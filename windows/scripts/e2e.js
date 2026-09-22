@@ -520,7 +520,10 @@ const rpc = (script, arg) => page.evaluate(script, arg);
       // Match by URL — on Windows the taskbar host shares the 'ClutterDock' title
       const w = BrowserWindow.getAllWindows().find((x) =>
         x.webContents.getURL().includes('index.html'));
-      return w ? { visible: w.isVisible(), bounds: w.getBounds() } : null;
+      // Closed panels stay shown at opacity 0 so Windows does not rebuild
+      // the acrylic material on the next open. Treat that as not visible.
+      const opacity = typeof w.getOpacity === 'function' ? w.getOpacity() : 1;
+      return w ? { visible: w.isVisible() && opacity > 0.5, bounds: w.getBounds() } : null;
     });
     await rpc(() => clutterDock.showPanel());
     await page.waitForTimeout(300);

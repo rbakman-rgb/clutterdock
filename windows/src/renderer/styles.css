@@ -549,18 +549,21 @@ button, .tile, .list-row {
 /* Running-app indicator */
 .tile { position: relative; }
 .run-dot {
-  display: inline-block;
+  display: none;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 4px var(--accent);
 }
+.is-running > .run-dot,
+.is-running .name .run-dot { display: inline-block; }
 .tile .run-dot {
   position: absolute;
   top: 8px;
   right: 10px;
 }
+.tile.is-running > .run-dot { display: block; }
 
 /* Custom stack image in a tab */
 .tab-img {
@@ -825,85 +828,35 @@ body.acrylic #app {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* ================= Motion & feel =================
-   Fast, springy, purposeful — every animation under 300ms. */
-
-/* Panel entrance: fade only. Any transform here fights the OS — the window's
-   first painted frame is the pre-animation layout, so translate/scale starts
-   read as the content snapping and re-settling (user-reported three ways). */
-@keyframes panelEnter {
-  from { opacity: 0.85; }
-  to { opacity: 1; }
-}
-#app.panel-enter {
-  animation: panelEnter 0.12s ease-out;
-}
-
-/* Content cross-fade — only when the stack actually changes (renderer keys it),
-   otherwise every selection click would blink */
-@keyframes contentIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
-}
+/* No open or close animation. A fade is a second paint and it feels late. */
 .content-anim .grid, .content-anim .list, .content-anim .empty {
-  animation: contentIn 0.16s ease-out;
+  animation: none;
 }
 
-/* Tiles: lift on hover, sink on press, pulse on launch */
 .tile {
-  transition: background-color 0.12s ease, border-color 0.12s ease,
-    transform 0.14s cubic-bezier(0.2, 0.9, 0.3, 1);
+  transition: background-color 0.08s linear, border-color 0.08s linear;
 }
-.tile:hover { transform: translateY(-2px); }
-.tile:hover .tile-icon {
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
-}
-.tile:active { transform: translateY(0) scale(0.97); }
-.tile-icon { transition: box-shadow 0.14s ease, transform 0.14s ease; }
+.tile:hover { background: var(--tile-hover); }
+.tile:active { background: var(--accent-soft); }
+.tile-icon { transition: box-shadow 0.1s ease; }
 @keyframes launchPulse {
   0% { transform: scale(1); }
-  35% { transform: scale(1.14); }
+  40% { transform: scale(1.06); }
   100% { transform: scale(1); }
 }
 .tile.launching .tile-icon, .list-row.launching .tile-icon {
-  animation: launchPulse 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+  animation: launchPulse 0.2s ease-out;
 }
 
-/* Dialogs pop in */
-@keyframes cardIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.96); }
-  to { opacity: 1; transform: none; }
-}
-.overlay .card { animation: cardIn 0.16s cubic-bezier(0.2, 0.9, 0.3, 1); }
+.overlay .card { animation: none; }
+.ctx:not([hidden]) { animation: none; }
 
-/* Context menus slide in from the click point */
-@keyframes ctxIn {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to { opacity: 1; transform: none; }
-}
-.ctx:not([hidden]) { animation: ctxIn 0.12s ease-out; }
+.run-dot { opacity: 1; }
 
-/* Running dot breathes */
-@keyframes dotBreathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-.run-dot { animation: dotBreathe 2.4s ease-in-out infinite; }
-
-/* Empty-state glyph floats gently */
-@keyframes floaty {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-.empty > div:first-child { animation: floaty 3.2s ease-in-out infinite; }
-
-/* Buttons acknowledge the press */
 .btn, .icon-btn, .toggle, .tab {
-  transition: background-color 0.12s ease, border-color 0.12s ease,
-    color 0.12s ease, transform 0.1s ease, filter 0.12s ease;
+  transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
 }
-.btn:hover { filter: brightness(1.05); }
-.btn:active, .icon-btn:active, .tab:active { transform: scale(0.96); }
+.btn:active { transform: scale(0.98); }
 
 /* Someone asked the OS to calm things down — honor it completely */
 @media (prefers-reduced-motion: reduce) {
@@ -987,4 +940,137 @@ body.acrylic #app {
     border: 1px solid CanvasText;
   }
   .run-dot { background: Highlight; box-shadow: none; }
+}
+
+/* ================= Named themes =================
+   System / Light / Dark keep the :root tokens above. A named theme sets
+   data-theme on <html> and replaces every surface token. */
+
+[data-theme="harbor"] {
+  color-scheme: light;
+  --bg: #e7eef8; --panel: rgba(255,255,255,.92); --text: #172033; --muted: #5c6b82;
+  --accent: #2f6fed; --accent-soft: rgba(47,111,237,.14); --border: rgba(23,32,51,.1);
+  --tile-hover: rgba(23,32,51,.05); --danger: #dc2626; --surface: #ffffff;
+  --surface-input: rgba(255,255,255,.8); --chip-bg: rgba(23,32,51,.05);
+  --tab-active-text: #1d4ed8; --text-body: #334155; --settings-bg: #f4f7fb;
+  --app-grad-1: #e7eef8; --app-grad-2: #f5f8fc; --app-grad-3: #e3ebf7;
+  --tile-app-bg: linear-gradient(145deg,#dbe7ff,#f3f7ff);
+  --tile-file-bg: linear-gradient(145deg,#fdecc8,#fff8ea);
+  --tile-folder-bg: linear-gradient(145deg,#e0e7ff,#f4f6ff);
+  --tile-url-bg: linear-gradient(145deg,#d1fae5,#f0fdf8);
+  --tile-icon-shadow: 0 1px 4px rgba(23,32,51,.08);
+}
+[data-theme="nightharbor"] {
+  color-scheme: dark;
+  --bg: #0e1524; --panel: rgba(16,24,40,.92); --text: #e7eefc; --muted: #93a0b8;
+  --accent: #7aa2ff; --accent-soft: rgba(122,162,255,.2); --border: rgba(255,255,255,.08);
+  --tile-hover: rgba(255,255,255,.06); --danger: #fca5a5; --surface: #162033;
+  --surface-input: rgba(255,255,255,.06); --chip-bg: rgba(255,255,255,.06);
+  --tab-active-text: #c5d4ff; --text-body: #d5def0; --settings-bg: #0e1524;
+  --app-grad-1: #121a2e; --app-grad-2: #0e1524; --app-grad-3: #10192c;
+  --tile-app-bg: rgba(122,162,255,.16); --tile-file-bg: rgba(251,191,36,.12);
+  --tile-folder-bg: rgba(129,140,248,.16); --tile-url-bg: rgba(45,212,191,.12);
+  --tile-icon-shadow: none;
+}
+[data-theme="paper"] {
+  color-scheme: light;
+  --bg: #f6f1e7; --panel: rgba(255,252,246,.94); --text: #2a241c; --muted: #7a6e60;
+  --accent: #9a5b2f; --accent-soft: rgba(154,91,47,.14); --border: rgba(42,36,28,.1);
+  --tile-hover: rgba(42,36,28,.05); --danger: #b91c1c; --surface: #fffdf8;
+  --surface-input: rgba(255,253,248,.85); --chip-bg: rgba(42,36,28,.05);
+  --tab-active-text: #8a4b22; --text-body: #4a4036; --settings-bg: #f8f4ec;
+  --app-grad-1: #f6f1e7; --app-grad-2: #fbf8f2; --app-grad-3: #f3ece1;
+  --tile-app-bg: linear-gradient(145deg,#f3e6d4,#fbf6ee);
+  --tile-file-bg: linear-gradient(145deg,#f6e7c4,#fbf6ea);
+  --tile-folder-bg: linear-gradient(145deg,#efe4d4,#faf6ef);
+  --tile-url-bg: linear-gradient(145deg,#e5efd8,#f6f8ef);
+  --tile-icon-shadow: 0 1px 4px rgba(42,36,28,.08);
+}
+[data-theme="ink"] {
+  color-scheme: dark;
+  --bg: #07080a; --panel: rgba(14,15,18,.94); --text: #f4f6f8; --muted: #8b939e;
+  --accent: #e6ebf2; --accent-soft: rgba(255,255,255,.08); --border: rgba(255,255,255,.1);
+  --tile-hover: rgba(255,255,255,.06); --danger: #fca5a5; --surface: #121316;
+  --surface-input: rgba(255,255,255,.05); --chip-bg: rgba(255,255,255,.06);
+  --tab-active-text: #ffffff; --text-body: #d5d8de; --settings-bg: #07080a;
+  --app-grad-1: #101114; --app-grad-2: #07080a; --app-grad-3: #0c0d10;
+  --tile-app-bg: rgba(255,255,255,.06); --tile-file-bg: rgba(255,255,255,.05);
+  --tile-folder-bg: rgba(255,255,255,.06); --tile-url-bg: rgba(255,255,255,.05);
+  --tile-icon-shadow: none;
+}
+[data-theme="slate"] {
+  color-scheme: dark;
+  --bg: #1c1e22; --panel: rgba(32,34,39,.94); --text: #f1f1f4; --muted: #a1a1aa;
+  --accent: #a78bfa; --accent-soft: rgba(167,139,250,.2); --border: rgba(255,255,255,.08);
+  --tile-hover: rgba(255,255,255,.06); --danger: #fca5a5; --surface: #26282e;
+  --surface-input: rgba(255,255,255,.05); --chip-bg: rgba(255,255,255,.06);
+  --tab-active-text: #ddd6fe; --text-body: #e4e4e7; --settings-bg: #1c1e22;
+  --app-grad-1: #22242a; --app-grad-2: #1c1e22; --app-grad-3: #1a1c20;
+  --tile-app-bg: rgba(167,139,250,.16); --tile-file-bg: rgba(251,191,36,.1);
+  --tile-folder-bg: rgba(167,139,250,.12); --tile-url-bg: rgba(52,211,153,.1);
+  --tile-icon-shadow: none;
+}
+[data-theme="ember"] {
+  color-scheme: dark;
+  --bg: #1a1210; --panel: rgba(36,22,18,.94); --text: #f6ece6; --muted: #c4a394;
+  --accent: #e08a4f; --accent-soft: rgba(224,138,79,.2); --border: rgba(255,220,190,.1);
+  --tile-hover: rgba(255,220,190,.06); --danger: #fca5a5; --surface: #261814;
+  --surface-input: rgba(255,236,220,.05); --chip-bg: rgba(255,220,190,.06);
+  --tab-active-text: #fdba74; --text-body: #f0ddd4; --settings-bg: #1a1210;
+  --app-grad-1: #241612; --app-grad-2: #1a1210; --app-grad-3: #201410;
+  --tile-app-bg: rgba(224,138,79,.16); --tile-file-bg: rgba(251,191,36,.12);
+  --tile-folder-bg: rgba(224,138,79,.12); --tile-url-bg: rgba(52,211,153,.1);
+  --tile-icon-shadow: none;
+}
+[data-theme="tide"] {
+  color-scheme: dark;
+  --bg: #071618; --panel: rgba(12,32,34,.94); --text: #e7f6f6; --muted: #8fbfc0;
+  --accent: #2ec4b6; --accent-soft: rgba(46,196,182,.18); --border: rgba(180,255,245,.1);
+  --tile-hover: rgba(180,255,245,.06); --danger: #fda4af; --surface: #0e2426;
+  --surface-input: rgba(180,255,245,.05); --chip-bg: rgba(180,255,245,.06);
+  --tab-active-text: #99f6e4; --text-body: #d5efee; --settings-bg: #071618;
+  --app-grad-1: #0c2224; --app-grad-2: #071618; --app-grad-3: #0a1c1e;
+  --tile-app-bg: rgba(46,196,182,.16); --tile-file-bg: rgba(251,191,36,.1);
+  --tile-folder-bg: rgba(46,196,182,.12); --tile-url-bg: rgba(46,196,182,.14);
+  --tile-icon-shadow: none;
+}
+[data-theme="moss"] {
+  color-scheme: dark;
+  --bg: #101610; --panel: rgba(20,30,20,.94); --text: #e7f0e4; --muted: #9aaf96;
+  --accent: #8fbf6a; --accent-soft: rgba(143,191,106,.18); --border: rgba(220,255,200,.1);
+  --tile-hover: rgba(220,255,200,.06); --danger: #fca5a5; --surface: #182118;
+  --surface-input: rgba(220,255,200,.05); --chip-bg: rgba(220,255,200,.06);
+  --tab-active-text: #d9f99d; --text-body: #dce8d6; --settings-bg: #101610;
+  --app-grad-1: #162016; --app-grad-2: #101610; --app-grad-3: #141c14;
+  --tile-app-bg: rgba(143,191,106,.16); --tile-file-bg: rgba(251,191,36,.1);
+  --tile-folder-bg: rgba(143,191,106,.12); --tile-url-bg: rgba(143,191,106,.14);
+  --tile-icon-shadow: none;
+}
+[data-theme="bloom"] {
+  color-scheme: light;
+  --bg: #fbf4f6; --panel: rgba(255,250,251,.94); --text: #3b2430; --muted: #8d6b78;
+  --accent: #d4537e; --accent-soft: rgba(212,83,126,.14); --border: rgba(59,36,48,.1);
+  --tile-hover: rgba(59,36,48,.05); --danger: #be123c; --surface: #fffafb;
+  --surface-input: rgba(255,250,251,.85); --chip-bg: rgba(59,36,48,.05);
+  --tab-active-text: #be185d; --text-body: #5c3a48; --settings-bg: #fdf6f8;
+  --app-grad-1: #fbf4f6; --app-grad-2: #fffafb; --app-grad-3: #f8eef2;
+  --tile-app-bg: linear-gradient(145deg,#fde2ea,#fff5f8);
+  --tile-file-bg: linear-gradient(145deg,#fdecc8,#fff8ea);
+  --tile-folder-bg: linear-gradient(145deg,#f3e8ff,#faf5ff);
+  --tile-url-bg: linear-gradient(145deg,#d1fae5,#f0fdf8);
+  --tile-icon-shadow: 0 1px 4px rgba(59,36,48,.08);
+}
+[data-theme="quartz"] {
+  color-scheme: light;
+  --bg: #f3f0fa; --panel: rgba(251,250,255,.94); --text: #2a2740; --muted: #6e6a86;
+  --accent: #7c6aef; --accent-soft: rgba(124,106,239,.16); --border: rgba(42,39,64,.1);
+  --tile-hover: rgba(42,39,64,.05); --danger: #dc2626; --surface: #fbfaff;
+  --surface-input: rgba(251,250,255,.85); --chip-bg: rgba(42,39,64,.05);
+  --tab-active-text: #5b4cdb; --text-body: #3f3b58; --settings-bg: #f7f5fc;
+  --app-grad-1: #f3f0fa; --app-grad-2: #fbfaff; --app-grad-3: #ece8f8;
+  --tile-app-bg: linear-gradient(145deg,#e4e0ff,#f6f4ff);
+  --tile-file-bg: linear-gradient(145deg,#fdecc8,#fff8ea);
+  --tile-folder-bg: linear-gradient(145deg,#e9e4ff,#f7f5ff);
+  --tile-url-bg: linear-gradient(145deg,#d1fae5,#f0fdf8);
+  --tile-icon-shadow: 0 1px 4px rgba(42,39,64,.08);
 }

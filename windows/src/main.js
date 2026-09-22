@@ -21,6 +21,8 @@ const { Store, dataDir, setDataDirPointer } = require('./store');
 const { setupUpdater } = require('./updater');
 const { buildHDrop, parseHDrop } = require('./win-clipboard');
 const { BETA_EXPIRY, expiryState } = require('./beta-expiry');
+const { clampPanelToWorkArea, DEFAULT_WIDTH, DEFAULT_HEIGHT } = require('./panel-bounds');
+const { THEMES, themeById } = require('./themes');
 
 /** @type {BrowserWindow | null} */
 let panel = null;
@@ -33,6 +35,15 @@ let store;
 /** @type {{ check: Function } | null} */
 let updater = null;
 let updateStatus = '';
+// Programmatic setPosition/setSize also emit moved/resize. Ignore those so a
+// cursor-mode open cannot overwrite the saved spot or the saved size.
+let ignoreGeometry = 0;
+function holdGeometry() {
+  ignoreGeometry += 1;
+  setTimeout(() => {
+    ignoreGeometry = Math.max(0, ignoreGeometry - 1);
+  }, 800);
+}
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -46,6 +57,19 @@ if (isWin) {
 
 let taskbarHost = null;
 let isQuitting = false;
+
+// app.quit() gives every window a chance to cancel the close. The taskbar
+// host used to do that, so the X did nothing and a second ClutterDock stayed
+// up. Flush, then exit. Nothing is left that can veto.
+function quitApp() {
+  if (!isQuitting) {
+    isQuitting = true;
+    try { store?.flushPendingSave(); } catch (_) { /* best effort */ }
+    try { stopRunningPoll(); } catch (_) { /* poll may not be running */ }
+    try { globalShortcut.unregisterAll(); } catch (_) { /* ignore */ }
+  }
+  app.exit(0);
+}
 let suppressTaskbarFocus = false;
 let lastPanelHideAt = 0;
 let lastPanelShowAt = 0;
@@ -69,9 +93,13 @@ const acrylicSupported = isWin && winBuild >= 22621;
 // open *behind* the panel. Every dialog.show* call must go through here.
 let nativeDialogDepth = 0;
 
+function panelIsOpen() {
+  return !!(panelWanted && panel && !panel.isDestroyed() && panel.isVisible());
+}
+
 function dialogParent() {
   if (settingsWin && !settingsWin.isDestroyed() && settingsWin.isFocused()) return settingsWin;
-  if (panel && !panel.isDestroyed() && panel.isVisible()) return panel;
+  if (panelIsOpen()) return panel;
   if (settingsWin && !settingsWin.isDestroyed()) return settingsWin;
   return null;
 }
@@ -125,8 +153,10 @@ function createPanel() {
     acrylicSupported &&
     store?.prefs?.transparencyEffects !== false;
   panel = new BrowserWindow({
-    width: store?.prefs?.panelWidth || 480,
-    height: store?.prefs?.panelHeight || 520,
+    width: Math.max(store?.prefs?.panelWidth || 0, DEFAULT_WIDTH),
+    height: Math.max(store?.prefs?.panelHeight || 0, DEFAULT_HEIGHT),
+    minWidth: 420,
+    minHeight: 480,
     show: false,
     frame: false,
     resizable: true,
@@ -138,7 +168,7 @@ function createPanel() {
     transparent: false,
     // Win11 22H2+: native acrylic like the OS's own flyouts (clock, quick settings)
     ...(useAcrylic ? { backgroundMaterial: 'acrylic' } : {}),
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#10141d' : '#f4f6fb',
+    backgroundColor: themeChromeColor(),
     hasShadow: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -161,6 +191,7 @@ function createPanel() {
     // left the panel visibly inactive (dimmed acrylic) and then re-activating,
     // which read as an open→flicker→reopen.
     if (
+      panelWanted &&
       panel &&
       !panel.isDestroyed() &&
       panel.isVisible() &&
@@ -184,8 +215,10 @@ function createPanel() {
       // Small delay so clicks on dialogs register
       setTimeout(() => {
         if (
+          panelWanted &&
           panel &&
           !panel.isDestroyed() &&
+          panel.isVisible() &&
           !panel.isFocused() &&
           !settingsWin?.isFocused() &&
           nativeDialogDepth === 0 &&
@@ -197,8 +230,9 @@ function createPanel() {
           // z-order window on minimize clicks) ~1ms after we focus the panel.
           // Within the show grace window that stolen focus is part of the same
           // gesture, not the user leaving — take focus back (capped, so a
-          // genuine instant departure still wins).
-          if (Date.now() - lastPanelShowAt < 800 && showFocusRetries < 2) {
+          // genuine instant departure still wins). Never focus a panel the
+          // user already closed: focus() was putting it back on screen.
+          if (Date.now() - lastPanelShowAt < 160 && showFocusRetries < 2) {
             showFocusRetries += 1;
             dlog(`panel:blur-timer → focus stolen right after show; re-asserting (retry ${showFocusRetries})`);
             panel.focus();
@@ -209,20 +243,32 @@ function createPanel() {
         } else {
           dlog('panel:blur-timer → kept (refocused or guarded)');
         }
-      }, 150);
+      }, 40);
     }
   });
   panel.on('focus', () => dlog('panel:focus'));
+
+  // Frameless, so Alt+F4 and the taskbar thumbnail X are the OS close.
+  // Hide instead of destroying: destroy left panelWanted true and the hotkey
+  // would not open the panel again.
+  panel.on('close', (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    hidePanel();
+  });
 
   panel.on('closed', () => {
     panel = null;
   });
 
-  // Remember where the user drags the panel (placement mode "remembered")
+  // Remember where the user drags the panel, and only in "remembered" mode.
+  // Opens in the other modes also move the window; those must not count.
   let moveTimer = null;
   panel.on('moved', () => {
     clearTimeout(moveTimer);
     moveTimer = setTimeout(() => {
+      if (ignoreGeometry) return;
+      if (store?.prefs?.panelPlacement !== 'remembered') return;
       if (panel && !panel.isDestroyed() && panel.isVisible()) {
         const [x, y] = panel.getPosition();
         store.updatePrefs({ panelX: x, panelY: y });
@@ -230,13 +276,15 @@ function createPanel() {
     }, 400);
   });
 
-  // Remember the user's panel size across restarts
+  // Remember the user's panel size across restarts. Show/clamp resizes are ignored.
   let resizeTimer = null;
   panel.on('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
+      if (ignoreGeometry) return;
       if (panel && !panel.isDestroyed()) {
         const [w, h] = panel.getSize();
+        if (w < 80 || h < 80) return;
         store.updatePrefs({ panelWidth: w, panelHeight: h });
       }
     }, 400);
@@ -245,67 +293,170 @@ function createPanel() {
   return panel;
 }
 
+function applyPanelBounds(area, desiredX, desiredY) {
+  const b = panel.getBounds();
+  const next = clampPanelToWorkArea(desiredX, desiredY, b.width, b.height, area);
+  holdGeometry();
+  if (next.width !== b.width || next.height !== b.height) {
+    panel.setSize(next.width, next.height);
+  }
+  panel.setPosition(next.x, next.y, false);
+}
+
 function positionPanel() {
   if (!panel) return;
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
-  const { width, height } = panel.getBounds();
+  const b = panel.getBounds();
   const wa = display.workArea;
   const mode = store?.prefs?.panelPlacement || 'cursor';
 
   if (mode === 'remembered' && Number.isFinite(store.prefs.panelX) && Number.isFinite(store.prefs.panelY)) {
-    // Last position the user dragged it to, clamped onto a live display
+    // Last position the user dragged it to, clamped onto a live display.
     const target = screen.getDisplayNearestPoint({ x: store.prefs.panelX, y: store.prefs.panelY }).workArea;
-    const x = Math.min(Math.max(store.prefs.panelX, target.x), target.x + target.width - width);
-    const y = Math.min(Math.max(store.prefs.panelY, target.y), target.y + target.height - height);
-    panel.setPosition(Math.round(x), Math.round(y), false);
+    applyPanelBounds(target, store.prefs.panelX, store.prefs.panelY);
     return;
   }
   if (mode === 'taskbar') {
-    // Fixed flyout above the taskbar corner, like the OS clock/quick settings
+    // Fixed flyout above the taskbar corner, like the OS clock/quick settings.
     const primary = screen.getPrimaryDisplay().workArea;
-    panel.setPosition(
-      Math.round(primary.x + primary.width - width - 12),
-      Math.round(primary.y + primary.height - height - 12),
-      false
+    applyPanelBounds(
+      primary,
+      primary.x + primary.width - b.width - 12,
+      primary.y + primary.height - b.height - 12
     );
     return;
   }
-  let x = Math.round(cursor.x - width / 2);
-  let y = Math.round(cursor.y - height - 16);
-  // Prefer above taskbar if cursor near bottom
+  let x = Math.round(cursor.x - b.width / 2);
+  let y = Math.round(cursor.y - b.height - 16);
+  // Prefer above the taskbar if the cursor is near the bottom.
   if (cursor.y > wa.y + wa.height - 80) {
-    y = Math.round(cursor.y - height - 12);
+    y = Math.round(cursor.y - b.height - 12);
   } else if (y < wa.y + 8) {
     y = cursor.y + 16;
   }
-  x = Math.min(Math.max(x, wa.x + 8), wa.x + wa.width - width - 8);
-  y = Math.min(Math.max(y, wa.y + 8), wa.y + wa.height - height - 8);
-  panel.setPosition(x, y, false);
+  applyPanelBounds(wa, x, y);
+}
+
+// Open and closed are the same window. Closed means hidden, not a second
+// window and not left on screen at opacity 0 (that could not be clicked or
+// closed). panelWanted is the user's intent; the HWND must follow it.
+let panelWanted = false;
+let lastPushedRev = 0;
+let iconsDelivered = false;
+const fileIconCache = new Map();
+
+function stackIconPaths() {
+  if (!store) return [];
+  const paths = [];
+  for (const folder of store.state.folders || []) {
+    if (folder.smartKind && folder.smartKind !== 'none') continue;
+    for (const item of folder.items || []) {
+      if (item && item.path && item.kind !== 'url') paths.push(item.path);
+    }
+  }
+  return [...new Set(paths)];
+}
+
+async function prefetchIcons(paths) {
+  for (const p of paths) {
+    if (fileIconCache.has(p)) continue;
+    let url = null;
+    try {
+      if (fs.existsSync(p)) {
+        const icon = await app.getFileIcon(p, { size: 'large' });
+        if (icon && !icon.isEmpty()) url = icon.toDataURL();
+      }
+    } catch (_) {
+      url = null;
+    }
+    fileIconCache.set(p, url);
+  }
+}
+
+function finishShow(win) {
+  if (!panelWanted || win.isDestroyed()) return;
+  presentPanel(win);
+  win.webContents.send('panel-shown');
+  notifyBetaExpiry(win);
+  startRunningPoll();
+}
+
+function deliverFreshFrame(win) {
+  const paths = stackIconPaths();
+  const missing = paths.filter((p) => !fileIconCache.has(p));
+  const snapStale = !iconsDelivered || store.rev !== lastPushedRev;
+  if (!missing.length && !snapStale) {
+    finishShow(win);
+    return;
+  }
+  // Cap the wait. A stuck icon lookup must not leave the panel closed.
+  const ready = Promise.race([
+    prefetchIcons(missing),
+    new Promise((resolve) => setTimeout(resolve, 150)),
+  ]);
+  ready.then(async () => {
+    if (!panelWanted || win.isDestroyed()) return;
+    if (!win.webContents.isLoading()) {
+      const payload = {};
+      for (const p of paths) {
+        if (fileIconCache.has(p)) payload[p] = fileIconCache.get(p);
+      }
+      if (!iconsDelivered && Object.keys(payload).length) {
+        const js = `window.__takeIcons && window.__takeIcons(${JSON.stringify(payload)})`;
+        await win.webContents.executeJavaScript(js).catch(() => {});
+      }
+      iconsDelivered = true;
+      if (store.rev !== lastPushedRev) {
+        const js = `window.__applySnap && window.__applySnap(${JSON.stringify(store.getSnapshot())})`;
+        await win.webContents.executeJavaScript(js).catch(() => {});
+        lastPushedRev = store.rev;
+      }
+    }
+    finishShow(win);
+  });
+}
+
+function presentPanel(win) {
+  if (!panelWanted || !win || win.isDestroyed()) return;
+  try { win.setFocusable(true); } catch (_) { /* older electron */ }
+  try { win.setIgnoreMouseEvents(false); } catch (_) { /* ignore */ }
+  try { win.setOpacity(1); } catch (_) { /* ignore */ }
+  // The panel is not a second taskbar button. Re-assert after show(); Windows
+  // puts a frameless window back on the taskbar and it looks like another app.
+  try { win.setSkipTaskbar(true); } catch (_) { /* ignore */ }
+  if (!win.isVisible()) win.show();
+  try { win.setSkipTaskbar(true); } catch (_) { /* ignore */ }
+  if (!panelWanted || win.isDestroyed()) {
+    try { win.hide(); } catch (_) { /* ignore */ }
+    return;
+  }
+  win.focus();
+}
+
+function parkPanel(win) {
+  // Hide for real. Leaving it shown at opacity 0 made it invisible and
+  // unable to take a click or the hotkey on the next open.
+  try { win.setIgnoreMouseEvents(false); } catch (_) { /* ignore */ }
+  try { win.setFocusable(true); } catch (_) { /* ignore */ }
+  try { win.setOpacity(1); } catch (_) { /* ignore */ }
+  win.hide();
 }
 
 function showPanel() {
   const win = createPanel();
-  dlog(`showPanel (wasVisible=${win.isVisible()})`);
-  // Reposition only when actually appearing — repositioning a visible panel
-  // (Pro stack hotkeys, re-shows) makes it jump to wherever the cursor is.
-  if (!win.isVisible()) positionPanel();
+  const alreadyOpen = panelWanted && win.isVisible();
+  panelWanted = true;
+  dlog(`showPanel (alreadyOpen=${alreadyOpen})`);
+  // Reposition only when actually appearing. A second show must not jump.
+  if (!alreadyOpen) positionPanel();
   suppressTaskbarFocus = true;
-  const wasHidden = !win.isVisible();
-  if (wasHidden) {
-    lastPanelShowAt = Date.now();
-    showFocusRetries = 0;
-  }
-  win.show();
-  win.focus();
-  win.webContents.send('snapshot', store.getSnapshot());
-  // Entrance animation + focus-the-search, only on a real appearance
-  if (wasHidden) win.webContents.send('panel-shown');
-  notifyBetaExpiry(win);
-  startRunningPoll();
+  lastPanelShowAt = Date.now();
+  showFocusRetries = 0;
+  deliverFreshFrame(win);
   setTimeout(() => {
     suppressTaskbarFocus = false;
-  }, 400);
+  }, 220);
 }
 
 /**
@@ -334,18 +485,22 @@ function notifyBetaExpiry(win) {
 }
 
 function hidePanel() {
-  if (panel && !panel.isDestroyed() && panel.isVisible()) {
-    dlog('hidePanel → hiding');
-    lastPanelHideAt = Date.now();
-    panel.hide();
-  } else {
+  if (!panel || panel.isDestroyed()) return;
+  // Hide whenever the window is actually on screen, even if the flag was
+  // already cleared. A stale flag used to make Esc and click-away no-ops.
+  if (!panelWanted && !panel.isVisible()) {
     dlog('hidePanel (already hidden)');
+    return;
   }
+  dlog('hidePanel → hiding');
+  panelWanted = false;
+  lastPanelHideAt = Date.now();
+  parkPanel(panel);
   stopRunningPoll();
 }
 
 function togglePanel() {
-  if (panel && panel.isVisible()) hidePanel();
+  if (panelWanted) hidePanel();
   else showPanel();
 }
 
@@ -360,7 +515,7 @@ function createSettings() {
     title: 'ClutterDock Settings',
     show: true,
     autoHideMenuBar: true,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#10141d' : '#f8fafc',
+    backgroundColor: themeChromeColor(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -427,7 +582,14 @@ function createTaskbarHost() {
   // visibility changes now go through a single debounced gate, and anything
   // arriving shortly after a hide is treated as the same gesture.
   let lastHostActionAt = 0;
+  // Creating the host focuses it. That used to count as a click and open
+  // a second window before the user did anything.
+  let hostArmed = false;
+  setTimeout(() => {
+    hostArmed = true;
+  }, 800);
   const hostAction = (label, fn) => {
+    if (!hostArmed || isQuitting) return;
     const now = Date.now();
     const sinceAction = now - lastHostActionAt;
     const sinceHide = now - lastPanelHideAt;
@@ -446,8 +608,10 @@ function createTaskbarHost() {
 
   taskbarHost.on('close', (e) => {
     if (isQuitting) return;
+    // The X on this taskbar window is Quit. preventDefault plus app.quit()
+    // let the window cancel its own quit, so the process stayed up.
     e.preventDefault();
-    hostAction('close', togglePanel);
+    quitApp();
   });
   // The host lives PERMANENTLY MINIMIZED. An unminimized 1x1 host sits in the
   // z-order, so minimizing ANY other app could hand it foreground focus — and
@@ -560,7 +724,7 @@ function createTray() {
         click: () => shell.openExternal('https://buymeacoffee.com/chidichidovsky'),
       },
       { type: 'separator' },
-      { label: 'Quit ClutterDock', click: () => app.quit() },
+      { label: 'Quit ClutterDock', click: () => quitApp() },
     ]);
     tray.popUpContextMenu(menu);
   });
@@ -577,6 +741,14 @@ function registerHotkey() {
     if (!ok) console.warn('Hotkey registration failed:', accel);
   } catch (e) {
     console.warn('Hotkey error', e);
+  }
+  if (store) {
+    store.runtimeInfo = {
+      ...(store.runtimeInfo || {}),
+      hotkeyWarning: ok
+        ? ''
+        : `Couldn't register ${accel}. Another app is using it. Change it in Settings.`,
+    };
   }
   // Pro: Ctrl+Shift+1..9 jumps straight to the Nth visible stack (Mac parity)
   if (store.isPro) {
@@ -603,11 +775,30 @@ function registerHotkey() {
 let runningWatcher = null;
 let lastRunningSig = '';
 
+/** A .lnk item should light up when its target exe is the thing that's running. */
+function annotateRunningPaths(paths) {
+  const running = new Set(paths);
+  if (!store) return [...running];
+  for (const folder of store.state.folders || []) {
+    for (const item of folder.items || []) {
+      const p = String(item.path || '');
+      if (!p.toLowerCase().endsWith('.lnk')) continue;
+      try {
+        const target = shell.readShortcutLink(p).target;
+        if (target && running.has(String(target).toLowerCase())) running.add(p.toLowerCase());
+      } catch (_) {
+        /* unreadable shortcut */
+      }
+    }
+  }
+  return [...running];
+}
+
 function startRunningPoll() {
   if (!isWin || runningWatcher) return;
   const script =
     'while($true){' +
-    "Get-Process | Where-Object {$_.MainWindowTitle -ne ''} | Select-Object -ExpandProperty Path -Unique;" +
+    'Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath } | Select-Object -ExpandProperty ExecutablePath -Unique;' +
     "'CDOCK_END';" +
     '[Console]::Out.Flush();' +
     'Start-Sleep -Seconds 5}';
@@ -628,10 +819,12 @@ function startRunningPoll() {
     while ((idx = buffer.indexOf('CDOCK_END')) >= 0) {
       const block = buffer.slice(0, idx);
       buffer = buffer.slice(idx + 'CDOCK_END'.length);
-      const paths = block
-        .split(/\r?\n/)
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean);
+      const paths = annotateRunningPaths(
+        block
+          .split(/\r?\n/)
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+      );
       const sig = paths.join('|');
       if (sig !== lastRunningSig && panel && !panel.isDestroyed()) {
         lastRunningSig = sig;
@@ -942,9 +1135,23 @@ function argValue(argv, prefix) {
   return hit ? hit.slice(prefix.length) : null;
 }
 
+function themeChromeColor() {
+  const named = themeById(store?.prefs?.theme);
+  if (named) return named.chrome;
+  const forcedDark = store?.prefs?.theme === 'dark';
+  const forcedLight = store?.prefs?.theme === 'light';
+  const dark = forcedDark || (!forcedLight && nativeTheme.shouldUseDarkColors);
+  return dark ? '#10141d' : '#f4f6fb';
+}
+
 function applyTheme() {
   const t = store?.prefs?.theme;
-  nativeTheme.themeSource = t === 'light' || t === 'dark' ? t : 'system';
+  const named = themeById(t);
+  if (named) nativeTheme.themeSource = named.tone;
+  else nativeTheme.themeSource = t === 'light' || t === 'dark' ? t : 'system';
+  const chrome = themeChromeColor();
+  if (panel && !panel.isDestroyed()) panel.setBackgroundColor(chrome);
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.setBackgroundColor(chrome);
 }
 
 // Every mutation IPC returns the same envelope: { ok, snapshot, error?, limitMessage? }.
@@ -955,6 +1162,11 @@ function okSnap(extra = {}) {
 }
 function failSnap(error, extra = {}) {
   return { ok: false, error: error || 'Something went wrong', snapshot: store.getSnapshot(), ...extra };
+}
+function snapAdd(addResult, extra = {}) {
+  if (addResult?.hitLimit) return okSnap({ limitMessage: addResult.message, ...extra });
+  if (addResult?.error) return failSnap(addResult.error, extra);
+  return okSnap(extra);
 }
 
 function wireIpc() {
@@ -984,7 +1196,8 @@ function wireIpc() {
   });
 
   ipcMain.handle('delete-folder', (_e, id) => {
-    store.deleteFolder(id);
+    const result = store.deleteFolder(id);
+    if (result && result.ok === false) return failSnap(result.error);
     return okSnap();
   });
 
@@ -1017,14 +1230,14 @@ function wireIpc() {
       const names = await resolveDisplayNames(result.filePaths);
       addResult = store.addPaths(result.filePaths, null, names);
     }
-    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
+    return addResult ? snapAdd(addResult) : okSnap();
   });
 
   ipcMain.handle('add-paths', async (_e, paths, folderID) => {
     const list = paths || [];
     const names = await resolveDisplayNames(list);
     const addResult = store.addPaths(list, folderID, names);
-    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
+    return snapAdd(addResult);
   });
 
   ipcMain.handle('rename-item', (_e, itemID, folderID, name) => {
@@ -1044,20 +1257,28 @@ function wireIpc() {
       return { ok: false, error: 'Only apps can run as administrator.' };
     }
     if (!fs.existsSync(item.path)) return { ok: false, error: 'Missing: ' + item.path };
-    try {
-      const quoted = `'${item.path.replace(/'/g, "''")}'`;
+    const quoted = `'${item.path.replace(/'/g, "''")}'`;
+    return new Promise((resolve) => {
       execFile(
         'powershell.exe',
         ['-NoProfile', '-Command', `Start-Process -FilePath ${quoted} -Verb RunAs`],
-        { timeout: 10000, windowsHide: true },
-        () => {}
+        { timeout: 120000, windowsHide: true },
+        (err) => {
+          if (err) {
+            const msg = String(err.message || err);
+            const cancelled = /cancel/i.test(msg);
+            resolve({
+              ok: false,
+              error: cancelled ? 'Administrator launch was cancelled.' : 'Could not run that app as administrator.',
+            });
+            return;
+          }
+          store.recordLaunch(item);
+          if (store.prefs.closeAfterLaunch) hidePanel();
+          resolve({ ok: true });
+        }
       );
-      store.recordLaunch(item);
-      if (store.prefs.closeAfterLaunch) hidePanel();
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: String(e.message || e) };
-    }
+    });
   });
 
   // Import wizard: existing taskbar / desktop / Start Menu shortcuts
@@ -1079,7 +1300,7 @@ function wireIpc() {
     if (typeof target !== 'string') return null;
     const entry = appIndex.find((x) => x.target === target);
     if (!entry || !fs.existsSync(entry.target)) return null;
-    if (iconCache.has(entry.target)) return iconCache.get(entry.target);
+    if (fileIconCache.has(entry.target)) return fileIconCache.get(entry.target);
     let url = null;
     try {
       const icon = await app.getFileIcon(entry.target, { size: 'large' });
@@ -1087,7 +1308,7 @@ function wireIpc() {
     } catch (_) {
       /* fall through to null */
     }
-    iconCache.set(entry.target, url);
+    fileIconCache.set(entry.target, url);
     return url;
   });
 
@@ -1101,7 +1322,7 @@ function wireIpc() {
       if (typeof x.name === 'string' && x.name.trim()) names[x.target] = x.name.trim();
     }
     const addResult = store.addPaths(clean.map((x) => x.target), folderID, names);
-    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
+    return snapAdd(addResult);
   });
 
   // Clipboard: Ctrl+V adds copied files/URLs, Ctrl+C puts items on the clipboard
@@ -1117,6 +1338,7 @@ function wireIpc() {
     if (paths.length) {
       const names = await resolveDisplayNames(paths);
       const addResult = store.addPaths(paths, folderID, names);
+      if (addResult?.error) return failSnap(addResult.error);
       return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : { pasted: addResult.added });
     }
     const text = (clipboard.readText() || '').trim();
@@ -1124,10 +1346,14 @@ function wireIpc() {
     if (path.isAbsolute(text) && fs.existsSync(text)) {
       const names = await resolveDisplayNames([text]);
       const addResult = store.addPaths([text], folderID, names);
+      if (addResult?.error) return failSnap(addResult.error);
       return okSnap({ pasted: addResult.added });
     }
     const urlResult = store.addURL(text, folderID);
     if (urlResult.hitLimit) return okSnap({ limitMessage: urlResult.message });
+    // A random clipboard sentence is not a failed add. The renderer already
+    // says there was nothing it could use.
+    if (urlResult.error) return okSnap({ pasted: 0 });
     return okSnap({ pasted: urlResult.added });
   });
 
@@ -1196,6 +1422,21 @@ function wireIpc() {
     }
   });
 
+  ipcMain.handle('reset-panel-bounds', () => {
+    store.updatePrefs({
+      panelWidth: DEFAULT_WIDTH,
+      panelHeight: DEFAULT_HEIGHT,
+      panelX: null,
+      panelY: null,
+    });
+    if (panel && !panel.isDestroyed()) {
+      holdGeometry();
+      panel.setSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+      if (panel.isVisible()) positionPanel();
+    }
+    return okSnap();
+  });
+
   ipcMain.handle('reset-data-dir', () => {
     try {
       store.flushPendingSave();
@@ -1207,9 +1448,8 @@ function wireIpc() {
   });
 
   ipcMain.handle('relaunch-app', () => {
-    isQuitting = true;
     app.relaunch();
-    app.quit();
+    quitApp();
   });
 
   // Renderer confirms the expired-beta modal was actually displayed
@@ -1230,7 +1470,7 @@ function wireIpc() {
 
   ipcMain.handle('add-url', (_e, url, folderID) => {
     const addResult = store.addURL(url, folderID);
-    return okSnap(addResult?.hitLimit ? { limitMessage: addResult.message } : {});
+    return snapAdd(addResult);
   });
 
   ipcMain.handle('remove-item', (_e, itemID, folderID) => {
@@ -1312,7 +1552,7 @@ function wireIpc() {
       delete clean.installRegisterChoice;
     }
     // Enum prefs: junk values fall back to their defaults rather than persisting
-    if ('theme' in clean && !['system', 'light', 'dark'].includes(clean.theme)) {
+    if ('theme' in clean && !['system', 'light', 'dark', ...THEMES.map((t) => t.id)].includes(clean.theme)) {
       clean.theme = 'system';
     }
     if ('panelPlacement' in clean && !['cursor', 'remembered', 'taskbar'].includes(clean.panelPlacement)) {
@@ -1341,7 +1581,9 @@ function wireIpc() {
     if (clean.launchAtLogin !== undefined) {
       app.setLoginItemSettings({ openAtLogin: clean.launchAtLogin });
     }
-    return okSnap(hotkeyError ? { hotkeyError } : {});
+    const snap = okSnap(hotkeyError ? { hotkeyError } : {});
+    if (panel && !panel.isDestroyed()) panel.webContents.send('snapshot', snap.snapshot);
+    return snap;
   });
 
   // Opt-in install register (RON-507). Sends exactly: platform, app version,
@@ -1557,12 +1799,11 @@ function wireIpc() {
   });
 
   // Native file icons as data URLs (renderer falls back to emoji glyphs)
-  const iconCache = new Map();
   ipcMain.handle('get-item-icon', async (_e, itemID) => {
     const item = store.findItem(itemID);
     if (!item) return null;
     if (item.kind === 'url') return getFaviconDataURL(item.path);
-    if (iconCache.has(item.path)) return iconCache.get(item.path);
+    if (fileIconCache.has(item.path)) return fileIconCache.get(item.path);
     let url = null;
     try {
       if (fs.existsSync(item.path)) {
@@ -1572,7 +1813,7 @@ function wireIpc() {
     } catch (_) {
       /* fall back to emoji */
     }
-    iconCache.set(item.path, url);
+    fileIconCache.set(item.path, url);
     return url;
   });
 
@@ -1637,15 +1878,14 @@ if (!gotLock) {
     syncSendToShortcut();
     refreshJumpList();
     setTimeout(() => ensureAppIndex(), 2500); // warm the search-to-add index off the boot path
+    setTimeout(() => prefetchIcons(stackIconPaths()).catch(() => {}), 0);
 
     // Follow OS theme switches — a stale backgroundColor flashes the old
     // theme's color on every resize/show.
     nativeTheme.on('updated', () => {
-      const dark = nativeTheme.shouldUseDarkColors;
-      if (panel && !panel.isDestroyed()) panel.setBackgroundColor(dark ? '#10141d' : '#f4f6fb');
-      if (settingsWin && !settingsWin.isDestroyed()) {
-        settingsWin.setBackgroundColor(dark ? '#10141d' : '#f8fafc');
-      }
+      const chrome = themeChromeColor();
+      if (panel && !panel.isDestroyed()) panel.setBackgroundColor(chrome);
+      if (settingsWin && !settingsWin.isDestroyed()) settingsWin.setBackgroundColor(chrome);
     });
 
     updater = setupUpdater({

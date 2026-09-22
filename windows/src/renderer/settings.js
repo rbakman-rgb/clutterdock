@@ -14,8 +14,39 @@ function friendlyAccel(accel) {
     .replace(/Command|Meta|Super/g, 'Win');
 }
 
+function applyNamedTheme(id) {
+  const named = (clutterDock.themes || []).some((t) => t.id === id);
+  if (named) document.documentElement.dataset.theme = id;
+  else delete document.documentElement.dataset.theme;
+}
+
+function fillThemes(current) {
+  const sel = $('theme');
+  if (!sel || sel.dataset.ready === '1') {
+    if (sel) sel.value = current || 'system';
+    return;
+  }
+  const extra = (clutterDock.themes || [])
+    .map((t) => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`)
+    .join('');
+  sel.insertAdjacentHTML('beforeend', extra);
+  sel.dataset.ready = '1';
+  sel.value = current || 'system';
+}
+
+function themeBlurb(id) {
+  if (id === 'system') return 'Follows Windows light or dark.';
+  if (id === 'light') return 'The original daylight look.';
+  if (id === 'dark') return 'The original night look.';
+  const hit = (clutterDock.themes || []).find((t) => t.id === id);
+  return hit ? hit.blurb : '';
+}
+
 async function load() {
   snapshot = await clutterDock.getSnapshot();
+  applyNamedTheme(snapshot.prefs.theme);
+  fillThemes(snapshot.prefs.theme);
+  if ($('themeBlurb')) $('themeBlurb').textContent = themeBlurb(snapshot.prefs.theme);
   $('closeAfter').checked = !!snapshot.prefs.closeAfterLaunch;
   $('hints').checked = !!snapshot.prefs.showKeyboardHints;
   $('login').checked = !!snapshot.prefs.launchAtLogin;
@@ -124,8 +155,17 @@ $('closeAfter').onchange = (e) => savePrefs({ closeAfterLaunch: e.target.checked
 $('hints').onchange = (e) => savePrefs({ showKeyboardHints: e.target.checked });
 $('login').onchange = (e) => savePrefs({ launchAtLogin: e.target.checked });
 $('keepOpen').onchange = (e) => savePrefs({ keepOpen: e.target.checked });
-$('theme').onchange = (e) => savePrefs({ theme: e.target.value });
+$('theme').onchange = (e) => {
+  applyNamedTheme(e.target.value);
+  if ($('themeBlurb')) $('themeBlurb').textContent = themeBlurb(e.target.value);
+  savePrefs({ theme: e.target.value });
+};
 $('placement').onchange = (e) => savePrefs({ panelPlacement: e.target.value });
+$('resetPanel').onclick = async () => {
+  const res = await clutterDock.resetPanelBounds();
+  snapshot = res?.snapshot || snapshot;
+  $('status').textContent = res?.ok === false ? res.error || 'Could not reset the launcher.' : 'Launcher size reset.';
+};
 $('transparency').onchange = (e) => savePrefs({ transparencyEffects: e.target.checked });
 $('sendTo').onchange = (e) => savePrefs({ sendToShortcut: e.target.checked });
 $('importShortcuts').onclick = () => clutterDock.openImportWizard();

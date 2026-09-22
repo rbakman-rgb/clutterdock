@@ -187,6 +187,15 @@ const iconMemo = new Map();
 
 function hydrateIcon(container, item) {
   if (!container) return; // URLs hydrate too: favicons come back as data URLs
+  // While a query is on screen, never go ask Windows for an icon.
+  // That reply arrives later and repaints the row. Names are the result.
+  if (searchText.trim()) {
+    const cachedOnly = iconMemo.get(item.path);
+    if (typeof cachedOnly === 'string') {
+      container.innerHTML = `<img src="${cachedOnly}" alt="" draggable="false" />`;
+    }
+    return;
+  }
   const cached = iconMemo.get(item.path);
   if (cached === null) return; // known to have no native icon
   if (typeof cached === 'string') {
@@ -202,6 +211,9 @@ function hydrateIcon(container, item) {
 }
 
 let dataWarningShown = false;
+// Opening the panel pushes a snapshot the page already painted. Rebuilding
+// the DOM for an identical snapshot is the "it loads twice" flash.
+let paintedSig = '';
 
 function render() {
   if (!snapshot) return;
@@ -210,11 +222,22 @@ function render() {
     infoDialog(snapshot.dataWarning, 'Heads up');
   }
   document.body.classList.toggle('acrylic', !!snapshot.runtime?.acrylic);
-  renderWorkspaceBar();
-  renderTabs();
-  renderContent();
-  renderHints();
-  renderOnboarding();
+  const named = (clutterDock.themes || []).some((t) => t.id === snapshot.prefs?.theme);
+  if (named) document.documentElement.dataset.theme = snapshot.prefs.theme;
+  else delete document.documentElement.dataset.theme;
+  let sig = '';
+  try { sig = JSON.stringify(snapshot); } catch (_) { sig = ''; }
+  // Search text is local. A same snapshot with a new query still has to repaint.
+  sig = `${sig}\n${searchText}\n${searchGlobal ? 1 : 0}`;
+  const unchanged = sig && sig === paintedSig;
+  if (!unchanged) {
+    paintedSig = sig;
+    renderWorkspaceBar();
+    renderTabs();
+    renderContent();
+    renderHints();
+    renderOnboarding();
+  }
   const items = itemsForView();
   const sel = selectedIds.size > 1 ? ` · ${selectedIds.size} selected` : '';
   $('count').textContent = `${items.length} item${items.length === 1 ? '' : 's'}${sel}`;
@@ -275,11 +298,18 @@ function renderWorkspaceBar() {
 
 // Running-app indicators (Windows): lowercase exe paths pushed from main
 let runningPathSet = new Set();
+function syncRunningDots() {
+  document.querySelectorAll('[data-run]').forEach((el) => {
+    const path = el.dataset.run || '';
+    el.classList.toggle('is-running', !!(path && runningPathSet.has(path)));
+  });
+}
+
 if (clutterDock.onRunningPaths) {
   clutterDock.onRunningPaths((paths) => {
     runningPathSet = new Set(paths || []);
-    // Rebuilding the DOM mid-drag kills the drag in progress
-    if (!dragId) renderContent();
+    // Dots only. Rebuilding the grid here is a second load a beat after open.
+    if (!dragId) syncRunningDots();
   });
 }
 
@@ -426,6 +456,7 @@ function hydrateAppIcon(container, target) {
     container.innerHTML = `<img src="${cached}" alt="" draggable="false" />`;
     return;
   }
+  if (searchText.trim()) return;
   clutterDock.getAppIcon(target).then((url) => {
     iconMemo.set(target, url);
     if (url && container.isConnected) {
@@ -526,20 +557,23 @@ function renderContent() {
   }
 
   const viewMode = folder?.viewMode || 'grid';
-  if (viewMode === 'list' || (searchGlobal && searchText.trim())) {
+  // A query is a flat list of names. The grid is for browsing, not for filtering.
+  if (q || viewMode === 'list') {
     content.innerHTML = `<div class="list" id="list"></div>`;
     const list = $('list');
     for (const item of items) {
       const row = document.createElement('div');
-      row.className = 'list-row' + (isSelected(item.id) ? ' selected' : '');
+      row.className = 'list-row' + (isSelected(item.id) ? ' selected' : '') + (isRunning(item) ? ' is-running' : '');
+      row.dataset.run = item.kind === 'app' ? String(item.path || '').toLowerCase() : '';
       row.title = `${item.name}\n${displayPath(item.path)}`;
       row.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
         <div class="meta">
-          <div class="name">${highlightName(item.name, q)}${isRunning(item) ? ' <span class="run-dot" aria-hidden="true"></span>' : ''}</div>
+          <div class="name">${highlightName(item.name, q)} <span class="run-dot" aria-hidden="true"></span></div>
           <div class="sub">${escapeHtml(item._folderName || item.kind + ' · ' + displayPath(item.path))}</div>
         </div>`;
       wireItem(row, item, folder);
+      if (!q) wireReorder(row, item, folder, items);
       hydrateIcon(row.querySelector('.tile-icon'), item);
       list.appendChild(row);
     }
@@ -548,52 +582,58 @@ function renderContent() {
     const grid = $('grid');
     for (const item of items) {
       const tile = document.createElement('div');
-      tile.className = 'tile' + (isSelected(item.id) ? ' selected' : '');
+      tile.className = 'tile' + (isSelected(item.id) ? ' selected' : '') + (isRunning(item) ? ' is-running' : '');
+      tile.dataset.run = item.kind === 'app' ? String(item.path || '').toLowerCase() : '';
       tile.title = `${item.name}\n${displayPath(item.path)}`; // truncated names stay readable
-      tile.draggable = folder?.smartKind === 'none';
       tile.innerHTML = `
         <div class="tile-icon ${item.kind}">${ICON[item.kind] || '📄'}</div>
-        ${isRunning(item) ? '<span class="run-dot" aria-hidden="true"></span>' : ''}
+        <span class="run-dot" aria-hidden="true"></span>
         <div class="tile-name">${highlightName(item.name, q)}</div>`;
       wireItem(tile, item, folder);
+      if (!q) wireReorder(tile, item, folder, items);
       hydrateIcon(tile.querySelector('.tile-icon'), item);
-      if (folder?.smartKind === 'none') {
-        tile.addEventListener('dragstart', (e) => {
-          // Alt+drag hands the real file to the OS (drop into Explorer, email…)
-          if (e.altKey && item.kind !== 'url') {
-            e.preventDefault();
-            clutterDock.startItemDrag(item.id);
-            return;
-          }
-          dragId = item.id;
-          e.dataTransfer.setData('text/plain', item.id);
-          e.dataTransfer.effectAllowed = 'move';
-        });
-        tile.addEventListener('dragend', () => {
-          // Also fires after a cancelled drag — without this the running-paths
-          // render guard would stay stuck on
-          dragId = null;
-        });
-        tile.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-        });
-        tile.addEventListener('drop', async (e) => {
-          e.preventDefault();
-          const from = e.dataTransfer.getData('text/plain') || dragId;
-          if (!from || from === item.id) return;
-          const ids = items.map((i) => i.id);
-          const toIndex = ids.indexOf(item.id);
-          await call(clutterDock.reorderItem(from, toIndex, folder.id));
-          selectedId = from;
-          dragId = null;
-        });
-      }
       grid.appendChild(tile);
     }
   }
   // Below the stack's own matches: installed apps that could be added
   renderAppIndexSection(content, folder, q);
+}
+
+function wireReorder(el, item, folder, items) {
+  if (folder?.smartKind !== 'none') return;
+  el.draggable = true;
+  el.addEventListener('dragstart', (e) => {
+    // Alt+drag hands the real file to the OS (drop into Explorer, email…)
+    if (e.altKey && item.kind !== 'url') {
+      e.preventDefault();
+      clutterDock.startItemDrag(item.id);
+      return;
+    }
+    dragId = item.id;
+    e.dataTransfer.setData('text/plain', item.id);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', () => {
+    // Also fires after a cancelled drag — without this the running-paths
+    // render guard would stay stuck on
+    dragId = null;
+  });
+  el.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+  el.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const from = e.dataTransfer.getData('text/plain') || dragId;
+    if (!from || from === item.id) return;
+    const ids = items.map((i) => i.id);
+    const toIndex = ids.indexOf(item.id);
+    if (toIndex < 0) return;
+    await call(clutterDock.reorderItem(from, toIndex, folder.id));
+    selectedId = from;
+    dragId = null;
+  });
 }
 
 function wireItem(el, item, folder) {
@@ -666,6 +706,10 @@ function emptySub(folder) {
 
 function renderHints() {
   const hints = $('hints');
+  if (snapshot.runtime?.hotkeyWarning) {
+    hints.textContent = snapshot.runtime.hotkeyWarning;
+    return;
+  }
   if (!snapshot.prefs.showKeyboardHints) {
     hints.textContent = '';
     return;
@@ -788,6 +832,22 @@ function openModal(build) {
   return new Promise((resolve) => {
     modalResolve = resolve;
     build(modal);
+  });
+}
+
+function confirmDialog({ title, sub = '', confirmLabel = 'Delete' }) {
+  return openModal((modal) => {
+    modal.innerHTML = `
+      <div class="card dialog">
+        <h2>${escapeHtml(title)}</h2>
+        ${sub ? `<p class="dialog-sub">${escapeHtml(sub)}</p>` : ''}
+        <div class="row">
+          <button class="btn secondary" id="dlgCancel">Cancel</button>
+          <button class="btn primary" id="dlgOk">${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>`;
+    $('dlgOk').onclick = () => closeModal(true);
+    $('dlgCancel').onclick = () => closeModal(false);
   });
 }
 
@@ -1249,6 +1309,11 @@ function showFolderMenu(x, y, folder) {
     <button data-a="list">List view</button>
     ${isNormal ? `
     <div class="ctx-sep"></div>
+    <button data-a="sortAZ">Sort A to Z</button>
+    <button data-a="sortZA">Sort Z to A</button>
+    <button data-a="sortKind">Sort by kind</button>
+    <button data-a="sortManual">Manual order</button>
+    <div class="ctx-sep"></div>
     <button data-a="rename">Rename stack…</button>
     <button data-a="symbol">Change symbol…</button>
     <button data-a="image">Custom image…</button>
@@ -1273,6 +1338,10 @@ function showFolderMenu(x, y, folder) {
     ctx.hidden = true;
     if (a === 'grid') await call(clutterDock.setFolderView(folder.id, 'grid'));
     if (a === 'list') await call(clutterDock.setFolderView(folder.id, 'list'));
+    if (a === 'sortAZ') await call(clutterDock.setFolderSort(folder.id, 'nameAZ'));
+    if (a === 'sortZA') await call(clutterDock.setFolderSort(folder.id, 'nameZA'));
+    if (a === 'sortKind') await call(clutterDock.setFolderSort(folder.id, 'kind'));
+    if (a === 'sortManual') await call(clutterDock.setFolderSort(folder.id, 'manual'));
     if (a === 'rename') {
       const name = await textDialog({
         title: 'Rename stack',
@@ -1292,7 +1361,14 @@ function showFolderMenu(x, y, folder) {
     if (a === 'unlock') await unlockStack(folder);
     if (a === 'relock') await call(clutterDock.relockFolder(folder.id));
     if (a === 'removelock') await call(clutterDock.removeFolderLock(folder.id));
-    if (a === 'delete') await call(clutterDock.deleteFolder(folder.id));
+    if (a === 'delete') {
+      const yes = await confirmDialog({
+        title: 'Delete stack',
+        sub: `Delete "${folder.name}"? The files on disk stay. This only removes them from ClutterDock.`,
+        confirmLabel: 'Delete',
+      });
+      if (yes) await call(clutterDock.deleteFolder(folder.id));
+    }
   };
 }
 
@@ -1349,9 +1425,22 @@ contentEl.addEventListener('drop', async (e) => {
   }
 });
 
-$('search').addEventListener('input', async (e) => {
+function repaintSearch() {
+  // The list updates in this turn. Only "search all" needs the main process.
+  // Tabs and the frame stay put.
+  if (searchGlobal && searchText.trim()) {
+    refresh();
+    return;
+  }
+  renderContent();
+  const items = itemsForView();
+  const sel = selectedIds.size > 1 ? ` · ${selectedIds.size} selected` : '';
+  $('count').textContent = `${items.length} item${items.length === 1 ? '' : 's'}${sel}`;
+}
+
+$('search').addEventListener('input', (e) => {
   searchText = e.target.value;
-  await refresh();
+  repaintSearch();
 });
 
 // Launcher flow: hotkey → type → Enter opens the top match
@@ -1373,7 +1462,7 @@ $('search').addEventListener('keydown', async (e) => {
       e.stopPropagation();
       $('search').value = '';
       searchText = '';
-      await refresh();
+      repaintSearch();
     }
     return;
   }
@@ -1397,6 +1486,7 @@ async function toggleGlobalSearch() {
 }
 $('searchAll').onclick = toggleGlobalSearch;
 $('settingsBtn').onclick = () => clutterDock.openSettings();
+$('closeBtn').onclick = () => clutterDock.hidePanel();
 
 const HELP_KEYS = [
   ['Ctrl+Shift+D', 'Open / close'],
@@ -1515,7 +1605,7 @@ document.addEventListener('keydown', async (e) => {
     search.value += e.key;
     e.preventDefault();
     searchText = search.value;
-    await refresh();
+    repaintSearch();
     return;
   }
   const items = itemsForView();
@@ -1617,23 +1707,37 @@ if (clutterDock.onBetaExpiry) {
   });
 }
 
-// Every appearance: entrance motion, clean slate, caret ready in search
 if (clutterDock.onPanelShown) {
   clutterDock.onPanelShown(() => {
-    const appEl = document.getElementById('app');
-    appEl.classList.remove('panel-enter');
-    void appEl.offsetWidth; // restart the animation
-    appEl.classList.add('panel-enter');
     const search = $('search');
-    if (search.value) {
+    if (search && search.value) {
       search.value = '';
       searchText = '';
-      refresh();
+      repaintSearch();
     }
-    if (snapshot?.prefs?.hasCompletedOnboarding) {
-      search.focus();
-    }
+    if (snapshot?.prefs?.hasCompletedOnboarding) search?.focus();
   });
 }
 
-refresh();
+window.__takeIcons = (map) => {
+  let added = false;
+  for (const [p, url] of Object.entries(map || {})) {
+    if (iconMemo.get(p) !== url) {
+      iconMemo.set(p, url);
+      added = true;
+    }
+  }
+  // Rebuild once, while the window is still closed, so the first frame
+  // already has the pictures. A later reply must not draw them again.
+  if (added && snapshot && !searchText.trim()) {
+    paintedSig = '';
+    render();
+  }
+};
+
+window.__applySnap = (data) => {
+  snapshot = data;
+  render();
+};
+
+refresh().then(() => ensureAppIndexCache());

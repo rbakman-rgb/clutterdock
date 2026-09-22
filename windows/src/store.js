@@ -201,6 +201,7 @@ class Store {
     this._sessionPasswords = {};
     this._saveTimer = null;
     this._historyTimer = null;
+    this.rev = 1;
     rotateBackups();
     this.state = loadJSON(configPath(), defaultState(), (backup) => {
       this.dataWarning =
@@ -216,6 +217,13 @@ class Store {
     this.history = loadJSON(historyPath(), { entries: [] });
     if (!Array.isArray(this.history.entries)) this.history.entries = [];
     this.prefs = { ...defaultPrefs(), ...loadJSON(prefsPath(), {}) };
+    // The blur material redraws the whole window every time the panel opens.
+    // Leave it off. The checkbox in Settings still turns it back on.
+    if (!this.prefs.acrylicRetired) {
+      this.prefs.transparencyEffects = false;
+      this.prefs.acrylicRetired = true;
+      this.persistPrefs();
+    }
     if (!this.prefs.installId) {
       // Random, stable across launches; the only identifier the optional
       // install register ever sends (RON-507).
@@ -395,10 +403,15 @@ class Store {
     this._saveTimer = setTimeout(() => this.persistNow(), 250);
   }
 
+  touchRev() {
+    this.rev = (this.rev || 0) + 1;
+  }
+
   persistNow() {
     clearTimeout(this._saveTimer);
     this._saveTimer = null;
     this.state.version = CURRENT_VERSION;
+    this.touchRev();
     saveJSON(configPath(), { ...this.state, folders: this._sealedFolders() });
   }
 
@@ -415,10 +428,12 @@ class Store {
   persistHistoryNow() {
     clearTimeout(this._historyTimer);
     this._historyTimer = null;
+    this.touchRev();
     saveJSON(historyPath(), this.history);
   }
 
   persistPrefs() {
+    this.touchRev();
     saveJSON(prefsPath(), this.prefs);
   }
 
@@ -436,6 +451,7 @@ class Store {
       lockedFolderIDs: this.state.folders.filter((f) => this.isLocked(f)).map((f) => f.id),
       dataDir: dataDir(),
       dataWarning: this.dataWarning,
+      rev: this.rev || 0,
       // Main-process runtime facts the renderer needs (acrylic support, etc.)
       runtime: this.runtimeInfo || {},
       license: {
@@ -620,9 +636,14 @@ class Store {
 
   deleteFolder(id) {
     const f = this.state.folders.find((x) => x.id === id);
-    if (!f) return;
+    if (!f) return { ok: false, error: 'That stack is already gone.' };
+    if (f.smartKind !== 'none') {
+      return { ok: false, error: `${f.name} updates itself and can't be deleted.` };
+    }
     const normals = this.state.folders.filter((x) => x.smartKind === 'none');
-    if (f.smartKind === 'none' && normals.length <= 1) return;
+    if (normals.length <= 1) {
+      return { ok: false, error: 'Keep at least one stack. Recents and Most Used stay on their own.' };
+    }
     if (f.customImage) {
       try {
         fs.rmSync(f.customImage, { force: true });
@@ -635,6 +656,7 @@ class Store {
       this.state.selectedFolderID = this.state.folders[0]?.id ?? null;
     }
     this.persist();
+    return { ok: true };
   }
 
   setFolderView(id, viewMode) {
@@ -646,16 +668,26 @@ class Store {
 
   setFolderSort(id, sortMode) {
     const f = this.state.folders.find((x) => x.id === id);
-    if (!f || f.smartKind !== 'none') return;
+    if (!f || f.smartKind !== 'none') return false;
+    if (!['manual', 'nameAZ', 'nameZA', 'kind'].includes(sortMode)) return false;
     f.sortMode = sortMode;
     this.persist();
+    return true;
   }
 
   /** `names` (optional): path → friendly display name (e.g. exe FileDescription). */
   addPaths(paths, folderID, names) {
     const targetID = folderID || this.state.selectedFolderID;
     const f = this.state.folders.find((x) => x.id === targetID);
-    if (!f || f.smartKind !== 'none') return { added: 0, hitLimit: false };
+    if (!f || f.smartKind !== 'none') {
+      return {
+        added: 0,
+        hitLimit: false,
+        error: f
+          ? `${f.name} updates itself. Switch to a stack you created, then drop again.`
+          : 'Choose a stack first.',
+      };
+    }
     const existing = new Set(f.items.map((i) => `${i.kind}|${i.path}`));
     let added = 0;
     let hitLimit = false;
@@ -694,7 +726,7 @@ class Store {
     const hasScheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(s);
     if (!hasScheme) {
       if (!/^[\w-]+(\.[\w-]+)*\.[A-Za-z]{2,}(\/\S*)?$/.test(s)) {
-        return { added: 0, hitLimit: false };
+        return { added: 0, hitLimit: false, error: 'That is not a web address ClutterDock can save.' };
       }
       s = 'https://' + s;
     }
@@ -702,14 +734,22 @@ class Store {
       // Web-style URLs only — a file:// or ms-* "link" would be a disguised launcher.
       const u = new URL(s);
       if (!['http:', 'https:', 'mailto:'].includes(u.protocol)) {
-        return { added: 0, hitLimit: false };
+        return { added: 0, hitLimit: false, error: 'That is not a web address ClutterDock can save.' };
       }
     } catch {
-      return { added: 0, hitLimit: false };
+      return { added: 0, hitLimit: false, error: 'That is not a web address ClutterDock can save.' };
     }
     const targetID = folderID || this.state.selectedFolderID;
     const f = this.state.folders.find((x) => x.id === targetID);
-    if (!f || f.smartKind !== 'none') return { added: 0, hitLimit: false };
+    if (!f || f.smartKind !== 'none') {
+      return {
+        added: 0,
+        hitLimit: false,
+        error: f
+          ? `${f.name} updates itself. Switch to a stack you created, then add the link there.`
+          : 'Choose a stack first.',
+      };
+    }
     if (!this.gate.canAddItem(f.items.length)) {
       return {
         added: 0,
