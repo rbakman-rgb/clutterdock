@@ -2,6 +2,12 @@ import AppKit
 import SwiftUI
 import QuartzCore
 
+/// Borderless panels must opt into key status for search and keyboard navigation.
+private final class LauncherPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
 @MainActor
 final class PanelController {
     private var panel: NSPanel?
@@ -17,6 +23,7 @@ final class PanelController {
     nonisolated(unsafe) private var prefsObserver: NSObjectProtocol?
     /// True while the fade-out animation is running (panel still “visible”).
     private var isHiding = false
+    private var preferredHeight: CGFloat = 348
     nonisolated(unsafe) private var resignObserver: NSObjectProtocol?
 
     init(
@@ -75,7 +82,7 @@ final class PanelController {
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.14
+            ctx.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.14
             ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
         }
@@ -85,7 +92,7 @@ final class PanelController {
         guard let panel, panel.isVisible, !isHiding else { return }
         isHiding = true
         NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.1
+            ctx.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.1
             ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self, weak panel] in
@@ -130,7 +137,7 @@ final class PanelController {
 
     private func openSettingsWindow() {
         let root = SettingsView(store: store, preferences: preferences, history: history)
-            .frame(minWidth: 640, minHeight: 480)
+            .frame(minWidth: 800, minHeight: 600)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 940, height: 620),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -162,17 +169,23 @@ final class PanelController {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     self?.showSettings()
                 }
+            },
+            onHeightChange: { [weak self] height in
+                DispatchQueue.main.async {
+                    self?.preferredHeight = height
+                    self?.syncPanelSize()
+                }
             }
         )
 
         let hosting = NSHostingView(rootView: content)
-        let size = NSSize(width: preferences.panelWidth, height: preferences.panelHeight)
+        let size = NSSize(width: preferences.panelWidth, height: preferredHeight)
         hosting.frame = NSRect(origin: .zero, size: size)
         // Kill AppKit focus rings that draw a blue outline around the panel
         hosting.focusRingType = .none
 
         // Borderless floating panel — no system key-window chrome (the blue edge)
-        let panel = NSPanel(
+        let panel = LauncherPanel(
             contentRect: hosting.frame,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
@@ -222,9 +235,15 @@ final class PanelController {
     private func syncPanelSize() {
         guard let panel else { return }
         var frame = panel.frame
-        let newSize = NSSize(width: preferences.panelWidth, height: preferences.panelHeight)
+        let visible = panel.screen?.visibleFrame ?? NSScreen.main?.visibleFrame
+        let height = min(preferredHeight, max(200, (visible?.height ?? 900) - 20))
+        let newSize = NSSize(width: preferences.panelWidth, height: height)
         frame.origin.y += frame.size.height - newSize.height
         frame.size = newSize
+        if let visible {
+            frame.origin.y = min(max(frame.origin.y, visible.minY + 10), visible.maxY - height - 10)
+        }
+
         panel.setFrame(frame, display: true)
     }
 

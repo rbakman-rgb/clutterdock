@@ -11,7 +11,7 @@ struct ClutterDockApp: App {
                 preferences: appDelegate.preferences,
                 history: appDelegate.history
             )
-            .frame(minWidth: 640, minHeight: 480)
+            .frame(minWidth: 800, minHeight: 600)
         }
     }
 }

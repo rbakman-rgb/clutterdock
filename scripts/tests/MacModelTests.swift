@@ -23,6 +23,28 @@ func tempDir() -> URL {
 
 @MainActor
 func run() {
+    print("LauncherLayout")
+    let compact = LauncherLayout(iconSize: 56, itemCount: 4)
+    check(compact.columns == 4, "default icon size fits four columns")
+    check(compact.height < 300, "one row keeps launcher compact")
+    check(LauncherLayout(iconSize: 56, itemCount: 5).height > compact.height,
+          "a fifth item adds a visible row")
+    check(LauncherLayout(iconSize: 56, itemCount: 1).height == compact.height,
+          "partial rows keep a stable height")
+    check(LauncherLayout(iconSize: 56, itemCount: 1000).height == LauncherLayout(iconSize: 56, itemCount: 12).height,
+          "large stacks cap at three rows and scroll")
+    check(LauncherLayout(iconSize: 80, itemCount: 4).columns == 3, "large icons reduce columns")
+    check(LauncherLayout(iconSize: 40, itemCount: 4).columns == 5, "small icons increase columns")
+    check(LauncherLayout(iconSize: 56, itemCount: 0).height >= 340, "empty state has space for actions")
+    check(LauncherLayout(iconSize: 56, itemCount: 4, onboarding: true).height >= 460,
+          "welcome card has room")
+    check(LauncherLayout(iconSize: 56, itemCount: 4, locked: true).height >= 340,
+          "locked stack has room for unlock controls")
+    check(LauncherLayout(iconSize: 56, itemCount: 4, showsHints: true, showsWorkspaces: true).height == compact.height + 52,
+          "optional bars add space without shrinking the content")
+    check(LauncherLayout(iconSize: 56, itemCount: 1000, list: true).height < 500,
+          "long lists stay bounded")
+
     print("DockItem")
     check(DockItem.fromURLString("example.com")?.path == "https://example.com",
           "bare domain gets https://")
