@@ -257,14 +257,24 @@ if ($('checkUpdates')) {
 
 $('activatePro').onclick = async () => {
   const key = $('licenseKey').value;
-  const res = await clutterDock.activateLicense(key);
-  if (res.ok) {
-    snapshot = res.snapshot;
-    $('status').textContent = 'Pro activated — thank you!';
-    $('licenseKey').value = '';
-    await load();
-  } else {
-    $('status').textContent = res.error || 'Invalid key.';
+  $('activatePro').disabled = true;
+  $('licenseKey').disabled = true;
+  $('status').textContent = 'Activating…';
+  try {
+    const res = await clutterDock.activateLicense(key);
+    if (res.ok) {
+      snapshot = res.snapshot;
+      $('licenseKey').value = '';
+      await load();
+      $('status').textContent = 'Pro activated — thank you!';
+    } else {
+      $('status').textContent = res.error || 'Invalid key.';
+    }
+  } catch (_) {
+    $('status').textContent = 'Activation is unavailable. Please try again later.';
+  } finally {
+    $('activatePro').disabled = false;
+    $('licenseKey').disabled = false;
   }
 };
 

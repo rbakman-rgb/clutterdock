@@ -2,6 +2,16 @@ name = "clutterdock-site"
 main = "scripts/site-worker.mjs"
 compatibility_date = "2026-08-05"
 
+[vars]
+LEMON_STORE_ID = "449735"
+# Live products only; test-mode products must never be added here.
+LEMON_PRODUCT_IDS = "1386437,1386442"
+
+[[ratelimits]]
+name = "LICENSE_RATE_LIMIT"
+namespace_id = "449735366"
+simple = { limit = 10, period = 60 }
+
 [assets]
 directory = "website"
 binding = "ASSETS"

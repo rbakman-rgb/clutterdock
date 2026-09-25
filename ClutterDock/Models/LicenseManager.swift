@@ -11,6 +11,7 @@ final class LicenseManager: ObservableObject {
     @Published private(set) var isPro: Bool = false
     @Published private(set) var licenseKeyDisplay: String = ""
     @Published private(set) var lastError: String?
+    @Published private(set) var isActivating = false
 
     private let defaults = UserDefaults.standard
     private let keyStorageKey = "clutterDock.proLicenseKey"
@@ -73,6 +74,43 @@ final class LicenseManager: ObservableObject {
         return true
     }
 
+    /// Receipt keys need one online exchange; the returned signed key validates
+    /// offline on subsequent launches, just like existing SDPRO licenses.
+    func activatePurchase(key: String) async -> Bool {
+        guard !isActivating else { return false }
+        if Self.validate(key) { return activate(key: key) }
+        let receipt = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard UUID(uuidString: receipt) != nil else {
+            lastError = "Paste the license key from your receipt."
+            return false
+        }
+        isActivating = true
+        lastError = nil
+        defer { isActivating = false }
+        var request = URLRequest(url: URL(string: "https://clutterdock.com/api/license/claim")!)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["licenseKey": receipt])
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let payload = try JSONDecoder().decode(ClaimResponse.self, from: data)
+            guard (response as? HTTPURLResponse)?.statusCode == 200, let signedKey = payload.licenseKey else {
+                lastError = payload.error ?? "Activation is unavailable. Please try again later."
+                return false
+            }
+            return activate(key: signedKey)
+        } catch {
+            lastError = "Connect to the internet to activate, then try again."
+            return false
+        }
+    }
+
+    private struct ClaimResponse: Decodable {
+        let licenseKey: String?
+        let error: String?
+    }
+
     func deactivate() {
         defaults.removeObject(forKey: keyStorageKey)
         isPro = false
@@ -85,6 +123,13 @@ final class LicenseManager: ObservableObject {
 
     /// Format: SDPRO-XXXX-YYYY-ZZZZ where XXXX is serial (4 chars) and YYYYZZZZ is HMAC hex prefix.
     static func validate(_ key: String) -> Bool {
+        let receiptProof = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if receiptProof.hasPrefix("CDPRO2-") {
+            let parts = receiptProof.split(separator: "-", omittingEmptySubsequences: false)
+            guard parts.count == 3, parts[1].count == 32, parts[2].count == 32,
+                  (parts[1] + parts[2]).allSatisfy({ "0123456789ABCDEF".contains($0) }) else { return false }
+            return parts[2] == hmacHex(message: "CDPRO2:\(parts[1])").prefix(32).uppercased()
+        }
         let normalized = key.uppercased().filter { $0.isLetter || $0.isNumber || $0 == "-" }
         let compact = normalized.replacingOccurrences(of: "-", with: "")
 

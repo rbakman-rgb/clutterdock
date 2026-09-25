@@ -36,6 +36,12 @@ function hmacHex(message) {
 
 function validate(key) {
   if (!key || typeof key !== 'string') return false;
+  const proof = key.trim().toUpperCase();
+  if (proof.startsWith('CDPRO2-')) {
+    const match = /^CDPRO2-([A-F0-9]{32})-([A-F0-9]{32})$/.exec(proof);
+    if (!match) return false;
+    return crypto.timingSafeEqual(Buffer.from(match[2], 'hex'), Buffer.from(hmacHex(`CDPRO2:${match[1]}`).slice(0, 32), 'hex'));
+  }
   const compact = key.toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (compact === 'SDPROTESTUNLOCK2026') return testKeyAllowed();
   // "SDPRO" (5) + 4 serial + 8 hex signature = 17
@@ -59,6 +65,27 @@ function mask(key) {
   const u = String(key || '').toUpperCase();
   if (u.length < 10) return '••••';
   return u.slice(0, 10) + '••••';
+}
+
+async function resolvePurchaseKey(key, fetcher = fetch) {
+  if (validate(key)) return key;
+  const receipt = typeof key === 'string' ? key.trim() : '';
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(receipt)) {
+    throw new Error('Paste the license key from your receipt.');
+  }
+  let response, payload;
+  try {
+    response = await fetcher('https://clutterdock.com/api/license/claim', {
+      method: 'POST', redirect: 'error', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ licenseKey: receipt }), signal: AbortSignal.timeout(15000),
+    });
+    payload = await response.json();
+  } catch (_) {
+    throw new Error('Connect to the internet to activate, then try again.');
+  }
+  if (!response.ok) throw new Error(payload.error || 'Activation is unavailable. Please try again later.');
+  if (!validate(payload.licenseKey)) throw new Error('Activation could not be verified. Please try again later.');
+  return payload.licenseKey;
 }
 
 function createFeatureGate(isPro) {
@@ -97,6 +124,7 @@ function createFeatureGate(isPro) {
 module.exports = {
   TEST_KEY,
   validate,
+  resolvePurchaseKey,
   generateKey,
   mask,
   createFeatureGate,

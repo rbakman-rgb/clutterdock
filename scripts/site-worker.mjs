@@ -9,12 +9,13 @@
 //                            the apps: { email?, os, appVersion, installId }.
 //   GET  /admin/stats      — aggregated JSON, requires Authorization: Bearer
 //                            <ADMIN_TOKEN> (worker secret).
+import { claimLicense } from "./license-claim.mjs";
 const CANONICAL_HOST = "clutterdock.com";
 
 // Keep in sync with the Download buttons in website/index.html.
 const DOWNLOAD_ASSETS = {
-  mac: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.10/ClutterDock-1.4.10-mac.zip",
-  win: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.10/ClutterDock-1.3.1-x64-setup.exe",
+  mac: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.11/ClutterDock-1.4.11-mac.zip",
+  win: "https://github.com/rbakman-rgb/clutterdock/releases/download/v1.4.11/ClutterDock-1.3.2-x64-setup.exe",
 };
 const RELEASES_LATEST = "https://github.com/rbakman-rgb/clutterdock/releases/latest";
 
@@ -141,6 +142,9 @@ export default {
     }
     if (url.pathname === "/api/register") {
       return handleRegister(request, env);
+    }
+    if (url.pathname === "/api/license/claim") {
+      return claimLicense(request, env);
     }
     if (url.pathname === "/admin/stats") {
       return handleAdminStats(request, env);

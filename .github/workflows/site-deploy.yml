@@ -12,6 +12,7 @@ on:
     paths:
       - "website/**"
       - "scripts/site-worker.mjs"
+      - "scripts/license-claim.mjs"
       - "wrangler.toml"
       - ".github/workflows/site-deploy.yml"
   workflow_dispatch:
