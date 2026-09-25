@@ -154,6 +154,16 @@ body { background: var(--bg); }
 .demo-page .prism-hero h1 { font-size: clamp(38px,5vw,62px); }
 .demo-page .preview-section { padding-top: 44px; }
 .demo-page .preview-panel { min-height: 520px; }
+.film-section { padding-bottom: 76px; }
+.film-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin: 12px 0 26px; }
+.film-heading h2 { font-size: clamp(23px,3vw,34px); letter-spacing: -.04em; margin: 0; }
+.film-heading .overline { margin-bottom: 8px; }
+.film-heading .btn { flex-shrink: 0; }
+.feature-film { display: block; width: 100%; height: auto; aspect-ratio: 16/9; background: #0b1428; border: 1px solid #dce4f1; border-radius: 22px; box-shadow: 0 24px 60px #233f6514; }
+.film-transcript { max-width: 760px; margin: 24px auto 0; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
+.film-transcript summary { width: fit-content; margin: auto; cursor: pointer; color: var(--accent); }
+.film-transcript p { margin-top: 14px; }
+.no-js [data-film-play] { display: none; }
 @media (max-width: 760px) {
   .nav-inner { min-height: 66px; }
   .nav-links.open { background: #fffffff5; border-color: var(--border); }
@@ -179,6 +189,9 @@ body { background: var(--bg); }
   .prism-footer-top { flex-direction: column; gap: 12px; }
   .prism-footer nav { gap: 18px; }
   .platform-strip { gap: 10px 20px; font-size: 11px; }
+  .film-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .feature-film { border-radius: 12px; }
+  .film-section { padding-bottom: 54px; }
 }
 @media (max-width: 460px) {
   .prism-hero h1 { font-size: 39px; }

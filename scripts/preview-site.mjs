@@ -13,6 +13,7 @@ const types = {
   ".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg",
   ".svg": "image/svg+xml", ".ico": "image/x-icon",
   ".txt": "text/plain; charset=utf-8", ".xml": "application/xml",
+  ".mp4": "video/mp4", ".vtt": "text/vtt; charset=utf-8",
 };
 const assets = {
   async fetch(request) {

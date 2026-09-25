@@ -21,11 +21,11 @@ analytics binding, secrets, or live licensing connection.
 | `index.html` | Product landing + install tips |
 | `pricing.html` | Plans, comparison, FAQ, download |
 | `privacy.html` | Privacy policy |
-| `demo.html` | Real Mac/Windows screenshot gallery |
+| `demo.html` | Prism feature film and real Mac/Windows screenshot gallery |
 | `css/styles.css` | Base components and accessibility styles |
 | `css/prism.css` | Shared light Prism theme and product-page layouts |
-| `js/prism.js` | Screenshot gallery controls |
-| `assets/` | App icon + real product screenshots under `assets/screenshots/` |
+| `js/prism.js` | Screenshot gallery and film playback controls |
+| `assets/` | App icon, feature film, captions, poster and real product screenshots |
 | `robots.txt` / `sitemap.xml` | SEO |
 
 ## Deploy
@@ -79,7 +79,10 @@ it is not evidence that the installed app itself was updated to that release.
 The Windows light/dark WebP images are existing repository captures, not new
 Windows release verification. Current Settings screenshots remain follow-up work
 within RON-442. The old embedded demo video and old Mac screenshots are no longer
-referenced by the public pages; a new promotional video is tracked in RON-504.
+referenced by the public pages. The replacement 32-second feature film is tracked
+in RON-504 and documented in [`docs/campaign/feature-film/README.md`](../docs/campaign/feature-film/README.md).
+It animates authentic Prism captures with an original score and the proposed CD
+Signature identity. The continuous interaction recording remains separate work.
 
 Design direction: generous space, clear typography, restrained blue accents,
 real product imagery, concise features, and straightforward download/pricing
