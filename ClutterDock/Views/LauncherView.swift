@@ -10,6 +10,7 @@ struct LauncherView: View {
 
     var onDismiss: () -> Void
     var onOpenSettings: () -> Void
+    var onHeightChange: (CGFloat) -> Void
 
     @State private var isTargeted = false
     @State private var dropTargetFolderID: UUID?
@@ -28,8 +29,20 @@ struct LauncherView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var layout: LauncherLayout {
+        LauncherLayout(
+            iconSize: preferences.iconSize,
+            itemCount: currentFolder.map { store.displayItems(for: $0, history: history, running: runningApps).count } ?? 0,
+            list: currentFolder?.viewMode == .list,
+            showsHints: preferences.showKeyboardHints,
+            showsWorkspaces: FeatureGate.canUseWorkspaces && store.workspaces.count > 1,
+            onboarding: !preferences.hasCompletedOnboarding,
+            locked: currentFolder.map { store.isLocked($0) } ?? false
+        )
+    }
+
     private var columns: [GridItem] {
-        [GridItem(.adaptive(minimum: preferences.tileWidth, maximum: preferences.tileWidth + 12), spacing: 10)]
+        Array(repeating: GridItem(.flexible(), spacing: LauncherLayout.spacing), count: layout.columns)
     }
 
     private var currentFolder: AppFolder? { store.selectedFolder }
@@ -59,16 +72,14 @@ struct LauncherView: View {
             .transaction { t in
                 if reduceMotion { t.animation = nil }
             }
-            .frame(width: preferences.panelWidth, height: preferences.panelHeight)
-            .background {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .frame(width: preferences.panelWidth)
+            .frame(maxHeight: .infinity)
+            .background { PrismSurface() }
+            .clipShape(RoundedRectangle(cornerRadius: Prism.radius, style: .continuous))
             .overlay(panelBorder)
-            // Soft ambient shadow only — no system blue key-window ring
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.45 : 0.22), radius: 32, y: 16)
-            .compositingGroup()
+            .tint(Prism.blue)
+            .preferredColorScheme(preferences.appearance.colorScheme)
+            .onChange(of: layout.height, initial: true) { onHeightChange(layout.height) }
             .onDrop(
                 of: DropImport.allAcceptedTypes,
                 isTargeted: $isTargeted,
@@ -232,8 +243,7 @@ struct LauncherView: View {
                 workspaceBar
                 folderTabs
                 searchBar
-                Divider().opacity(0.35)
-                content
+                content.frame(maxHeight: .infinity)
                 if preferences.showKeyboardHints {
                     KeyboardHintsBar()
                 }
@@ -263,7 +273,7 @@ struct LauncherView: View {
     @ViewBuilder
     private var panelBorder: some View {
         // Hairline glass edge only — never system/accent blue unless dropping files
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
+        RoundedRectangle(cornerRadius: Prism.radius, style: .continuous)
             .strokeBorder(
                 isTargeted
                     ? Color.accentColor.opacity(0.85)
@@ -318,7 +328,7 @@ struct LauncherView: View {
                         .font(.system(size: 9, weight: .semibold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Capsule().fill(license.isPro ? Color.orange.opacity(0.25) : Color.primary.opacity(0.08)))
+                        .background(Capsule().fill(license.isPro ? Prism.blue.opacity(0.18) : Color.primary.opacity(0.08)))
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 8)
@@ -336,7 +346,7 @@ struct LauncherView: View {
                             let selected = folder.id == store.selectedFolderID
                             let dropHighlight = dropTargetFolderID == folder.id
                             Button {
-                                withAnimation(.easeOut(duration: 0.14)) {
+                                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14)) {
                                     store.selectFolder(id: folder.id)
                                 }
                             } label: {
@@ -355,34 +365,13 @@ struct LauncherView: View {
                                             .font(.system(size: 9, weight: .medium))
                                             .foregroundStyle(.secondary)
                                     }
-                                    if !folder.isSmart && !store.isLocked(folder) {
-                                        Text("\(folder.items.count)")
-                                            .font(.system(size: 9, weight: .semibold))
-                                            .foregroundStyle(.tertiary)
-                                            .padding(.horizontal, 5)
-                                            .padding(.vertical, 1)
-                                            .background(Capsule().fill(Color.primary.opacity(0.06)))
-                                    }
+
                                 }
                                 .padding(.horizontal, 11)
                                 .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(dropHighlight
-                                              ? Color.accentColor.opacity(0.35)
-                                              : (selected
-                                                 ? Color.accentColor.opacity(0.22)
-                                                 : Color.primary.opacity(0.05)))
-                                )
-                                .overlay(
-                                    Capsule()
-                                        .strokeBorder(
-                                            dropHighlight
-                                                ? Color.accentColor.opacity(0.9)
-                                                : (selected ? Color.accentColor.opacity(0.35) : Color.clear),
-                                            lineWidth: dropHighlight ? 1.5 : 1
-                                        )
-                                )
+                                .foregroundStyle(selected ? Color.primary : Color.secondary)
+                                .background(PrismSelection(selected: selected || dropHighlight))
+
                             }
                             .buttonStyle(.plain)
                             .id(folder.id)
@@ -431,7 +420,7 @@ struct LauncherView: View {
                 }
                 .onChange(of: store.selectedFolderID) {
                     if let id = store.selectedFolderID {
-                        withAnimation(.easeOut(duration: 0.15)) {
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) {
                             proxy.scrollTo(id, anchor: .center)
                         }
                     }
@@ -460,7 +449,7 @@ struct LauncherView: View {
                     if let id = currentFolder?.id { store.setFolderView(id: id, mode: .list) }
                 }
             } label: {
-                Image(systemName: "plus.circle.fill")
+                Image(systemName: "plus")
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.secondary)
             }
@@ -470,8 +459,8 @@ struct LauncherView: View {
             .accessibilityLabel("Add stack or items")
         }
         .padding(.horizontal, 14)
-        .padding(.top, store.workspaces.count > 1 ? 6 : 10)
-        .padding(.bottom, 6)
+        .padding(.top, store.workspaces.count > 1 ? 8 : 14)
+        .padding(.bottom, 12)
     }
 
     private var searchBar: some View {
@@ -510,8 +499,8 @@ struct LauncherView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.055))
+        .padding(.vertical, 10)
+        .background(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.035))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -785,7 +774,7 @@ struct LauncherView: View {
             }
             .onChange(of: selectedItemID) {
                 if let id = selectedItemID {
-                    withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(id, anchor: .center) }
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) { proxy.scrollTo(id, anchor: .center) }
                 }
             }
         }
@@ -840,6 +829,7 @@ struct LauncherView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             .onDrop(of: DropImport.externalTypes, isTargeted: $isTargeted) { providers in
                 handleDrop(providers, to: folder.id)
             }
@@ -903,63 +893,58 @@ struct LauncherView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 10) {
-            let count: Int = {
-                if searchGlobal && !searchText.isEmpty { return globalHits.count }
-                return folderItems.count
-            }()
-            Text("\(count) items")
+        HStack(spacing: 14) {
+            let count = searchGlobal && !searchText.isEmpty ? globalHits.count : folderItems.count
+            Text("\(count) \(count == 1 ? "item" : "items")")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
             if store.missingItemCount > 0 {
-                Text("· \(store.missingItemCount) missing")
-                    .font(.system(size: 11, weight: .medium))
+                Image(systemName: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
+                    .help("\(store.missingItemCount) missing items. Manage them in Settings.")
+                    .accessibilityLabel("\(store.missingItemCount) missing items")
             }
-            if !license.isPro {
-                Text("Free")
-                    .font(.system(size: 9, weight: .semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.primary.opacity(0.08)))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if let folder = currentFolder, !folder.isSmart {
-                Menu {
-                    ForEach(FolderSortMode.allCases) { mode in
-                        Button(mode.label) { store.setFolderSort(id: folder.id, mode: mode) }
+            Spacer(minLength: 8)
+            if let folder = currentFolder {
+                if !folder.isSmart {
+                    Menu {
+                        ForEach(FolderSortMode.allCases) { mode in
+                            Button(mode.label) { store.setFolderSort(id: folder.id, mode: mode) }
+                        }
+                    } label: {
+                        Text(folder.sortMode.label).font(.system(size: 11, weight: .medium))
                     }
-                } label: {
-                    Text(folder.sortMode.label)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .help("Sort items")
+                    .accessibilityLabel("Sort: \(folder.sortMode.label)")
                 }
-                .menuStyle(.borderlessButton)
+                HStack(spacing: 2) {
+                    ForEach(FolderViewMode.allCases) { mode in
+                        Button { store.setFolderView(id: folder.id, mode: mode) } label: {
+                            Image(systemName: mode == .grid ? "square.grid.2x2" : "list.bullet")
+                                .frame(width: 26, height: 24)
+                                .background(PrismSelection(selected: folder.viewMode == mode, radius: 6))
+                        }
+                        .buttonStyle(.plain)
+                        .help("\(mode.label) view")
+                        .accessibilityLabel("\(mode.label) view")
+                        .accessibilityAddTraits(folder.viewMode == mode ? .isSelected : [])
+                    }
+                }
             }
-            if !license.isPro {
-                Button("Pro") { onOpenSettings() }
-                    .buttonStyle(.borderless)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.orange.opacity(0.9))
-                    .help("Upgrade to ClutterDock Pro")
-            }
-            Button {
-                showingHelp = true
-            } label: {
-                Image(systemName: "questionmark.circle")
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.borderless)
-            .help("Keyboard help (⌘/)")
-            .accessibilityLabel("Keyboard help")
-            Button("Settings") { onOpenSettings() }
-                .buttonStyle(.borderless)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
+            Button { showingHelp = true } label: { Image(systemName: "questionmark.circle") }
+                .buttonStyle(.plain)
+                .help("Keyboard help (⌘/)")
+                .accessibilityLabel("Keyboard help")
+            Button { onOpenSettings() } label: { Image(systemName: "gearshape") }
+                .buttonStyle(.plain)
+                .help("Settings")
+                .accessibilityLabel("Settings")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 18)
+        .frame(height: 42)
     }
 
     private func promptUpgrade(_ message: String) {
@@ -1009,10 +994,8 @@ struct LauncherView: View {
     }
 
     private func columnsEstimate() -> Int {
-        // Grid rows: panel width minus the 14pt padding on each side, tiles separated
-        // by 10pt spacing → n·w + (n-1)·10 ≤ available  ⇔  n ≤ (available+10)/(w+10)
-        let available = preferences.panelWidth - 28
-        return max(1, Int((available + 10) / (preferences.tileWidth + 10)))
+        if searchGlobal && !searchText.isEmpty || currentFolder?.viewMode == .list { return 1 }
+        return layout.columns
     }
 
     private func moveSelection(by delta: Int) {
@@ -1139,7 +1122,7 @@ struct LauncherView: View {
     }
 
     private func flashDropStatus(_ message: String) {
-        withAnimation(.easeOut(duration: 0.15)) { dropStatus = message }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { dropStatus = message }
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_600_000_000)
             if dropStatus == message {
@@ -1250,6 +1233,8 @@ private struct ItemTile: View {
     var onMoveLeft: () -> Void = {}
     var onMoveRight: () -> Void = {}
     @State private var hovering = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     // Running/missing are otherwise conveyed only visually (capsule, dimmed icon)
     private func accessibilityDescription(missing: Bool) -> String {
@@ -1267,9 +1252,9 @@ private struct ItemTile: View {
                 ZStack(alignment: .bottom) {
                     ItemIconView(item: item, size: iconSize)
                         .shadow(color: .black.opacity(hovering || isSelected ? 0.22 : 0.12), radius: hovering ? 6 : 3, y: 2)
-                        .scaleEffect(hovering ? 1.04 : 1.0)
+                        .scaleEffect(hovering && !reduceMotion ? 1.035 : 1.0)
                         .opacity(missing ? 0.4 : 1)
-                        .animation(.easeOut(duration: 0.12), value: hovering)
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovering)
                     if isRunning {
                         Capsule()
                             .fill(Color.accentColor)
@@ -1279,10 +1264,10 @@ private struct ItemTile: View {
                     }
                 }
                 Text(item.name)
-                    .font(.system(size: 11, weight: isSelected ? .medium : .regular))
+                    .font(.system(size: 12, weight: isSelected ? .medium : .regular))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
-                    .frame(width: tileWidth - 8)
+                    .frame(width: tileWidth - 12, height: 30, alignment: .top)
                     .foregroundStyle(missing ? .secondary : .primary)
             }
             .padding(.horizontal, 6)
@@ -1292,7 +1277,7 @@ private struct ItemTile: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
                         isSelected
-                            ? Color.primary.opacity(0.10)
+                            ? Prism.blue.opacity(0.13)
                             : (hovering ? Color.primary.opacity(0.06) : .clear)
                     )
             )
@@ -1301,8 +1286,8 @@ private struct ItemTile: View {
                     .strokeBorder(
                         isDropTarget
                             ? Color.accentColor.opacity(0.9)
-                            : (isSelected ? Color.primary.opacity(0.18) : .clear),
-                        lineWidth: isDropTarget ? 1.5 : 1
+                            : (isSelected ? Prism.blue.opacity(contrast == .increased ? 1 : 0.45) : .clear),
+                        lineWidth: isDropTarget || contrast == .increased ? 2 : 1
                     )
             )
         }

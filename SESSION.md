@@ -1,5 +1,7 @@
 # ClutterDock — Session save
 
+> **2026-09-24 local work:** RON-510/RON-511 implement the approved Mac Prism interface on `codex/ron-510-mac-prism`, based on main `8ceaf919`. Installed locally for review; no customer release. See [Prism implementation and verification](docs/PRISM.md). The older release snapshot below is historical.
+
 **Saved:** 2026-08-26  
 **Status:** **Public unsigned beta v1.4.9** — Mac **1.4.9** (Dock-icon drops) + Win **1.3.0** (glitch fixes, 20-feature upgrade pass, motion polish, search-to-add; 40/40 e2e + 21/21 stress on real Windows). Release live with auto-update feed; site downloads point at v1.4.9 (worker redeploy pending). Pro keys manual until Lemon Squeezy products/checkout go live (RON-365/366/367). Notarization (RON-361) still open.  
 **2026-08-26:** Cloud agents cut releases by pushing `release/vX.Y.Z` (tag pushes are blocked from cloud sessions; the Release workflow creates the tag itself). Windows E2E (`npm run e2e`) + stress (`npm run stress`) suites live in `windows/scripts/`; e2e runs in CI. Panel debug tracing: `CLUTTER_DOCK_DEBUG=1`.  

@@ -8,8 +8,20 @@ struct SettingsView: View {
     @ObservedObject var history: LaunchHistory
     @ObservedObject private var license = LicenseManager.shared
 
-    private enum Tab: Hashable {
-        case stacks, workspaces, general, pro, backup, about
+    private enum Tab: String, CaseIterable, Identifiable {
+        case stacks = "Stacks", workspaces = "Workspaces", general = "General"
+        case pro = "Pro", backup = "Backup", about = "About"
+        var id: String { rawValue }
+        var symbol: String {
+            switch self {
+            case .stacks: return "square.grid.2x2"
+            case .workspaces: return "rectangle.3.group"
+            case .general: return "slider.horizontal.3"
+            case .pro: return "sparkles"
+            case .backup: return "externaldrive"
+            case .about: return "info.circle"
+            }
+        }
     }
 
     @State private var selectedFolderID: UUID?
@@ -18,70 +30,156 @@ struct SettingsView: View {
     @State private var selectedTab: Tab = .stacks
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            foldersTab.tabItem { Label("Stacks", systemImage: "square.grid.2x2") }.tag(Tab.stacks)
-            workspacesTab.tabItem { Label("Workspaces", systemImage: "rectangle.3.group") }.tag(Tab.workspaces)
-            generalTab.tabItem { Label("General", systemImage: "gearshape") }.tag(Tab.general)
-            proTab.tabItem { Label("Pro", systemImage: "star.fill") }.tag(Tab.pro)
-            backupTab.tabItem { Label("Backup", systemImage: "externaldrive") }.tag(Tab.backup)
-            aboutTab.tabItem { Label("About", systemImage: "info.circle") }.tag(Tab.about)
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("SETTINGS")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
+                ForEach(Tab.allCases) { tab in
+                    Button { selectedTab = tab } label: {
+                        Label(tab.rawValue, systemImage: tab.symbol)
+                            .font(.system(size: 13, weight: selectedTab == tab ? .semibold : .regular))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(PrismSelection(selected: selectedTab == tab))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+                }
+                Spacer()
+                HStack(spacing: 9) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable().frame(width: 30, height: 30)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("ClutterDock").font(.system(size: 12, weight: .semibold))
+                        Text(license.isPro ? "Pro" : "Made for your Mac")
+                            .font(.system(size: 10)).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 8)
+            }
+            .padding(14)
+            .padding(.vertical, 12)
+            .frame(width: 180)
+            .background(Color.primary.opacity(0.025))
+            Divider().opacity(0.45)
+            Group {
+                switch selectedTab {
+                case .stacks: foldersTab
+                case .workspaces: settingsSection("Workspaces", subtitle: "A space for every kind of work.") { workspacesTab }
+                case .general: settingsSection("General", subtitle: "Make ClutterDock feel at home.") { generalTab }
+                case .pro: proTab
+                case .backup: backupTab
+                case .about: aboutTab
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.top, 8)
-        .frame(minWidth: 640, minHeight: 480)
+        .background { PrismSurface() }
+        .tint(Prism.blue)
+        .preferredColorScheme(preferences.appearance.colorScheme)
+        .frame(minWidth: 800, minHeight: 600)
     }
 
-    // MARK: - Folders
+    private func prismSection<Content: View>(_ title: String,
+                                             @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title).font(.headline)
+            content().frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .modifier(PrismCard())
+    }
+
+    private func settingsSection<Content: View>(_ title: String, subtitle: String,
+                                                @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title).font(.system(size: 25, weight: .semibold))
+                Text(subtitle).foregroundStyle(.secondary)
+            }
+            .padding(24)
+            content()
+        }
+    }
+
+    // MARK: - Stacks
 
     private var foldersTab: some View {
-        NavigationSplitView {
-            List(selection: $selectedFolderID) {
-                ForEach(store.folders) { folder in
-                    Label {
-                        HStack {
-                            Text(folder.name)
-                            if folder.isSmart {
-                                Text("smart")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 10) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(store.folders) { folder in
+                            Button { selectedFolderID = folder.id } label: {
+                                Label(folder.name, systemImage: folder.symbolName ?? "folder.fill")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .padding(.horizontal, 12).padding(.vertical, 8)
+                                    .background(PrismSelection(selected: selectedFolderID == folder.id))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(selectedFolderID == folder.id ? .isSelected : [])
+                            .contextMenu {
+                                if !folder.isSmart { Button("Rename…") { promptRename(folder) } }
+                                Button("Move left") { moveStack(folder, by: -1) }
+                                    .disabled(store.folders.first?.id == folder.id)
+                                Button("Move right") { moveStack(folder, by: 1) }
+                                    .disabled(store.folders.last?.id == folder.id)
+                                Divider()
+                                Button("Delete Stack", role: .destructive) { deleteStack(folder) }
                             }
                         }
-                    } icon: {
-                        Image(systemName: folder.symbolName ?? "folder.fill")
                     }
-                    .tag(folder.id)
                 }
-                .onMove { s, d in store.moveFolder(from: s, to: d) }
-            }
-            .navigationSplitViewColumnWidth(min: 170, ideal: 200)
-            .toolbar {
-                ToolbarItemGroup {
-                    Button {
+                Menu {
+                    Button("New Stack") {
                         if store.addFolder(named: "New Stack", symbolName: "folder.fill") {
                             selectedFolderID = store.folders.last(where: { !$0.isSmart })?.id
                         } else {
                             presentAlert("ClutterDock Pro", FeatureGate.folderLimitMessage(current: store.normalFolderCount))
                         }
-                    } label: { Image(systemName: "plus") }
-                    .accessibilityLabel("New stack")
-                    Button {
-                        if let id = selectedFolderID { store.deleteFolder(id: id) }
-                        selectedFolderID = store.selectedFolderID
-                    } label: { Image(systemName: "minus") }
-                    .disabled(selectedFolderID == nil)
-                    .accessibilityLabel("Delete selected stack")
-                }
+                    }
+                    if let folder = currentFolder {
+                        Divider()
+                        Button("Move stack left") { moveStack(folder, by: -1) }
+                            .disabled(store.folders.first?.id == folder.id)
+                        Button("Move stack right") { moveStack(folder, by: 1) }
+                            .disabled(store.folders.last?.id == folder.id)
+                        Button("Delete Stack", role: .destructive) { deleteStack(folder) }
+                    }
+                } label: { Image(systemName: "plus") }
+                .menuStyle(.borderlessButton).frame(width: 28)
+                .accessibilityLabel("Manage stacks")
             }
-        } detail: {
             if let folder = currentFolder {
                 folderDetail(folder)
             } else {
-                emptyState("Select a Stack", "square.grid.2x2", "Choose a stack to name, pick a symbol, and manage items.")
+                emptyState("Select a Stack", "square.grid.2x2", "Choose a stack to manage its appearance and items.")
             }
         }
+        .padding(24)
         .onAppear { selectedFolderID = store.selectedFolderID ?? store.folders.first?.id }
         .onChange(of: selectedFolderID) {
             if let selectedFolderID { store.selectFolder(id: selectedFolderID) }
         }
+        .onChange(of: store.folders.map(\.id)) {
+            if currentFolder == nil { selectedFolderID = store.selectedFolderID ?? store.folders.first?.id }
+        }
+    }
+
+    private func moveStack(_ folder: AppFolder, by delta: Int) {
+        guard let index = store.folders.firstIndex(where: { $0.id == folder.id }),
+              store.folders.indices.contains(index + delta) else { return }
+        store.moveFolder(from: IndexSet(integer: index), to: index + delta + (delta > 0 ? 1 : 0))
+    }
+
+    private func deleteStack(_ folder: AppFolder) {
+        store.deleteFolder(id: folder.id)
+        selectedFolderID = store.selectedFolderID
     }
 
     private func promptRename(_ folder: AppFolder) {
@@ -105,148 +203,150 @@ struct SettingsView: View {
         return store.folders.first { $0.id == selectedFolderID }
     }
 
+    private func propertyRow<Content: View>(_ title: String,
+                                            @ViewBuilder content: () -> Content) -> some View {
+        HStack(spacing: 16) {
+            Text(title).foregroundStyle(.secondary).frame(width: 70, alignment: .leading)
+            Spacer(minLength: 0)
+            content()
+        }
+        .frame(minHeight: 29)
+    }
+
     @ViewBuilder
     private func folderDetail(_ folder: AppFolder) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Form {
-                Section("Stack") {
-                    Text("Stacks are your mini-docks — e.g. Coding, Client A, Personal.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    // An inline TextField here renders blank/garbled inside this
-                    // Form on macOS 26, so renaming goes through an explicit prompt.
-                    LabeledContent("Name") {
-                        HStack(spacing: 8) {
-                            Text(folder.name)
-                            if !folder.isSmart {
-                                Button("Rename…") { promptRename(folder) }
-                            }
-                        }
-                    }
-
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(folder.name).font(.system(size: 25, weight: .semibold))
+                Spacer()
+                Text(folder.isSmart ? "SMART STACK" : "STACK")
+                    .font(.system(size: 10, weight: .semibold)).tracking(1.2).foregroundStyle(.secondary)
+            }
+            VStack(spacing: 5) {
+                propertyRow("Name") {
+                    Text(folder.name)
                     if !folder.isSmart {
-                        Picker("Symbol", selection: Binding(
+                        Button("Rename…") { promptRename(folder) }.controlSize(.small)
+                    }
+                }
+                if !folder.isSmart {
+                    Divider().opacity(0.5)
+                    propertyRow("Icon") {
+                        Picker("Stack icon", selection: Binding(
                             get: { folder.symbolName ?? "folder.fill" },
                             set: { store.setFolderSymbol(id: folder.id, symbolName: $0) }
                         )) {
-                            ForEach(StackSymbols.all, id: \.self) { s in
-                                Label(s, systemImage: s).tag(s)
+                            ForEach(StackSymbols.all, id: \.self) { symbol in
+                                Image(systemName: symbol).tag(symbol).accessibilityLabel(symbol)
                             }
                         }
-
+                        .labelsHidden().frame(width: 64)
+                        Button("Custom Image…") {
+                            if FeatureGate.canUseCustomFolderImages { pickFolderImage(for: folder.id) }
+                            else { presentAlert("ClutterDock Pro", "Custom folder images are a Pro feature.") }
+                        }.controlSize(.small)
+                        if folder.customImagePath != nil {
+                            Button("Clear") { _ = store.setFolderCustomImage(id: folder.id, path: nil) }.controlSize(.small)
+                        }
+                    }
+                    Divider().opacity(0.5)
+                    propertyRow("Sort") {
                         Picker("Sort", selection: Binding(
-                            get: { folder.sortMode },
-                            set: { store.setFolderSort(id: folder.id, mode: $0) }
-                        )) {
-                            ForEach(FolderSortMode.allCases) { m in Text(m.label).tag(m) }
-                        }
-
+                            get: { folder.sortMode }, set: { store.setFolderSort(id: folder.id, mode: $0) }
+                        )) { ForEach(FolderSortMode.allCases) { Text($0.label).tag($0) } }
+                        .labelsHidden().frame(width: 180)
+                    }
+                    Divider().opacity(0.5)
+                    propertyRow("View") {
                         Picker("View", selection: Binding(
-                            get: { folder.viewMode },
-                            set: { store.setFolderView(id: folder.id, mode: $0) }
-                        )) {
-                            ForEach(FolderViewMode.allCases) { m in Text(m.label).tag(m) }
-                        }
-
+                            get: { folder.viewMode }, set: { store.setFolderView(id: folder.id, mode: $0) }
+                        )) { ForEach(FolderViewMode.allCases) { Text($0.label).tag($0) } }
+                        .labelsHidden().pickerStyle(.segmented).frame(width: 180)
+                    }
+                    Divider().opacity(0.5)
+                    propertyRow("Hotkey") {
                         Picker("Hotkey", selection: Binding(
                             get: { folder.hotkey },
-                            set: { new in
-                                if !store.setFolderHotkey(id: folder.id, hotkey: new) {
-                                    presentAlert("ClutterDock Pro", "Per-folder hotkeys are a Pro feature.")
-                                }
-                            }
+                            set: { if !store.setFolderHotkey(id: folder.id, hotkey: $0) {
+                                presentAlert("ClutterDock Pro", "Per-folder hotkeys are a Pro feature.")
+                            } }
                         )) {
-                            ForEach(FolderHotkey.allCases) { h in
-                                Text(h.displayName + (h != .none && !FeatureGate.canUseFolderHotkeys ? " ✦" : "")).tag(h)
+                            ForEach(FolderHotkey.allCases) { hotkey in
+                                Text(hotkey.displayName + (hotkey != .none && !FeatureGate.canUseFolderHotkeys ? " · Pro" : "")).tag(hotkey)
                             }
                         }
+                        .labelsHidden().frame(width: 180)
                         .disabled(!FeatureGate.canUseFolderHotkeys && folder.hotkey == .none)
-
-                        HStack {
-                            Button("Custom Image…") {
-                                if FeatureGate.canUseCustomFolderImages {
-                                    pickFolderImage(for: folder.id)
-                                } else {
-                                    presentAlert("ClutterDock Pro", "Custom folder images are a Pro feature.")
-                                }
-                            }
-                            if folder.customImagePath != nil {
-                                Button("Clear Image") { _ = store.setFolderCustomImage(id: folder.id, path: nil) }
-                            }
-                        }
-                    } else {
-                        Text("Smart folder — contents are filled automatically.")
-                            .foregroundStyle(.secondary)
-                        if folder.smartKind == .recents {
-                            Button("Clear launch history") {
-                                history.clear()
-                                statusMessage = "History cleared."
-                            }
-                        }
+                    }
+                } else {
+                    Divider().opacity(0.5)
+                    Text("This stack updates automatically as you use your Mac.")
+                        .foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
+                    if folder.smartKind == .recents {
+                        Button("Clear launch history") { history.clear(); statusMessage = "History cleared." }
                     }
                 }
             }
-            .formStyle(.grouped)
-            .frame(height: folder.isSmart ? 160 : 280)
-
+            .modifier(PrismCard())
             if !folder.isSmart {
-                HStack {
-                    Button("Add Items…") { addItems(to: folder.id) }
-                    Button("Add URL…") { addURL(to: folder.id) }
+                HStack(spacing: 10) {
+                    Text("Items").font(.headline)
+                    Text("\(folder.items.count)").foregroundStyle(.secondary)
                     Spacer()
-                    Text("Drag & drop from Finder")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                    Button("Add URL…") { addURL(to: folder.id) }
+                    Button("Add Items…") { addItems(to: folder.id) }.buttonStyle(.borderedProminent)
                 }
-                .padding(.horizontal)
-
                 if folder.items.isEmpty {
-                    emptyState("No Items", "app.dashed", "Drop apps, files, or folders here — or use Add Items…")
-                        .onDrop(of: DropImport.externalTypes, isTargeted: nil) { providers in
-                            handleSettingsDrop(providers, folderID: folder.id)
-                        }
+                    emptyState("Your stack starts here", "app.dashed", "Drop apps, files, or folders here, or choose Add Items.")
+                        .onDrop(of: DropImport.externalTypes, isTargeted: nil) { handleSettingsDrop($0, folderID: folder.id) }
                 } else {
                     List {
                         ForEach(folder.items) { item in
                             HStack(spacing: 12) {
-                                Image(nsImage: AppIconService.icon(for: item, size: 28))
-                                    .resizable().frame(width: 28, height: 28)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name)
-                                    Text("\(item.kind.label) · \(item.path)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
+                                ItemIconView(item: item, size: 32)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(item.name).font(.system(size: 13, weight: .medium))
+                                    Text(item.kind.label).font(.system(size: 11)).foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 if !item.exists && item.kind != .url {
-                                    Text("Missing").font(.caption).foregroundStyle(.red)
+                                    Label("Missing", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                                 }
+                                Menu { itemActions(item, folder: folder) } label: { Image(systemName: "ellipsis") }
+                                    .menuStyle(.borderlessButton).frame(width: 24)
+                                    .accessibilityLabel("Actions for \(item.name)")
                             }
-                            .contextMenu {
-                                Button("Open") { LaunchService.open(item) }
-                                Button("Reveal") { LaunchService.reveal(item) }
-                                Button("Remove", role: .destructive) {
-                                    store.removeItem(id: item.id, from: folder.id)
-                                }
-                            }
+                            .padding(.vertical, 5)
+                            .help(item.path)
+                            .contextMenu { itemActions(item, folder: folder) }
+                            .listRowBackground(Color.clear)
                         }
-                        .onDelete { indexSet in
-                            for i in indexSet {
-                                store.removeItem(id: folder.items[i].id, from: folder.id)
-                            }
+                        .onDelete { indices in
+                            for index in indices { store.removeItem(id: folder.items[index].id, from: folder.id) }
                         }
-                        .onMove { s, d in store.moveItem(from: s, to: d, in: folder.id) }
+                        .onMove { store.moveItem(from: $0, to: $1, in: folder.id) }
                     }
-                    .listStyle(.inset)
-                    .onDrop(of: DropImport.externalTypes, isTargeted: nil) { providers in
-                        handleSettingsDrop(providers, folderID: folder.id)
-                    }
+                    .listStyle(.plain).scrollContentBackground(.hidden)
+                    .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 12))
+                    .onDrop(of: DropImport.externalTypes, isTargeted: nil) { handleSettingsDrop($0, folderID: folder.id) }
                 }
-            } else {
-                Spacer()
+            } else { Spacer() }
+            if let statusMessage {
+                Text(statusMessage).font(.caption).foregroundStyle(.secondary)
             }
         }
+    }
+
+    @ViewBuilder
+    private func itemActions(_ item: DockItem, folder: AppFolder) -> some View {
+        Button("Open") { LaunchService.open(item) }
+        Button("Show in Finder") { LaunchService.reveal(item) }
+        Button("Move up") { _ = store.nudgeItem(id: item.id, by: -1, in: folder.id) }
+            .disabled(folder.items.first?.id == item.id)
+        Button("Move down") { _ = store.nudgeItem(id: item.id, by: 1, in: folder.id) }
+            .disabled(folder.items.last?.id == item.id)
+        Divider()
+        Button("Remove", role: .destructive) { store.removeItem(id: item.id, from: folder.id) }
     }
 
     @discardableResult
@@ -356,10 +456,10 @@ struct SettingsView: View {
                         .font(.caption.weight(.bold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Capsule().fill(license.isPro ? Color.orange.opacity(0.3) : Color.primary.opacity(0.1)))
+                        .background(Capsule().fill(license.isPro ? Prism.blue.opacity(0.18) : Color.primary.opacity(0.1)))
                 }
 
-                GroupBox("What’s included") {
+                prismSection("What’s included") {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Free: launcher, up to \(FeatureGate.freeMaxNormalFolders) folders, \(FeatureGate.freeMaxItemsPerFolder) items each, Recents, search in folder, hotkey, JSON backup")
                         Text("Pro: unlimited · workspaces · search all · folder hotkeys · custom images · .clutterdock packs")
@@ -371,7 +471,7 @@ struct SettingsView: View {
                 }
 
                 if license.isPro {
-                    GroupBox("License") {
+                    prismSection("License") {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Active key: \(license.licenseKeyDisplay)")
                             Button("Deactivate Pro on this Mac", role: .destructive) {
@@ -382,7 +482,7 @@ struct SettingsView: View {
                         .padding(4)
                     }
                 } else {
-                    GroupBox("Activate license") {
+                    prismSection("Activate license") {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Paste your Pro license key (format SDPRO-XXXX-YYYY-ZZZZ).")
                                 .font(.caption)
@@ -429,6 +529,9 @@ struct SettingsView: View {
     private var generalTab: some View {
         Form {
             Section("Appearance") {
+                Picker("Appearance", selection: $preferences.appearance) {
+                    ForEach(AppAppearance.allCases) { Text($0.rawValue).tag($0) }
+                }
                 HStack {
                     Text("Icon size")
                     Spacer()
@@ -478,7 +581,7 @@ struct SettingsView: View {
                     ForEach(HotkeyPreset.allCases) { p in Text(p.displayName).tag(p) }
                 }
                 .disabled(!preferences.hotkeyEnabled)
-                Text("Per-folder hotkeys: set under Folders. URL scheme: clutterdock://open")
+                Text("Per-stack hotkeys: set under Stacks. URL scheme: clutterdock://open")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -538,7 +641,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .padding()
+        .scrollContentBackground(.hidden)
+        .padding(.horizontal, 4)
     }
 
     // MARK: - Backup

@@ -1,6 +1,11 @@
 import Foundation
 import Combine
 
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system = "System", light = "Light", dark = "Dark"
+    var id: String { rawValue }
+}
+
 enum HotkeyPreset: String, CaseIterable, Identifiable, Codable {
     case commandShiftD
     case commandShiftSpace
@@ -38,6 +43,10 @@ enum InstallRegisterChoice: String {
 
 @MainActor
 final class AppPreferences: ObservableObject {
+    @Published var appearance: AppAppearance {
+        didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
+    }
+
     @Published var iconSize: Double {
         didSet { defaults.set(iconSize, forKey: Keys.iconSize) }
     }
@@ -112,6 +121,7 @@ final class AppPreferences: ObservableObject {
     private let defaults: UserDefaults
 
     enum Keys {
+        static let appearance = "appearance"
         static let iconSize = "iconSize"
         static let showMenuBarIcon = "showMenuBarIcon"
         static let launchAtLogin = "launchAtLogin"
@@ -131,6 +141,7 @@ final class AppPreferences: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .system
 
         let storedSize = defaults.object(forKey: Keys.iconSize) as? Double
         iconSize = min(80, max(40, storedSize ?? 56))
@@ -151,7 +162,7 @@ final class AppPreferences: ObservableObject {
         openEmptyOnLaunch = defaults.object(forKey: Keys.openEmptyOnLaunch) as? Bool ?? true
         globalSearchDefault = defaults.object(forKey: Keys.globalSearchDefault) as? Bool ?? false
         hasCompletedOnboarding = defaults.bool(forKey: Keys.hasCompletedOnboarding)
-        showKeyboardHints = defaults.object(forKey: Keys.showKeyboardHints) as? Bool ?? true
+        showKeyboardHints = defaults.object(forKey: Keys.showKeyboardHints) as? Bool ?? false
         checkForUpdatesAutomatically = defaults.object(forKey: Keys.checkForUpdatesAutomatically) as? Bool ?? true
 
         installRegisterChoice = defaults.string(forKey: Keys.installRegisterChoice)
@@ -183,15 +194,9 @@ final class AppPreferences: ObservableObject {
         launchAtLogin = enabled
     }
 
-    var panelWidth: CGFloat { 440 }
-    /// Compact chrome + ~2 icon rows (less empty dead space under a short stack)
-    var panelHeight: CGFloat {
-        let chrome: CGFloat = 168
-        let row: CGFloat = iconSize + 48
-        return min(520, max(300, chrome + row * 2))
-    }
+    var panelWidth: CGFloat { LauncherLayout.width }
+    var tileWidth: CGFloat { iconSize + 40 }
 
-    var tileWidth: CGFloat { iconSize + 22 }
 }
 
 extension Notification.Name {
