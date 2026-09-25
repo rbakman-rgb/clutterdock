@@ -1,3 +1,5 @@
+> **2026-09-24 release preparation:** Prism merged in PR #6. PR #7 prepares Mac **1.4.11** and Windows **1.3.2**, preserving old Pro keys and adding receipt-key activation. Universal Mac build is Developer ID signed; notarization still needs credentials. Merchant Pro ($14.99) and Multi ($29) products are drafts pending the activation service deployment. Cloudflare OAuth refresh awaits user confirmation of the sign-in terms. See [purchase/release runbook](docs/PURCHASE_ACTIVATION.md).
+
 # ClutterDock — Session save
 
 > **2026-09-24 local work:** RON-510/RON-511 implement the approved Mac Prism interface on `codex/ron-510-mac-prism`, based on main `8ceaf919`. Installed locally for review; no customer release. See [Prism implementation and verification](docs/PRISM.md). The older release snapshot below is historical.
