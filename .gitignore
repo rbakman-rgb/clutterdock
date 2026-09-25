@@ -30,3 +30,6 @@ node_modules/
 
 # Wrangler local cache
 .wrangler/
+
+# Local visual review artifacts
+output/

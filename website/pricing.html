@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pricing · ClutterDock</title>
   <meta name="description" content="Simple, transparent ClutterDock pricing. Free forever for daily use. Pro is a one-time unlock — no subscription." />
-  <meta name="theme-color" content="#070a10" />
+  <meta name="theme-color" content="#ffffff" />
   <link rel="canonical" href="https://clutterdock.com/pricing" />
   <link rel="icon" href="assets/icon-256.png" type="image/png" />
   <link rel="apple-touch-icon" href="assets/icon-256.png" />
@@ -14,15 +14,11 @@
   <meta property="og:title" content="Pricing · ClutterDock" />
   <meta property="og:description" content="Free forever for daily use. Pro is a one-time unlock — no subscription." />
   <meta property="og:url" content="https://clutterdock.com/pricing" />
-  <meta property="og:image" content="https://clutterdock.com/assets/og-card.jpg" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://clutterdock.com/assets/og-card.jpg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260826a" />
+  <meta property="og:image" content="https://clutterdock.com/assets/icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="https://clutterdock.com/assets/icon.png" />
+  <link rel="stylesheet" href="css/styles.css?v=20260925" />
+  <link rel="stylesheet" href="css/prism.css?v=20260925" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -32,7 +28,7 @@
       { "@type": "Question", "name": "Is Pro a subscription?", "acceptedAnswer": { "@type": "Answer", "text": "No. Pro is a one-time purchase. Optional cloud sync, if it ever ships, would be a separate choice — not a forced conversion of Pro." } },
       { "@type": "Question", "name": "Does one Pro key work on Mac and Windows?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The same offline license format unlocks ClutterDock Pro on both platforms." } },
       { "@type": "Question", "name": "What is the difference between Pro and Pro Multi?", "acceptedAnswer": { "@type": "Answer", "text": "Pro is a personal unlock. Pro Multi ($29) covers up to 5 devices — useful for home plus work machines or a household under fair use." } },
-      { "@type": "Question", "name": "How do I activate Pro?", "acceptedAnswer": { "@type": "Answer", "text": "After purchase you get a key like SDPRO-XXXX-YYYY-ZZZZ. Open ClutterDock → Settings → Pro and paste it. No account required." } },
+      { "@type": "Question", "name": "How do I activate Pro?", "acceptedAnswer": { "@type": "Answer", "text": "Paste your purchase key into Settings → Pro. New receipt keys activate online once, then work offline. Existing SDPRO keys continue to work. Checkout is opening soon." } },
       { "@type": "Question", "name": "What happens when I hit Free limits?", "acceptedAnswer": { "@type": "Answer", "text": "You see a clear upgrade prompt. You can still launch everything already in your folders — existing apps are never locked behind a paywall." } }
     ]
   }
@@ -42,21 +38,13 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="page-bg" aria-hidden="true"></div>
 
-  <header class="nav">
-    <div class="nav-inner">
-      <a class="brand" href="index.html">
-        <img src="assets/icon-256.png" alt="" width="32" height="32" />
-        ClutterDock
-      </a>
-      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
-      <nav class="nav-links" data-nav-links id="site-nav">
-        <a href="index.html#problem">The problem</a>
-        <a href="index.html#solution">The fix</a>
-        <a href="pricing.html" aria-current="page">Pricing</a>
-        <a class="nav-cta" href="index.html#download">Download</a>
-      </nav>
-    </div>
-  </header>
+  <header class="nav"><div class="nav-inner">
+  <a class="brand" href="index.html"><img src="assets/icon-256.png" width="35" height="35" alt="" />ClutterDock</a>
+  <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
+  <nav class="nav-links" data-nav-links id="site-nav" aria-label="Main navigation">
+    <a href="index.html#features">Features</a><a href="demo.html">Preview</a><a href="pricing.html">Pricing</a><a class="nav-cta" href="index.html#download">Download free</a>
+  </nav>
+</div></header>
 
   <main id="main">
     <section class="hero container">
@@ -64,7 +52,7 @@
         <div class="eyebrow">Free forever · Pro one-time</div>
         <h1 class="hero-title">
           <span class="hero-line">Free for daily stacks.</span>
-          <span class="hero-line hero-serif">Pro once — not forever rent.</span>
+          <span class="hero-line hero-serif">More possibilities with Pro.</span>
         </h1>
         <p class="lead">
           Organization shouldn’t require a subscription. ClutterDock keeps a serious free tier
@@ -72,12 +60,13 @@
           with a <strong class="text-emphasis">one-time</strong> purchase — the same key on Mac and Windows.
         </p>
         <div class="badge-one-time">
-          <strong>No subscription. Ever.</strong>&nbsp;· buy once, keep forever
+          <strong>One-time Pro purchase.</strong>&nbsp;· buy once, keep forever
         </div>
       </div>
     </section>
 
-    <section class="container section-sm" aria-label="Plans">
+    <p id="checkout-status" class="plans-footnote" data-checkout-status>Pro checkout is opening soon. Free downloads are available now, and existing Pro keys still work.</p>
+<section class="container section-sm" aria-label="Plans">
       <div class="pricing-grid" data-reveal-stagger>
         <!-- Free -->
         <article class="plan">
@@ -115,7 +104,7 @@
           <p class="plan-desc">
             For power users who want unlimited stacks, workspaces, hotkeys, and global search.
           </p>
-          <a class="btn btn-primary" href="index.html#download" data-checkout="pro">Download · unlock in app</a>
+          <a class="btn btn-primary" href="#checkout-status" data-checkout="pro">Checkout opening soon</a>
           <p class="plan-includes">Everything in Free, plus</p>
           <ul class="feature-list">
             <li><span class="check" aria-hidden="true">✓</span> <strong style="color:var(--text)">Unlimited</strong> folders &amp; items</li>
@@ -141,7 +130,7 @@
           <p class="plan-desc">
             Same Pro unlock, licensed for a small household or your personal machine fleet.
           </p>
-          <a class="btn btn-secondary" href="index.html#download" data-checkout="multi">Download · unlock in app</a>
+          <a class="btn btn-secondary" href="#checkout-status" data-checkout="multi">Checkout opening soon</a>
           <p class="plan-includes">Everything in Pro, plus</p>
           <ul class="feature-list">
             <li><span class="check" aria-hidden="true">✓</span> License for up to <strong style="color:var(--text)">5 devices</strong></li>
@@ -299,7 +288,7 @@
     <section class="section container">
       <div class="section-header" data-reveal>
         <h2>What Pro is for</h2>
-        <p>Five pillars — scale, context, speed, identity, and what’s coming next.</p>
+        <p>More space, more context, and faster access to your tools.</p>
       </div>
       <div class="pillars" data-reveal-stagger>
         <div class="pillar">
@@ -402,7 +391,7 @@
         <details class="faq-item">
           <summary>How do I activate Pro?</summary>
           <div class="answer">
-            <p>After purchase you’ll get a key like <code>SDPRO-XXXX-YYYY-ZZZZ</code>. Open ClutterDock → Settings → Pro and paste it. No account required.</p>
+            <p>Paste your purchase key into Settings → Pro. New receipt keys activate online once, then work offline. Existing <code>SDPRO-…</code> keys continue to work. Checkout is opening soon.</p>
           </div>
         </details>
         <details class="faq-item">
@@ -414,7 +403,7 @@
 <details class="faq-item">
           <summary>Mac says the app can’t be opened / is from an unidentified developer</summary>
           <div class="answer">
-            <p>Until ClutterDock is notarized with Apple Developer ID: right-click the app → <strong>Open</strong> the first time, or use System Settings → Privacy &amp; Security → Open Anyway. This is normal for ad-hoc signed builds.</p>
+            <p>The current Mac release is Developer ID signed; Apple notarization is pending. See the <a href="install.html#macos">Mac install guide</a> for first-launch instructions.</p>
           </div>
         </details>
         <details class="faq-item">
@@ -431,8 +420,8 @@
       <div class="cta-band" data-reveal>
         <div class="eyebrow" style="margin-bottom: 0.75rem;">Public beta</div>
         <h2>Download the free core</h2>
-        <p>
-          Mac and Windows builds are live. Pro checkout isn’t wired yet — if you already have a
+        <p data-checkout-status>
+          Mac and Windows builds are live. Pro checkout is opening soon — if you already have a
           <code>SDPRO-…</code> key, activate it in Settings → Pro.
         </p>
         <div class="cta-actions">
@@ -444,43 +433,13 @@
 
   </main>
 
-  <footer class="footer">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <a class="brand" href="index.html">
-          <img src="assets/icon-256.png" alt="" width="32" height="32" />
-          ClutterDock
-        </a>
-        <p>Folders of apps, files, and URLs — free forever core, one-time Pro unlock.</p>
-        <p class="footer-domains">clutterdock.com · clutterdock.app</p>
-      </div>
-      <div class="footer-links">
-        <div class="footer-col">
-          <h4>Product</h4>
-          <a href="index.html#problem">The problem</a>
-          <a href="index.html#solution">The fix</a>
-          <a href="index.html#different">Why us</a>
-          <a href="index.html">Overview</a>
-          <a href="pricing.html">Pricing</a>
-          <a href="index.html#download">Download</a>
-        </div>
-        <div class="footer-col">
-          <h4>Support</h4>
-          <a href="#faq">FAQ</a>
-          <a href="install.html">Install FAQ</a>
-          <a href="privacy.html">Privacy</a>
-          <a href="terms.html">Terms</a>
-          <a href="https://github.com/rbakman-rgb/clutterdock/issues" rel="noopener">GitHub Issues</a>
-</div>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© <span data-year></span> ClutterDock</span>
-      <span>Not affiliated with Apple or Microsoft</span>
-    </div>
-  </footer>
+  <footer class="prism-footer"><div class="prism-wrap">
+  <div class="prism-footer-top"><div><a class="brand" href="index.html"><img src="assets/icon-256.png" alt="" width="35" height="35" />ClutterDock</a><p>A little more order.<br />A lot more room to focus.</p></div>
+  <nav aria-label="Footer"><a href="pricing.html">Pricing</a><a href="install.html">Install help</a><a href="https://github.com/rbakman-rgb/clutterdock/issues">Support</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav></div>
+  <div class="prism-footer-bottom"><span>© <span data-year>2026</span> ClutterDock</span><span>Made for Mac &amp; Windows · <a href="https://github.com/rbakman-rgb/clutterdock">Open source</a></span></div>
+</div></footer>
 
   <script src="js/checkout-config.js?v=20260821a"></script>
-  <script src="js/main.js?v=20260821a"></script>
+  <script src="js/main.js?v=20260925"></script>
 </body>
 </html>

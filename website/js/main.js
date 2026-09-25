@@ -83,34 +83,33 @@
     document.querySelectorAll("[data-reveal], [data-reveal-stagger]").forEach((el) => {
       el.classList.add("is-visible");
     });
-    return;
-  }
+  } else {
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          revealObserver.unobserve(entry.target);
+        });
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px -8% 0px",
+        threshold: 0.12,
+      }
+    );
 
-  const revealObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-visible");
-        revealObserver.unobserve(entry.target);
-      });
-    },
-    {
-      root: null,
-      rootMargin: "0px 0px -8% 0px",
-      threshold: 0.12,
-    }
-  );
-
-  document.querySelectorAll("[data-reveal], [data-reveal-stagger]").forEach((el) => {
-    revealObserver.observe(el);
-  });
-
-  // Failsafe: never leave content permanently hidden
-  window.setTimeout(() => {
-    document.querySelectorAll("[data-reveal]:not(.is-visible), [data-reveal-stagger]:not(.is-visible)").forEach((el) => {
-      el.classList.add("is-visible");
+    document.querySelectorAll("[data-reveal], [data-reveal-stagger]").forEach((el) => {
+      revealObserver.observe(el);
     });
-  }, 4000);
+
+    // Failsafe: never leave content permanently hidden
+    window.setTimeout(() => {
+      document.querySelectorAll("[data-reveal]:not(.is-visible), [data-reveal-stagger]:not(.is-visible)").forEach((el) => {
+        el.classList.add("is-visible");
+      });
+    }, 4000);
+  }
 
   // Platform-aware download cards: mark the visitor's own OS as "for you"
   const dlGrid = document.querySelector(".download-grid");
@@ -152,4 +151,9 @@
     if (key === "pro") el.textContent = "Unlock Pro";
     if (key === "multi") el.textContent = "Get Pro Multi";
   });
+  if (checkout.proCheckoutUrl?.trim() && checkout.multiCheckoutUrl?.trim()) {
+    document.querySelectorAll('[data-checkout-status]').forEach((message) => {
+      message.textContent = 'One-time purchase. One key for Mac and Windows. Existing Pro keys keep working.';
+    });
+  }
 })();
