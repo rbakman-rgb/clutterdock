@@ -5,10 +5,14 @@ Static marketing + pricing site for **https://clutterdock.com** (also **clutterd
 ## Preview locally
 
 ```bash
-cd website
-python3 -m http.server 5173
-# open http://localhost:5173/
+node scripts/preview-site.mjs
+# open http://127.0.0.1:5307/ (PORT can override the port)
 ```
+
+Run from the repository root with Node 20+. The local preview uses the production
+Worker's download redirects and serves the local HTML/assets, including extensionless
+pages and the custom 404. It binds only to localhost, accepts GET/HEAD, and has no
+analytics binding, secrets, or live licensing connection.
 
 ## Pages
 
@@ -17,7 +21,10 @@ python3 -m http.server 5173
 | `index.html` | Product landing + install tips |
 | `pricing.html` | Plans, comparison, FAQ, download |
 | `privacy.html` | Privacy policy |
-| `css/styles.css` | Shared dark theme |
+| `demo.html` | Real Mac/Windows screenshot gallery |
+| `css/styles.css` | Base components and accessibility styles |
+| `css/prism.css` | Shared light Prism theme and product-page layouts |
+| `js/prism.js` | Screenshot gallery controls |
 | `assets/` | App icon + real product screenshots under `assets/screenshots/` |
 | `robots.txt` / `sitemap.xml` | SEO |
 
@@ -43,9 +50,9 @@ Custom domains (DNS records auto-managed by Cloudflare):
 | `clutterdock.app` | 301 → clutterdock.com |
 | `www.clutterdock.app` | 301 → clutterdock.com |
 
-Deploys are manual (`wrangler login` as rbakman@gmail.com required). If you want
-auto-deploy on push later, add a `CLOUDFLARE_API_TOKEN` repo secret and a workflow
-that runs `wrangler deploy`.
+The `site-deploy.yml` workflow exists but requires a valid `CLOUDFLARE_API_TOKEN`
+repository secret. Manual deployment requires a valid Cloudflare login. A local
+preview or merged website change alone does not confirm publication.
 
 ## Content source of truth
 
@@ -53,7 +60,9 @@ Pricing numbers and Free/Pro limits come from [`docs/PRICING.md`](../docs/PRICIN
 
 ## Placeholders still manual
 
-1. **Checkout** — wire “Unlock Pro” / “Get Pro Multi” to Lemon Squeezy, Gumroad, or Paddle.
+1. **Checkout** — the Lemon Squeezy products remain drafts. Enable checkout links
+   in `js/checkout-config.js` only after the licensing backend and receipt flow are
+   verified. Empty URLs show an honest opening-soon state.
 
 Do not publish license generator secrets on this site.
 
@@ -61,6 +70,21 @@ Do not publish license generator secrets on this site.
 
 Do **not** use generated “before/after Dock” mockups as if they were the app.
 Use real captures of the launcher/settings when ready (Linear G3-01).
+
+### Prism website refresh (RON-442)
+
+`prism-launcher-dark.png` is a real 960×560 capture of the installed Mac Prism
+preview (1.4.10 build 16). It represents the Prism interface shipped in 1.4.11;
+it is not evidence that the installed app itself was updated to that release.
+The Windows light/dark WebP images are existing repository captures, not new
+Windows release verification. Current Settings screenshots remain follow-up work
+within RON-442. The old embedded demo video and old Mac screenshots are no longer
+referenced by the public pages; a new promotional video is tracked in RON-504.
+
+Design direction: generous space, clear typography, restrained blue accents,
+real product imagery, concise features, and straightforward download/pricing
+sections, inspired by Ronald's Vitals reference. ClutterDock retains its own
+branding and feature claims.
 
 ## Launch polish checklist
 

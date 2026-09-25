@@ -4,46 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Install · ClutterDock</title>
-  <meta name="description" content="Install ClutterDock on macOS and Windows. Gatekeeper and SmartScreen notes for the unsigned beta." />
-  <meta name="theme-color" content="#070a10" />
+  <meta name="description" content="Install ClutterDock on macOS and Windows. Gatekeeper and SmartScreen notes for the public beta." />
+  <meta name="theme-color" content="#ffffff" />
   <link rel="canonical" href="https://clutterdock.com/install" />
   <link rel="icon" href="assets/icon-256.png" type="image/png" />
   <link rel="apple-touch-icon" href="assets/icon-256.png" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="ClutterDock" />
   <meta property="og:title" content="Install · ClutterDock" />
-  <meta property="og:description" content="macOS and Windows install steps. Unsigned beta — Gatekeeper and SmartScreen explained." />
+  <meta property="og:description" content="macOS and Windows install steps. Public beta — Gatekeeper and SmartScreen explained." />
   <meta property="og:url" content="https://clutterdock.com/install" />
-  <meta property="og:image" content="https://clutterdock.com/assets/og-card.jpg" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://clutterdock.com/assets/og-card.jpg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260821a" />
+  <meta property="og:image" content="https://clutterdock.com/assets/icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="https://clutterdock.com/assets/icon.png" />
+  <link rel="stylesheet" href="css/styles.css?v=20260925" />
+  <link rel="stylesheet" href="css/prism.css?v=20260925" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="page-bg" aria-hidden="true"></div>
 
-  <header class="nav">
-    <div class="nav-inner">
-      <a class="brand" href="index.html">
-        <img src="assets/icon-256.png" alt="" width="32" height="32" />
-        ClutterDock
-      </a>
-      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
-      <nav class="nav-links" data-nav-links id="site-nav">
-        <a href="index.html#problem">The problem</a>
-        <a href="index.html#solution">The fix</a>
-        <a href="pricing.html">Pricing</a>
-        <a href="install.html" aria-current="page">Install</a>
-        <a class="nav-cta" href="index.html#download">Download</a>
-      </nav>
-    </div>
-  </header>
+  <header class="nav"><div class="nav-inner">
+  <a class="brand" href="index.html"><img src="assets/icon-256.png" width="35" height="35" alt="" />ClutterDock</a>
+  <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>☰</button>
+  <nav class="nav-links" data-nav-links id="site-nav" aria-label="Main navigation">
+    <a href="index.html#features">Features</a><a href="demo.html">Preview</a><a href="pricing.html">Pricing</a><a class="nav-cta" href="index.html#download">Download free</a>
+  </nav>
+</div></header>
 
   <main id="main">
     <section class="hero container">
@@ -54,9 +41,8 @@
           <span class="hero-line hero-serif">in a few minutes.</span>
         </h1>
         <p class="lead">
-          Builds are currently <strong class="text-emphasis">ad-hoc signed</strong> (Mac) and
-          <strong class="text-emphasis">unsigned</strong> (Windows). That’s temporary until Apple Developer ID
-          notarization and Windows signing land. The steps below are normal for indie betas.
+          The Mac build is <strong class="text-emphasis">Developer ID signed</strong>; Apple notarization is still pending.
+          The Windows build is not yet code-signed. Follow the platform steps below to install or update.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="index.html#download">Get the builds</a>
@@ -75,8 +61,8 @@
         <article class="story-step">
           <div class="step-num">1</div>
           <h3>Download the zip</h3>
-          <p>Get <code>ClutterDock-1.4.10-mac.zip</code> from the
-            <a href="index.html#download">download</a> section (release v1.4.10). Universal (Apple Silicon + Intel).</p>
+          <p>Get <code>ClutterDock-1.4.11-mac.zip</code> from the
+            <a href="index.html#download">download</a> section (release v1.4.11). Universal (Apple Silicon + Intel).</p>
         </article>
         <article class="story-step">
           <div class="step-num">2</div>
@@ -93,8 +79,7 @@
       <div class="callout-panel" data-reveal style="margin-top: 2rem;">
         <h3>Gatekeeper: “can’t be opened” / unidentified developer</h3>
         <p>
-          macOS blocks apps that aren’t notarized by Apple. ClutterDock is safe to run from our GitHub Releases;
-          it’s just not Developer ID–notarized yet.
+          macOS blocks apps that aren’t notarized by Apple. The current Mac release is Developer ID signed, but its Apple notarization is still pending. Download only from the official ClutterDock release page.
         </p>
         <p>
           <strong class="text-emphasis">Fix:</strong> Finder → right-click ClutterDock → <strong>Open</strong>
@@ -122,9 +107,9 @@
         </article>
         <article class="story-step">
           <div class="step-num">2</div>
-          <h3>Install and allow if asked</h3>
-          <p>SmartScreen: <strong>More info</strong> → <strong>Run anyway</strong>.
-            Bitdefender / other AV: this build is <strong>unsigned</strong>, not malware — Restore/Allow the file, or add an exclusion for ClutterDock until we ship a signed build.</p>
+          <h3>Run the installer</h3>
+          <p>The current Windows build is <strong>unsigned</strong>, so Windows may show an unknown-publisher warning.
+            Verify that your installer came from the official ClutterDock release linked on this site.</p>
         </article>
         <article class="story-step">
           <div class="step-num">3</div>
@@ -137,14 +122,14 @@
       <div class="callout-panel" data-reveal style="margin-top: 2rem;">
         <h3>SmartScreen / Bitdefender: “virus” or “untrusted”</h3>
         <p>
-          Windows and antivirus flag apps without a paid Authenticode certificate. ClutterDock is open source
+          An unknown-publisher warning can occur because this build is unsigned. A specific malware detection needs separate investigation. ClutterDock is open source
           (<a href="https://github.com/rbakman-rgb/clutterdock" rel="noopener">github.com/rbakman-rgb/clutterdock</a>)
-          and only distributed from that repo / this site. Expected for this beta.
+          and distributed from that repository through this site.
         </p>
         <p>
-          <strong class="text-emphasis">SmartScreen:</strong> More info → Run anyway.<br />
-          <strong class="text-emphasis">Bitdefender:</strong> Protection → Antivirus → Settings → Exclusions, or restore from Quarantine.
-          Do not use a portable exe from the Downloads Temp unpack if an installer is available.
+          If your antivirus reports a threat, leave the file blocked and
+          <a href="https://github.com/rbakman-rgb/clutterdock/issues">contact support</a>
+          with the release version and exact detection name so it can be investigated.
         </p>
       </div>
     </section>
@@ -198,40 +183,12 @@
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <a class="brand" href="index.html">
-          <img src="assets/icon-256.png" alt="" width="32" height="32" />
-          ClutterDock
-        </a>
-        <p>Clean stacks for a crowded Dock. Free forever core. One-time Pro.</p>
-        <p class="footer-domains">clutterdock.com · clutterdock.app</p>
-      </div>
-      <div class="footer-links">
-        <div class="footer-col">
-          <h4>Product</h4>
-          <a href="index.html#problem">The problem</a>
-          <a href="index.html#download">Download</a>
-          <a href="pricing.html">Pricing</a>
-          <a href="install.html">Install help</a>
-        </div>
-        <div class="footer-col">
-          <h4>Support</h4>
-          <a href="install.html">Install FAQ</a>
-          <a href="pricing.html#faq">Pricing FAQ</a>
-          <a href="privacy.html">Privacy</a>
-          <a href="terms.html">Terms</a>
-          <a href="https://github.com/rbakman-rgb/clutterdock/issues" rel="noopener">GitHub Issues</a>
-        </div>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© <span data-year></span> ClutterDock</span>
-      <span>Not affiliated with Apple or Microsoft</span>
-    </div>
-  </footer>
+  <footer class="prism-footer"><div class="prism-wrap">
+  <div class="prism-footer-top"><div><a class="brand" href="index.html"><img src="assets/icon-256.png" alt="" width="35" height="35" />ClutterDock</a><p>A little more order.<br />A lot more room to focus.</p></div>
+  <nav aria-label="Footer"><a href="pricing.html">Pricing</a><a href="install.html">Install help</a><a href="https://github.com/rbakman-rgb/clutterdock/issues">Support</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav></div>
+  <div class="prism-footer-bottom"><span>© <span data-year>2026</span> ClutterDock</span><span>Made for Mac &amp; Windows · <a href="https://github.com/rbakman-rgb/clutterdock">Open source</a></span></div>
+</div></footer>
 
-  <script src="js/main.js?v=20260821a"></script>
+  <script src="js/main.js?v=20260925"></script>
 </body>
 </html>
