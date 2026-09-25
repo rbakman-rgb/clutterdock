@@ -9,6 +9,7 @@
 //                            the apps: { email?, os, appVersion, installId }.
 //   GET  /admin/stats      — aggregated JSON, requires Authorization: Bearer
 //                            <ADMIN_TOKEN> (worker secret).
+import { claimLicense } from "./license-claim.mjs";
 const CANONICAL_HOST = "clutterdock.com";
 
 // Keep in sync with the Download buttons in website/index.html.
@@ -141,6 +142,9 @@ export default {
     }
     if (url.pathname === "/api/register") {
       return handleRegister(request, env);
+    }
+    if (url.pathname === "/api/license/claim") {
+      return claimLicense(request, env);
     }
     if (url.pathname === "/admin/stats") {
       return handleAdminStats(request, env);

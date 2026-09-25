@@ -18,6 +18,7 @@ const os = require('os');
 const { execFile, spawn } = require('child_process');
 const { createHash } = require('crypto');
 const { Store, dataDir, setDataDirPointer } = require('./store');
+const { resolvePurchaseKey } = require('./license');
 const { setupUpdater } = require('./updater');
 const { buildHDrop, parseHDrop } = require('./win-clipboard');
 const { BETA_EXPIRY, expiryState } = require('./beta-expiry');
@@ -1615,8 +1616,11 @@ function wireIpc() {
     }
   });
 
-  ipcMain.handle('activate-license', (_e, key) => {
-    const result = store.activateLicense(key);
+  ipcMain.handle('activate-license', async (_e, key) => {
+    let resolved;
+    try { resolved = await resolvePurchaseKey(key); }
+    catch (error) { return failSnap(error.message); }
+    const result = store.activateLicense(resolved);
     if (!result.ok) return failSnap(result.error);
     registerHotkey(); // Pro folder hotkeys become available
     return okSnap({ display: result.display });

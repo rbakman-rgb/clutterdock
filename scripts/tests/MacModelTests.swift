@@ -23,6 +23,12 @@ func tempDir() -> URL {
 
 @MainActor
 func run() {
+    print("Receipt license compatibility")
+    let proof = "CDPRO2-95D1CEBC39FC7DD5945F7A10ECAC34FF-71591E2762A164FB5F85AABA1EF8C727"
+    check(LicenseManager.validate(proof), "merchant proof validates offline with shared test vector")
+    check(LicenseManager.validate(proof.lowercased()), "merchant proof is case insensitive")
+    check(!LicenseManager.validate(String(proof.dropLast()) + "0"), "tampered merchant proof rejected")
+    check(!LicenseManager.validate(proof + "-"), "malformed merchant proof rejected")
     print("LauncherLayout")
     let compact = LauncherLayout(iconSize: 56, itemCount: 4)
     check(compact.columns == 4, "default icon size fits four columns")

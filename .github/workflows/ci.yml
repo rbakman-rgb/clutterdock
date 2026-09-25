@@ -44,6 +44,8 @@ jobs:
         run: |
           for f in src/*.js src/renderer/*.js scripts/*.js; do node --check "$f"; done
           npm test
+      - name: Purchase activation tests
+        run: node --test scripts/tests/license-claim.test.mjs
 
   windows-e2e:
     name: Windows app E2E (headless Electron)

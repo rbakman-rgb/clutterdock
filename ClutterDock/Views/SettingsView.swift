@@ -484,21 +484,25 @@ struct SettingsView: View {
                 } else {
                     prismSection("Activate license") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Paste your Pro license key (format SDPRO-XXXX-YYYY-ZZZZ).")
+                            Text("Paste the license key from your purchase receipt. Existing SDPRO keys also work.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            TextField("SDPRO-XXXX-XXXX-XXXX", text: $licenseDraft)
+                            TextField("License key", text: $licenseDraft)
                                 .textFieldStyle(.roundedBorder)
+                                .disabled(license.isActivating)
                             HStack {
-                                Button("Activate") {
-                                    if license.activate(key: licenseDraft) {
-                                        statusMessage = "Pro activated — thank you!"
-                                        licenseDraft = ""
-                                    } else {
-                                        statusMessage = license.lastError ?? "Invalid key."
+                                Button(license.isActivating ? "Activating…" : "Activate") {
+                                    Task {
+                                        if await license.activatePurchase(key: licenseDraft) {
+                                            statusMessage = "Pro activated — thank you!"
+                                            licenseDraft = ""
+                                        } else {
+                                            statusMessage = license.lastError ?? "Invalid key."
+                                        }
                                     }
                                 }
                                 .buttonStyle(.borderedProminent)
+                                .disabled(license.isActivating || licenseDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 Button("Get Pro…") {
                                     NSWorkspace.shared.open(AppSupport.pricingURL)
                                 }
@@ -508,7 +512,7 @@ struct SettingsView: View {
                                     }
                                 }
                             }
-                            Text("Pro is ~$14.99 one-time · works on Mac + Windows · offline key, no account.")
+                            Text("$14.99 once · Mac + Windows · activate online once, then use offline.")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }

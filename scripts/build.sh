@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/ClutterDock"
-BUILD="$ROOT/build"
+BUILD="${CLUTTERDOCK_BUILD_DIR:-$ROOT/build}"
 APP="$BUILD/ClutterDock.app"
 MACOS="$APP/Contents/MacOS"
 RES="$APP/Contents/Resources"
@@ -116,8 +116,12 @@ echo -n "APPL????" > "$APP/Contents/PkgInfo"
 # Ad-hoc sign so the app is runnable (Developer ID notarization is a separate step).
 # A failed/invalid signature must fail the build — an unsignable .app looks like a
 # Gatekeeper problem to users and is miserable to diagnose from a green CI run.
-codesign --force --deep --sign - "$APP"
-codesign --verify --deep "$APP"
+if [[ -n "${CLUTTERDOCK_SIGN_IDENTITY:-}" ]]; then
+  codesign --force --deep --options runtime --timestamp --sign "$CLUTTERDOCK_SIGN_IDENTITY" "$APP"
+else
+  codesign --force --deep --sign - "$APP"
+fi
+codesign --verify --deep --strict "$APP"
 
 /System/Library/CoreServices/pbs -flush 2>/dev/null || true
 

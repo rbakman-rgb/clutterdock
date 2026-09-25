@@ -69,6 +69,7 @@ jobs:
           path: |
             windows/dist/*.exe
             windows/dist/*.yml
+            windows/dist/*.blockmap
           if-no-files-found: error
 
   publish:
@@ -113,7 +114,8 @@ jobs:
           # otherwise tag whatever the default branch points at)
           target_commitish: ${{ github.sha }}
           name: ClutterDock ${{ steps.tag.outputs.name }}
-          draft: false
+          # Verify assets and apply Developer ID signing before public release.
+          draft: true
           prerelease: false
           generate_release_notes: true
           body: |
@@ -124,7 +126,7 @@ jobs:
             ### macOS
             1. Download `ClutterDock-*-mac.zip`
             2. Unzip and drag **ClutterDock.app** to Applications
-            3. First open: right-click → **Open** (unsigned build until Developer ID notarization)
+            3. Open **ClutterDock.app**. See the final release notes for signing status.
 
             ### Windows
             1. Download **`ClutterDock-*-setup.exe`** (installer — not the portable)
@@ -138,7 +140,7 @@ jobs:
             - **Windows (NSIS):** in-app download & restart via electron-updater
 
             ### Pro
-            Purchase / activate via the [pricing page](https://clutterdock.com/pricing) (checkout wiring may still be manual).
+            Purchase / activate via the [pricing page](https://clutterdock.com/pricing). Existing Pro licenses continue to work.
 
             Tips: [Buy Me a Coffee](https://buymeacoffee.com/chidichidovsky)
           files: release-assets/*

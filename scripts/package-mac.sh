@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BUILD="$ROOT/build"
+BUILD="${CLUTTERDOCK_BUILD_DIR:-$ROOT/build}"
 APP="$BUILD/ClutterDock.app"
 DIST="$ROOT/dist"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$ROOT/ClutterDock/Info.plist" 2>/dev/null || echo "0.0.0")"
